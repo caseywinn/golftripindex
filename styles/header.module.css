@@ -1,0 +1,75 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: #ffffff;
+  border-bottom: 1px solid #e9edf3;
+}
+
+.inner {
+  height: 72px; /* tall, airy */
+  display: grid;
+  grid-template-columns: 260px 1fr 260px; /* left / center / right */
+  align-items: center;
+
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 28px;
+}
+
+/* Left logo */
+.logoWrap {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.logo {
+  height: 44px; /* adjust to match your asset */
+  width: auto;
+  display: block;
+}
+
+/* Center nav */
+.nav {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 46px; /* wide spacing like screenshot */
+  white-space: nowrap;
+}
+
+.navLink {
+  font-size: 14px;
+  font-weight: 500;
+  color: #0a66c2; /* clean blue link tone */
+  letter-spacing: 0.01em;
+  text-decoration: none;
+}
+
+.navLink:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Right CTA */
+.cta {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.ctaLink {
+  font-size: 14px;
+  font-weight: 500;
+  color: #0a66c2;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.ctaLink:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Respons*
