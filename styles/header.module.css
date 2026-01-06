@@ -72,4 +72,38 @@
   text-underline-offset: 3px;
 }
 
-/* Respons*
+/* Responsive: collapse spacing and allow wrap */
+@media (max-width: 980px) {
+  .inner {
+    grid-template-columns: 200px 1fr 180px;
+    padding: 0 18px;
+  }
+
+  .nav {
+    gap: 22px;
+  }
+
+  .navLink,
+  .ctaLink {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 760px) {
+  .inner {
+    grid-template-columns: 1fr;
+    height: auto;
+    padding: 14px 18px;
+    row-gap: 10px;
+  }
+
+  .cta {
+    justify-content: flex-start;
+  }
+
+  .nav {
+    justify-content: flex-start;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+}
