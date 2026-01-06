@@ -1,12 +1,17 @@
 import { notFound } from "next/navigation";
-import { getTripBySlugMock } from "@/lib/mock-data";
+import { getPublishedTripBySlug } from "@/lib/airtable";
+
+export const revalidate = 600; // 10 minutes
 
 function dollars(costTier: number) {
   return "$".repeat(costTier);
 }
 
-export default function TripPage({ params }: { params: { slug: string } }) {
-  const trip = getTripBySlugMock(params.slug);
+export default async function TripPage({ params }: { params: Promise<{ slug: string }>; }) {
+  const { slug } = await params;
+
+  const trip = await getPublishedTripBySlug(slug);
+
   if (!trip) return notFound();
 
   return (
@@ -16,9 +21,7 @@ export default function TripPage({ params }: { params: { slug: string } }) {
           Rank {trip.currentRanking ?? "—"} · {dollars(trip.costTier)} · {trip.durationMinDays}–{trip.durationMaxDays} days · {trip.stayType.replace("_", " ")}
         </div>
         <h1 className="text-4xl font-bold">{trip.name}</h1>
-        {trip.secondaryName && (
-          <p className="text-lg text-gray-600">{trip.secondaryName}</p>
-        )}
+        {trip.secondaryName && <p className="text-lg text-gray-600">{trip.secondaryName}</p>}
       </div>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
@@ -49,16 +52,15 @@ export default function TripPage({ params }: { params: { slug: string } }) {
           {trip.courses.map((c) => (
             <div key={c.course.id} className="rounded-lg border p-4 flex items-center justify-between">
               <div>
-                <div className="text-sm text-gray-500">#{c.tripCourseRank} · {c.status.replace("_", " ")}</div>
+                <div className="text-sm text-gray-500">
+                  #{c.tripCourseRank} · {c.status.replace("_", " ")}
+                </div>
                 <div className="text-lg font-semibold">{c.course.name}</div>
                 {c.course.consolidatedRanking != null && (
                   <div className="text-sm text-gray-600">
                     Consolidated ranking: {c.course.consolidatedRanking}
                   </div>
                 )}
-              </div>
-              <div className="text-sm text-gray-600">
-                {c.roundsPlanned ? `${c.roundsPlanned} rounds` : ""}
               </div>
             </div>
           ))}

@@ -1,12 +1,14 @@
 import Link from "next/link";
-import { getTripsMock } from "@/lib/mock-data";
+import { getPublishedTrips } from "@/lib/airtable";
+
+export const revalidate = 600; // 10 minutes
 
 function dollars(costTier: number) {
   return "$".repeat(costTier);
 }
 
-export default function TripsPage() {
-  const trips = getTripsMock();
+export default async function TripsPage() {
+  const trips = await getPublishedTrips();
 
   return (
     <main>
