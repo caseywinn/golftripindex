@@ -58,13 +58,13 @@ export default async function TripsPage({
             <TripCard
               key={t.id}
               href={`/trips/${t.slug}`}
-              currentRanking={t.currentRanking}
-              previousRanking={t.previousRanking}
+              currentRanking={t.currentRanking ?? 999}
+              previousRanking={t.previousRanking ?? 999}
               name={t.name}
               secondaryName={t.secondaryName}
-              durationMinDays={t.durationMinDays}
-              durationMaxDays={t.durationMaxDays}
-              drivingDistanceMiles={t.drivingDistanceMiles}
+              durationMinDays={t.durationMinDays ?? 1}
+              durationMaxDays={t.durationMaxDays ?? 999}
+              drivingDistanceMiles={t.drivingDistanceMiles ?? 0}
               stayType={t.stayType}
               leadTime={t.leadTime}
               costDollarSigns={t.costDollarSigns}
