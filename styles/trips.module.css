@@ -1,0 +1,190 @@
+.page {
+  width: 100%;
+}
+
+/* Banner */
+.banner {
+  position: relative;
+  width: 100%;
+  height: 260px;
+  background: #0b0f1a; /* fallback while image loads */
+  overflow: hidden;
+}
+
+.bannerMedia {
+  position: absolute;
+  inset: 0;
+  background-image: url("/trips-hero.jpg"); /* put this in /public */
+  background-size: cover;
+  background-position: center;
+  transform: scale(1.01);
+}
+
+/* Slight readability overlay */
+.bannerMedia::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.15) 0%,
+    rgba(0, 0, 0, 0.25) 60%,
+    rgba(0, 0, 0, 0.35) 100%
+  );
+}
+
+.bannerInner {
+  position: relative;
+  height: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 28px;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+/* Center blue card */
+.bannerCard {
+  width: min(620px, 92%);
+  background: #0488db;
+  border-radius: 8px;
+  padding: 16px 18px 12px;
+  text-align: center;
+  box-shadow: 0 14px 28px rgba(0,0,0,0.18);
+  transform: translateY(18px); /* sits slightly over the white area */
+}
+
+.bannerTitle {
+  color: #ffffff;
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: none;
+}
+
+.bannerSub {
+  margin-top: 4px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Toggle row under the card */
+.segment {
+  margin-top: 26px;
+  padding-bottom: 14px;
+  display: flex;
+  gap: 36px;
+  align-items: center;
+  justify-content: center;
+}
+
+.segmentItem {
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  color: #6b7280;
+  text-decoration: none;
+  padding: 8px 10px;
+  border-radius: 999px;
+}
+
+.segmentItem:hover {
+  color: #111827;
+}
+
+.active {
+  color: #0488db;
+  text-decoration: underline;
+  text-underline-offset: 6px;
+}
+
+/* Content */
+.content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 44px 28px 80px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+.tripCard {
+  display: grid;
+  grid-template-rows: 160px auto;
+  border-radius: 16px;
+  border: 1px solid #eef1f6;
+  background: #ffffff;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  text-decoration: none;
+}
+
+.tripThumb {
+  background-size: cover;
+  background-position: center;
+  background-color: #e9edf3;
+}
+
+.tripMeta {
+  padding: 14px 14px 16px;
+}
+
+.tripName {
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: #0b0f1a;
+}
+
+.tripSecondary {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.tripStats {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #7b8597;
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dot {
+  opacity: 0.6;
+}
+
+/* Responsive */
+@media (max-width: 980px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .bannerTitle {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 640px) {
+  .content {
+    padding: 36px 18px 70px;
+  }
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  .banner {
+    height: 240px;
+  }
+  .segment {
+    gap: 18px;
+  }
+}
