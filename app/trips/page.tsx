@@ -64,10 +64,10 @@ export default async function TripsPage({
               secondaryName={t.secondaryName}
               durationMinDays={t.durationMinDays ?? 1}
               durationMaxDays={t.durationMaxDays ?? 999}
-              drivingDistanceMiles={t.drivingDistanceMiles ?? 0}
+              driving={t.driving}
               stayType={t.stayType}
               leadTime={t.leadTime}
-              costDollarSigns={t.costDollarSigns}
+              costTier={t.costTier}
               overview={t.overview}
               thumbnailImageUrl={`/images/trips/${t.slug}.jpg`}
               golfRating={t.golfRating}

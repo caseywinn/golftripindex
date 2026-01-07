@@ -10,13 +10,14 @@ export type GolfTrip = {
   overview?: string;
   fullDescription?: string;
   sampleItinerary?: string;
+  sampleItineraryNotes?: string;
   foodAndLodgingOverview?: string;
 
   durationMinDays: number;
   durationMaxDays: number;
-  drivingDistanceMiles?: number;
+  driving?: number;
   stayType: StayType;
-  leadTimeDays?: number;
+  leadTime?: string;
   costTier: 1 | 2 | 3 | 4 | 5;
 
   golfRating: number;

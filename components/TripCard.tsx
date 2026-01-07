@@ -12,10 +12,10 @@ type TripCardProps = {
 
   durationMinDays?: number | null;
   durationMaxDays?: number | null;
-  drivingDistanceMiles?: number | null;
+  driving?: number | null;
   stayType?: string | null;
   leadTime?: string | null;
-  costDollarSigns?: number | null;
+  costTier?: number | null;
 
   overview?: string | null;
   thumbnailImageUrl?: string | null;
@@ -69,10 +69,10 @@ export default function TripCard(props: TripCardProps) {
     secondaryName,
     durationMinDays,
     durationMaxDays,
-    drivingDistanceMiles,
+    driving,
     stayType,
     leadTime,
-    costDollarSigns,
+    costTier,
     overview,
     thumbnailImageUrl,
     golfRating,
@@ -110,10 +110,10 @@ export default function TripCard(props: TripCardProps) {
 
           <div className={styles.meta}>
             <div><span className={styles.metaLabel}>Duration:</span> {daysRange(durationMinDays, durationMaxDays)}</div>
-            <div><span className={styles.metaLabel}>Driving:</span> {miles(drivingDistanceMiles)}</div>
+            <div><span className={styles.metaLabel}>Driving:</span> {miles(driving)}</div>
             <div><span className={styles.metaLabel}>Stay Type:</span> {stayType ?? "—"}</div>
             <div><span className={styles.metaLabel}>Lead Time:</span> {leadTime ?? "—"}</div>
-            <div><span className={styles.metaLabel}>Cost:</span> {dollars(costDollarSigns)}</div>
+            <div><span className={styles.metaLabel}>Cost:</span> {dollars(costTier)}</div>
           </div>
 
           {overview ? <p className={styles.overview}>{overview}</p> : null}
