@@ -81,6 +81,9 @@ function mapCourse(r: Airtable.Record<Airtable.FieldSet>): GolfCourse {
     slug: f["Slug"] as string,
     name: f["Name"] as string,
     thumbnailImageUrl: asString(f["Thumbnail Image URL"]),
+    golfDigestRanking: asNumber(f["Golf Digest Ranking"]),
+    golfComRanking: asNumber(f["Golfdotcom Ranking"]),
+    golfweekRanking: asNumber(f["Golfweek Ranking"]),
     consolidatedRanking: asNumber(f["Consolidated Ranking"]),
   };
 }
@@ -142,13 +145,14 @@ export async function getPublishedTripBySlug(slug: string): Promise<TripWithCour
   if (!tripRecord) return null;
 
   const trip = mapTrip(tripRecord);
+  const safeTripName = trip.name.replaceAll('"', '\\"');
 
   const tcRecords = await base(TRIP_COURSES_TABLE)
     .select({
-      filterByFormula: `{Golf Trip}="${trip.id}"`,
+      filterByFormula: `FIND("${safeTripName}", ARRAYJOIN({Golf Trip}))`,
       maxRecords: 50,
-    })
-    .all();
+   })
+  .all();
 
   const tcs = tcRecords.map(mapTripCourse).sort((a, b) => a.tripCourseRank - b.tripCourseRank);
   const courseIds = Array.from(new Set(tcs.map((x) => x.golfCourseId)));

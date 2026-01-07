@@ -2,6 +2,7 @@ import Link from "next/link";
 import styles from "../../styles/trips.module.css";
 import TripCard from "../../components/TripCard";
 import { getPublishedTrips } from "../../lib/airtable";
+import { formatStayType, formatCostTier, formatRanking, formatDuration, formatDriving } from "../../lib/formatters";
 
 type SearchParams = Promise<{ days?: string }>;
 
@@ -57,7 +58,7 @@ export default async function TripsPage({
           {top10.map((t) => (
             <TripCard
               key={t.id}
-              href={`/trips/${t.slug}`}
+              href={`/trips/${t.slug.toLowerCase()}`}
               currentRanking={t.currentRanking ?? 999}
               previousRanking={t.previousRanking ?? 999}
               name={t.name}
@@ -65,11 +66,11 @@ export default async function TripsPage({
               durationMinDays={t.durationMinDays ?? 1}
               durationMaxDays={t.durationMaxDays ?? 999}
               driving={t.driving}
-              stayType={t.stayType}
+              stayType={formatStayType(t.stayType)}
               leadTime={t.leadTime}
               costTier={t.costTier}
               overview={t.overview}
-              thumbnailImageUrl={`/images/trips/${t.slug}.jpg`}
+              thumbnailImageUrl={`/images/trips/${t.slug.toLowerCase()}.jpg`}
               golfRating={t.golfRating}
               lodgingRating={t.lodgingRating}
               foodRating={t.foodRating}
