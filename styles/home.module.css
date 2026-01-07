@@ -1,0 +1,207 @@
+/* Adjust this if your header height changes */
+:root {
+  --header-h: 72px;
+  --hero-bottom-gap: 8px;
+}
+
+/* HERO */
+.hero {
+  position: relative;
+  width: 100%;
+  height: calc(100vh - var(--header-h) - var(--hero-bottom-gap));
+
+  overflow: visible;          /* was hidden */
+  z-index: 2;                 /* ensure it layers above the section */
+}
+
+
+/* Background image layer */
+.heroMedia {
+  position: absolute;
+  inset: 0;
+  background-image: url("/home-hero.jpg"); /* put your hero image in /public */
+  background-size: cover;
+  background-position: center;
+  transform: scale(1.02); /* subtle to avoid edge artifacts */
+}
+
+/* Optional overlay for readability (subtle) */
+.heroMedia::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.08) 0%,
+    rgba(0, 0, 0, 0.08) 35%,
+    rgba(0, 0, 0, 0.35) 70%,
+    rgba(0, 0, 0, 0.55) 100%
+  );
+}
+
+/* Content container */
+.heroInner {
+  position: relative;
+  height: 100%;
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 0 40px;
+
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+}
+
+/* Content aligned to right, near bottom */
+.heroContent {
+  color: #ffffff;
+  padding: 0 0 56px;
+  text-align: center;
+  max-width: 520px;
+}
+
+.kicker {
+  font-size: 40px;
+  line-height: 1.25;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  opacity: 0.95;
+}
+
+.kicker2 {
+  font-size: 50px;
+  line-height: 1.25;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  opacity: 0.95;
+}
+
+.title {
+  margin-top: 6px;
+  font-size: 90px;
+  line-height: 0.95;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+/* Button */
+.actions {
+  margin-top: 18px;
+}
+
+.primaryBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 10px;
+
+  border: 1px solid rgba(255,255,255,0.55);
+  color: #ffffff;
+  background: rgba(0,0,0,0.18);
+  backdrop-filter: blur(6px);
+
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+}
+
+.primaryBtn:hover {
+  background: rgba(0,0,0,0.28);
+}
+
+/* Scroll hint button centered at bottom edge of hero */
+.scrollHint {
+  position: absolute;
+  left: 50%;
+  bottom: -0px;            /* slightly more overlap */
+  transform: translateX(-50%);
+
+  width: 44px;              /* larger button */
+  height: 44px;
+  border-radius: 999px;
+
+  border: 0;
+  background: #0488db;
+  color: #ffffff;
+
+  display: grid;
+  place-items: center;
+
+  box-shadow: 0 10px 22px rgba(0,0,0,0.18);
+  cursor: pointer;
+}
+
+.scrollIcon {
+  font-size: 36px;          /* was ~16px */
+  line-height: 1.4;
+  transform: translateY(-1px);
+  font-weight: 700;
+}
+
+/* BELOW HERO SECTION */
+.section {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 54px 28px 80px;   /* was 34px ... increase top padding */
+  position: relative;
+  z-index: 1;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sectionTitle {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.viewAll {
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #7b8597;
+  padding: 10px 14px;
+  border: 1px solid #e6e8ee;
+  border-radius: 999px;
+}
+
+.viewAll:hover {
+  color: #0b0f1a;
+}
+
+/* Placeholder cards */
+.cardRow {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+
+.card {
+  height: 240px;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid #eef1f6;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+
+/* Responsive */
+@media (max-width: 980px) {
+  .title { font-size: 56px; }
+  .kicker { font-size: 18px; }
+  .cardRow { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 640px) {
+  .heroInner { justify-content: flex-start; }
+  .heroContent { padding-bottom: 44px; max-width: 100%; }
+  .title { font-size: 44px; }
+  .cardRow { grid-template-columns: 1fr; }
+}

@@ -18,24 +18,33 @@ export default function SiteHeader() {
         {/* Center: Nav */}
         <nav className={styles.nav} aria-label="Primary">
           <Link href="/trips" className={styles.navLink}>
-            2026 Trip Rankings
+            TRIP RANKINGS
           </Link>
           <Link href="/courses" className={styles.navLink}>
-            Consolidated Course Rankings
+            COURSE RANKINGS
           </Link>
           <Link href="/how-we-rank" className={styles.navLink}>
-            How We Rank
+            THE FORMULA
           </Link>
           <Link href="/who-we-are" className={styles.navLink}>
-            Who We Are
+            WHO WE ARE
           </Link>
         </nav>
 
         {/* Right: CTA */}
         <div className={styles.cta}>
-          <Link href="/become-a-rater" className={styles.ctaLink}>
-            Become a Rater
-          </Link>
+          <a
+            href="https://instagram.com/golftripindex"
+            aria-label="Instagram"
+            className={styles.icon}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {/* Instagram icon */}
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M7 2h10a5 5 0 015 5v10a5 5 0 01-5 5H7a5 5 0 01-5-5V7a5 5 0 015-5zm10 2H7a3 3 0 00-3 3v10a3 3 0 003 3h10a3 3 0 003-3V7a3 3 0 00-3-3zm-5 3a5 5 0 110 10 5 5 0 010-10zm0 2a3 3 0 100 6 3 3 0 000-6zm5.2-.9a1.1 1.1 0 110 2.2 1.1 1.1 0 010-2.2z" />
+            </svg>
+          </a>
         </div>
       </div>
     </header>

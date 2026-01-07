@@ -4,6 +4,11 @@
   z-index: 50;
   background: #ffffff;
   border-bottom: 1px solid #e9edf3;
+  font-family:
+    var(--font-nav),
+    "Inter",
+    system-ui,
+    sans-serif;
 }
 
 .inner {
@@ -35,14 +40,14 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 46px; /* wide spacing like screenshot */
+  gap: 35px; /* wide spacing like screenshot */
   white-space: nowrap;
 }
 
 .navLink {
   font-size: 14px;
-  font-weight: 500;
-  color: #0a66c2; /* clean blue link tone */
+  font-weight: 300;
+  color: #0488db; /* clean blue link tone */
   letter-spacing: 0.01em;
   text-decoration: none;
 }
@@ -61,8 +66,8 @@
 
 .ctaLink {
   font-size: 14px;
-  font-weight: 500;
-  color: #0a66c2;
+  font-weight: 300;
+  color: #0488db;
   text-decoration: none;
   white-space: nowrap;
 }
@@ -70,6 +75,25 @@
 .ctaLink:hover {
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+.icon {
+  width: 26px;
+  height: 26px;
+  color: #111;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+}
+
+.icon:hover {
+  opacity: 0.7;
 }
 
 /* Responsive: collapse spacing and allow wrap */
