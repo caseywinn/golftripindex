@@ -1,0 +1,11 @@
+.page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 34px 28px 80px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}

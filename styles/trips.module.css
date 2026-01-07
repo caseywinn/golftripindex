@@ -7,8 +7,8 @@
   position: relative;
   width: 100%;
   height: 260px;
-  background: #0b0f1a; /* fallback while image loads */
-  overflow: hidden;
+  background: #0b0f1a;
+  overflow: visible; /* critical */
 }
 
 .bannerMedia {
@@ -34,39 +34,43 @@
 }
 
 .bannerInner {
-  position: relative;
-  height: 100%;
+  position: absolute;
+  left: 50%;
+  bottom: -90px;              /* pushes it below the image */
+  transform: translateX(-50%);
+
+  width: 100%;
   max-width: 1200px;
-  margin: 0 auto;
   padding: 0 28px;
 
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
   align-items: center;
+  z-index: 2;
 }
+
 
 /* Center blue card */
 .bannerCard {
-  width: min(620px, 92%);
+  width: min(400px, 92%);
   background: #0488db;
   border-radius: 8px;
-  padding: 16px 18px 12px;
+  padding: 8px 18px 8px;
   text-align: center;
-  box-shadow: 0 14px 28px rgba(0,0,0,0.18);
+  box-shadow: 0 2px 2px rgba(0,0,0,0.18);
   transform: translateY(18px); /* sits slightly over the white area */
 }
 
 .bannerTitle {
   color: #ffffff;
-  font-size: 30px;
+  font-size: 24px;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: none;
 }
 
 .bannerSub {
-  margin-top: 4px;
+  margin-top: 0px;
   font-size: 11px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -75,7 +79,7 @@
 
 /* Toggle row under the card */
 .segment {
-  margin-top: 26px;
+  margin-top: 32px;
   padding-bottom: 14px;
   display: flex;
   gap: 36px;
@@ -107,7 +111,7 @@
 .content {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 44px 28px 80px;
+  padding: 90px 0px 40px 0px;
 }
 
 .grid {
@@ -159,6 +163,26 @@
   align-items: center;
   gap: 8px;
 }
+
+/* the area below the hero */
+.listWrap {
+  background: #f5f8f9;
+  padding: 96px 0 90px; /* pushes list down under the overlapping hero */
+}
+
+/* centered column like the screenshot */
+.listInner {
+  max-width: 1200px;     /* narrower than 1200 so cards match the mock */
+  margin: 0 auto;
+  padding: 0 28px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;            /* more breathing room between tiles */
+}
+
 
 .dot {
   opacity: 0.6;

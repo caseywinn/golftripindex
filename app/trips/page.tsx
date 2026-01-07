@@ -1,5 +1,6 @@
 import Link from "next/link";
 import styles from "../../styles/trips.module.css";
+import TripCard from "../../components/TripCard";
 import { getPublishedTrips } from "../../lib/airtable";
 
 type SearchParams = Promise<{ days?: string }>;
@@ -10,8 +11,15 @@ export default async function TripsPage({
   searchParams: SearchParams;
 }) {
   const sp = await searchParams;
-  const days = sp.days ?? "2-5"; // default
-  const trips = await getPublishedTrips(); // no filtering yet per your ask
+  const days = sp.days ?? "2-5";
+
+  const trips = await getPublishedTrips();
+
+  const sorted = [...trips].sort(
+    (a, b) => (a.currentRanking ?? 9999) - (b.currentRanking ?? 9999)
+  );
+
+  const top10 = sorted.slice(0, 10);
 
   return (
     <main className={styles.page}>
@@ -42,29 +50,34 @@ export default async function TripsPage({
         </div>
       </section>
 
-      {/* Content area (placeholder list for now) */}
-      <section className={styles.content}>
-        <div className={styles.grid}>
-          {trips.map((t) => (
-            <Link key={t.id} href={`/trips/${t.slug}`} className={styles.tripCard}>
-              <div
-                className={styles.tripThumb}
-                style={{
-                  backgroundImage: t.thumbnailImageUrl ? `url(${t.thumbnailImageUrl})` : undefined,
-                }}
-                aria-hidden="true"
-              />
-              <div className={styles.tripMeta}>
-                <div className={styles.tripName}>{t.name}</div>
-                {t.secondaryName && <div className={styles.tripSecondary}>{t.secondaryName}</div>}
-                <div className={styles.tripStats}>
-                  <span>Overall {t.overallRating?.toFixed?.(1) ?? t.overallRating ?? "—"}</span>
-                  <span className={styles.dot}>•</span>
-                  <span>Cost {"$".repeat(Math.max(0, Math.min(5, Number(t.costDollarSigns ?? 0)))) || "—"}</span>
-                </div>
-              </div>
-            </Link>
+      {/* Trip tiles */}
+      <section className={styles.listWrap}>
+        <div className={styles.listInner}>
+          <div className={styles.list}>
+          {top10.map((t) => (
+            <TripCard
+              key={t.id}
+              href={`/trips/${t.slug}`}
+              currentRanking={t.currentRanking}
+              previousRanking={t.previousRanking}
+              name={t.name}
+              secondaryName={t.secondaryName}
+              durationMinDays={t.durationMinDays}
+              durationMaxDays={t.durationMaxDays}
+              drivingDistanceMiles={t.drivingDistanceMiles}
+              stayType={t.stayType}
+              leadTime={t.leadTime}
+              costDollarSigns={t.costDollarSigns}
+              overview={t.overview}
+              thumbnailImageUrl={`/images/trips/${t.slug}.jpg`}
+              golfRating={t.golfRating}
+              lodgingRating={t.lodgingRating}
+              foodRating={t.foodRating}
+              vibeRating={t.vibeRating}
+              overallRating={t.overallRating}
+            />
           ))}
+          </div>
         </div>
       </section>
     </main>
