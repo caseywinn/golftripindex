@@ -4,11 +4,7 @@
   z-index: 50;
   background: #ffffff;
   border-bottom: 1px solid #e9edf3;
-  font-family:
-    var(--font-nav),
-    "Inter",
-    system-ui,
-    sans-serif;
+  font-family: var(--font-nav), "Inter", system-ui, sans-serif;
 }
 
 .inner {
@@ -96,6 +92,65 @@
   opacity: 0.7;
 }
 
+/* --- Standard Hamburger Icon --- */
+.hamburger {
+  display: none; /* shown on mobile */
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin-left: auto;
+  cursor: pointer;
+
+  /* key fix */
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.hamburgerBar {
+  display: block;
+  width: 24px;
+  height: 2.5px;
+  background: #111;
+  border-radius: 2px;
+}
+
+/* spacing between bars */
+.hamburgerBar + .hamburgerBar {
+  margin-top: 0px;
+}
+
+/* Instagram link styling inside the hamburger menu */
+.menuInstagram {
+  margin-top: auto; /* pushes it to the bottom */
+  padding-top: 14px;
+  border-top: 1px solid #e9edf3;
+  display: none;
+  align-items: center;
+  gap: 10px;
+  color: #111;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.menuInstagramIcon {
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.menuInstagramIcon svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
 /* Responsive: collapse spacing and allow wrap */
 @media (max-width: 980px) {
   .inner {
@@ -113,21 +168,65 @@
   }
 }
 
+/* Mobile: hamburger menu + drawer */
 @media (max-width: 760px) {
+  /* Header row: logo left, hamburger right */
   .inner {
-    grid-template-columns: 1fr;
-    height: auto;
-    padding: 14px 18px;
-    row-gap: 10px;
+    height: 72px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    padding: 0 18px;
   }
 
+  /* Show hamburger */
+  .hamburger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Instagram link styling inside the hamburger menu */
+  .menuInstagram {
+    display: flex;
+  }
+
+  /* Hide the desktop Instagram icon on mobile (it’s now in the menu) */
   .cta {
-    justify-content: flex-start;
+    display: none;
   }
 
+  /*
+    Nav becomes a full-screen drawer under the sticky header.
+    Hidden by default; shown when navOpen class is present.
+  */
   .nav {
-    justify-content: flex-start;
-    gap: 16px;
-    flex-wrap: wrap;
+    position: fixed;
+    top: 72px; /* directly under header */
+    left: 0;
+    right: 0;
+    bottom: 0;
+
+    background: #ffffff;
+    border-top: 1px solid #e9edf3;
+    padding: 18px;
+
+    display: none; /* IMPORTANT: hidden until open */
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+
+    white-space: normal;
+    overflow-y: auto;
+    z-index: 60;
+  }
+
+  .navOpen {
+    display: flex;
+  }
+
+  .navLink {
+    font-size: 16px;
+    font-weight: 400;
   }
 }

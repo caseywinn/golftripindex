@@ -82,6 +82,8 @@
   gap: 22px;
   font-size: 12px;
   color: #6b7280;
+  line-height:0px;
+  margin-bottom: 24px;
 }
 
 .metaLabel {
@@ -149,7 +151,7 @@
 }
 
 .overall {
-  text-align: right;
+  text-align: center;
   min-width: 72px;
 }
 
@@ -178,7 +180,23 @@
     grid-template-columns: 1fr;
   }
   .media {
-    min-height: 220px;
+    min-height: 180px;
+    position: relative;
+  }
+
+  /* Overlay previous rank on image */
+  .prev {
+    display:none;
+  }
+
+  .rank {
+    font-size: 28px;
+    top: 12px;
+    left: 12px;
+  }
+  .body {
+    padding: 14px 16px 10px;
+    gap: 8px;
   }
   .bottom {
     flex-direction: column;
@@ -186,10 +204,50 @@
     gap: 10px;
   }
   .scores {
-    gap: 18px;
-    flex-wrap: wrap;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 0;              /* remove uneven spacing */
   }
+
+  .secondary {
+    display: block;     /* forces newline */
+    margin-bottom: 16px;    /* visual separation from title */
+  }
+
+  .score,
   .overall {
-    text-align: left;
+    flex: 1;             /* evenly distribute */
+    min-width: 0;
+    text-align: center;
+  }
+
+  .overallNum {
+    font-size: 16px;
+  }
+
+  .overall {
+    text-align: center;  /* override previous left alignment */
+  }
+
+  /* Hide meta items after the first two */
+  .meta > *:nth-child(2) {
+    display: none;
+  }
+
+  /* Hide Stay Type + Lead Time */
+  .meta > *:nth-child(3) {
+    display: none;
+  }
+
+  /* Hide Stay Type + Lead Time */
+  .meta > *:nth-child(4) {
+    display: none;
+  }
+
+  /* Tighten spacing since fewer items remain */
+  .meta {
+    gap: 12px;
   }
 }

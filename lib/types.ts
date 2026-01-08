@@ -37,11 +37,13 @@ export type GolfCourse = {
   id: string;
   slug: string;
   name: string;
-  thumbnailImageUrl?: string;
+
+  state?: string;
+  courseType?: string;
 
   golfDigestRanking?: number;
   golfweekRanking?: number;
-  golfComRanking?: number;
+  golfDotComRanking?: number;
   consolidatedRanking?: number;
 };
 

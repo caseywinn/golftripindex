@@ -167,7 +167,7 @@
 /* the area below the hero */
 .listWrap {
   background: #f5f8f9;
-  padding: 96px 0 90px; /* pushes list down under the overlapping hero */
+  padding: 96px 0 40px; /* pushes list down under the overlapping hero */
 }
 
 /* centered column like the screenshot */
@@ -194,7 +194,16 @@
     grid-template-columns: repeat(2, 1fr);
   }
   .bannerTitle {
-    font-size: 24px;
+    font-size: 18px;
+  }
+
+  .bannerSub {
+    font-size: 10px;
+  }
+
+  /* centered column like the screenshot */
+  .listInner {
+    padding: 0 10px;
   }
 }
 
@@ -206,7 +215,7 @@
     grid-template-columns: 1fr;
   }
   .banner {
-    height: 240px;
+    height: 200px;
   }
   .segment {
     gap: 18px;

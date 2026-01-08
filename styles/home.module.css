@@ -192,16 +192,62 @@
   box-shadow: 0 1px 2px rgba(0,0,0,0.04);
 }
 
-/* Responsive */
-@media (max-width: 980px) {
-  .title { font-size: 56px; }
-  .kicker { font-size: 18px; }
-  .cardRow { grid-template-columns: repeat(2, 1fr); }
-}
-
 @media (max-width: 640px) {
-  .heroInner { justify-content: flex-start; }
-  .heroContent { padding-bottom: 44px; max-width: 100%; }
-  .title { font-size: 44px; }
-  .cardRow { grid-template-columns: 1fr; }
+  /* Make hero a horizontal band instead of full-height */
+  .hero {
+    height: auto;
+    min-height: 360px;
+    padding-top: 32px;
+    padding-bottom: 32px;
+
+    display: flex;              /* KEY */
+    align-items: flex-end;      /* push content to bottom */
+  }
+
+  /* Hero content anchored to bottom */
+  .heroInner {
+    height: auto;
+    width: 100%;
+    justify-content: right;    /* horizontal centering */
+    align-items: flex-end;      /* bottom alignment */
+    padding: 0 28px;
+  }
+
+  .heroContent {
+    padding: 0;
+    text-align: center;
+    max-width: 100%;
+  }
+
+  .kicker {
+    font-size: 16px;
+    line-height: 1.8;
+  }
+
+  .kicker2 {
+    font-size: 19px;
+    line-height: 1.2;
+  }
+
+  .title {
+    font-size: 33px;
+    line-height: 1.05;
+    margin-top: 4px;
+  }
+
+  /* Stack Latest News cards vertically */
+  .cardRow {
+    grid-template-columns: 1fr;
+    gap: 14px; /* slightly tighter vertical rhythm on mobile */
+  }
+
+  .card {
+    height: auto;        /* allow content-driven height */
+    min-height: 180px;   /* keeps visual weight consistent */
+  }
+
+  /* Hide the blue scroll arrow entirely */
+  .scrollHint {
+    display: none;
+  }
 }

@@ -129,9 +129,7 @@ export default async function TripDetailsPage({
         {/* Course grid */}
         <div className={styles.courseGrid}>
           {courses.map((c) => {
-            const img =
-              c.course.thumbnailImageUrl ||
-              `/images/courses/${c.course.slug.toLowerCase()}.jpg`;
+            const img = `/images/courses/${c.course.slug.toLowerCase()}.jpg`;
 
             return (
               <div key={`${c.course.id}-${c.tripCourseRank}`} className={styles.courseCard}>
@@ -158,7 +156,7 @@ export default async function TripDetailsPage({
                     <div className={styles.rankLabel}>Golf Digest</div>
                   </div>
                   <div className={styles.rankCell}>
-                    <div className={styles.rankNum}>{c.course.golfComRanking ?? "NR"}</div>
+                    <div className={styles.rankNum}>{c.course.golfDotComRanking ?? "NR"}</div>
                     <div className={styles.rankLabel}>Golf.com</div>
                   </div>
                   <div className={styles.rankCell}>

@@ -80,9 +80,8 @@ function mapCourse(r: Airtable.Record<Airtable.FieldSet>): GolfCourse {
     id: r.id,
     slug: f["Slug"] as string,
     name: f["Name"] as string,
-    thumbnailImageUrl: asString(f["Thumbnail Image URL"]),
     golfDigestRanking: asNumber(f["Golf Digest Ranking"]),
-    golfComRanking: asNumber(f["Golfdotcom Ranking"]),
+    golfDotComRanking: asNumber(f["Golfdotcom Ranking"]),
     golfweekRanking: asNumber(f["Golfweek Ranking"]),
     consolidatedRanking: asNumber(f["Consolidated Ranking"]),
   };
@@ -181,3 +180,30 @@ export async function getPublishedTripBySlug(slug: string): Promise<TripWithCour
       .filter(Boolean) as TripWithCourses["courses"],
   };
 }
+
+export async function getPublishedCourses() {
+  const records = await base(COURSES_TABLE)
+    .select({
+      filterByFormula: "AND({Consolidated Ranking}, {Consolidated Ranking} <= 100)",
+      sort: [{ field: "Consolidated Ranking", direction: "asc" }],
+    })
+    .all();
+
+  return records.map((r) => {
+    const f = r.fields;
+
+    return {
+      id: r.id,
+      slug: f["Slug"] as string,
+      name: f["Name"] as string,
+      state: asString(f["State"]),
+      courseType: asString(f["Course Type"]),
+
+      golfDigestRanking: asNumber(f["Golf Digest Ranking"]),
+      golfDotComRanking: asNumber(f["Golfdotcom Ranking"]),
+      golfweekRanking: asNumber(f["Golfweek Ranking"]),
+      consolidatedRanking: asNumber(f["Consolidated Ranking"]),
+    };
+  });
+}
+
