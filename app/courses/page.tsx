@@ -8,7 +8,7 @@ type Course = {
   name: string;
   state?: string | null;
   golfDigestRanking?: number | null;
-  golfComRanking?: number | null;
+  golfDotComRanking?: number | null;
   golfweekRanking?: number | null;
   consolidatedRanking?: number | null;
   // Optional if you already have it in Airtable:
