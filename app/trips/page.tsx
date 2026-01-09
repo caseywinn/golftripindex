@@ -29,7 +29,7 @@ export default async function TripsPage({
         <div className={styles.bannerMedia} aria-hidden="true" />
 
         <div className={styles.bannerInner}>
-          <div className={styles.bannerCard}>
+          <div className={`${styles.bannerCard} blueBannerCard`}>
             <div className={styles.bannerTitle}>2026 Golf Trip Rankings</div>
             <div className={styles.bannerSub}>PUBLISHED JAN 20, 2026</div>
           </div>

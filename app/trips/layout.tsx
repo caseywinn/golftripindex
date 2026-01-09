@@ -5,3 +5,5 @@ export default function TripsLayout({
 }) {
   return <>{children}</>;
 }
+
+import "@/app/globals.css";

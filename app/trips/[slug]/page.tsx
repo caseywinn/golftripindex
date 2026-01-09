@@ -54,7 +54,7 @@ export default async function TripDetailsPage({
 
         {/* Center floating card */}
         <div className={styles.heroInner}>
-          <div className={styles.heroCard}>
+          <div className={`${styles.heroCard} blueBannerCard`}>
             <div className={styles.heroTitle}>
               #{trip.currentRanking ?? "—"} {trip.name}
             </div>
@@ -132,7 +132,7 @@ export default async function TripDetailsPage({
             const img = `/images/courses/${c.course.slug.toLowerCase()}.jpg`;
 
             return (
-              <div key={`${c.course.id}-${c.tripCourseRank}`} className={styles.courseCard}>
+              <div key={`${c.course.id}-${c.tripCourseRank}`} className={`${styles.courseCard} whiteRoundedBox`}>
                 <div
                   className={styles.courseImage}
                   style={{ backgroundImage: `url("${img}")` }}
@@ -191,7 +191,7 @@ export default async function TripDetailsPage({
             ) : null}
           </div>
 
-          <div className={styles.categorySection}>
+          <div className={`${styles.categorySection} whiteRoundedBox`}>
             <div className={styles.categoryTitle}>Courses included:</div>
 
             <div className={styles.categoryRows}>
@@ -214,7 +214,7 @@ export default async function TripDetailsPage({
 
           {/* Two-up detail section below */}
           <div className={styles.detailGrid}>
-            <div className={styles.sideCard}>
+            <div className={`${styles.sideCard} whiteRoundedBox`}>
               <div className={styles.sideTitle}>Sample Itinerary</div>
 
               {trip.sampleItinerary ? (
@@ -249,7 +249,7 @@ export default async function TripDetailsPage({
               ) : null}
             </div>
 
-            <div className={styles.sideCard}>
+            <div className={`${styles.sideCard} whiteRoundedBox`}>
               <div className={styles.sideTitle}>Food &amp; Lodging</div>
 
               {trip.foodAndLodgingOverview ? (

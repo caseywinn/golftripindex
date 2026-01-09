@@ -37,7 +37,7 @@ export default async function CourseRankingsPage() {
         <div className={styles.bannerMedia} aria-hidden="true" />
 
         <div className={styles.bannerInner}>
-          <div className={styles.bannerCard}>
+          <div className={`${styles.bannerCard} blueBannerCard`}>
             <div className={styles.bannerTitle}>Course Rankings</div>
             <div className={styles.bannerSub}>PUBLISHED JAN 20, 2026</div>
           </div>
@@ -46,7 +46,7 @@ export default async function CourseRankingsPage() {
 
     {/* Trip tiles */}
       <section className={styles.listWrap}>
-        <div className={styles.tableWrap}>
+        <div className={`${styles.tableWrap} whiteRoundedBox`}>
             <table className={styles.table}>
                 <thead>
                     <tr>

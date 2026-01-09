@@ -83,7 +83,7 @@ export default function TripCard(props: TripCardProps) {
   } = props;
 
   return (
-    <Link href={href} className={styles.tile}>
+    <Link href={href} className={`${styles.tile} whiteRoundedBox`}>
       <div
         className={styles.media}
         style={{

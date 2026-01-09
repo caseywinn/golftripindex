@@ -31,7 +31,7 @@ export default function HomePage() {
         <div className={styles.cardRow}>
           {/* Placeholder cards – swap for real content later */}
           {["Australia", "Royal Melbourne", "Lockhart Travel Club", "Sandbelt Guide"].map((t) => (
-            <article key={t} className={styles.card} />
+            <article key={t} className={`${styles.card} whiteRoundedBox`} />
           ))}
         </div>
       </section>

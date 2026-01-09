@@ -48,11 +48,7 @@
 
 .heroCard {
   width: min(620px, 92%);
-  background: #0488db;
-  border-radius: 8px;
   padding: 10px 18px 10px;
-  text-align: center;
-  box-shadow: 0 2px 2px rgba(0,0,0,0.18);
 }
 
 .heroTitle {
@@ -116,7 +112,7 @@
 
 /* Meta row under the card */
 .metaRow {
-  margin-top: 16px;
+  margin-top: 24px;
   font-size: 12px;
   letter-spacing: 0.02em;
   color: #6b7280;
@@ -198,11 +194,7 @@
 }
 
 .courseCard {
-  background: #ffffff;
-  border: 1px solid #eef1f6;
-  border-radius: 6px;
   overflow: hidden;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
 }
 
 .courseHeader {
@@ -284,10 +276,6 @@
 }
 
 .categorySection {
-  background: #ffffff;
-  border: 1px solid #eef1f6;
-  border-radius: 6px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
   padding: 12px 12px 12px;
 }
 
@@ -332,10 +320,6 @@
 }
 
 .sideCard {
-  background: #ffffff;
-  border: 1px solid #eef1f6;
-  border-radius: 6px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
   padding: 12px 12px 12px;
 }
 
@@ -412,7 +396,6 @@
 
   .heroCard {
     width: 100%;
-    border-radius: 10px;
     padding: 12px 14px;
   }
 

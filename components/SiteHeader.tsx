@@ -41,11 +41,8 @@ export default function SiteHeader() {
           <Link href="/courses" className={styles.navLink} onClick={() => setOpen(false)}>
             COURSE RANKINGS
           </Link>
-          <Link href="/how-we-rank" className={styles.navLink} onClick={() => setOpen(false)}>
-            THE FORMULA
-          </Link>
-          <Link href="/who-we-are" className={styles.navLink} onClick={() => setOpen(false)}>
-            WHO WE ARE
+          <Link href="/how-we-rate" className={styles.navLink} onClick={() => setOpen(false)}>
+            HOW WE RATE
           </Link>
 
           {/* Instagram moved to bottom of hamburger menu */}
