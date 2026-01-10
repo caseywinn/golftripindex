@@ -65,3 +65,19 @@ export type TripWithCourses = GolfTrip & {
     notes?: string;
   }>;
 };
+
+export type NewsArticle = {
+  id: string;
+  slug: string;
+  name: string;
+  teaser?: string;
+  fullText?: string;
+  heroImageUrl?: string;
+  imageUrl1?: string;
+  imageUrl2?: string;
+  imageUrl3?: string;
+  imageUrl4?: string;
+  author?: string;
+  publishedOn?: string; // keep as string; format in UI
+  status?: string;
+};

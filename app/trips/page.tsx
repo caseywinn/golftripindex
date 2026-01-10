@@ -3,6 +3,13 @@ import styles from "../../styles/trips.module.css";
 import TripCard from "../../components/TripCard";
 import { getPublishedTrips } from "../../lib/airtable";
 import { formatStayType, formatCostTier, formatRanking, formatDuration, formatDriving } from "../../lib/formatters";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Golf Trip Rankings | GolfTripIndex",
+  description:
+    "An overall ranking of the best golf trips in America.",
+};
 
 type SearchParams = Promise<{ days?: string }>;
 

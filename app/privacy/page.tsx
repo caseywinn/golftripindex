@@ -1,4 +1,9 @@
 import styles from "../../styles/privacy.module.css";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Privacy Policy | GolfTripIndex",
+};
 
 export default function PrivacyPolicyPage() {
   return (

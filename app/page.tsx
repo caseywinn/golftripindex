@@ -1,7 +1,17 @@
 import Link from "next/link";
 import styles from "../styles/home.module.css";
+import { getLatestPublishedNews } from "../lib/airtable";
+import type { Metadata } from "next";
 
-export default function HomePage() {
+export const metadata: Metadata = {
+  title: "GolfTripIndex | Ranking USA's Best Golf Trips",
+  description:
+    "An overall ranking of the best golf trips in America.",
+};
+
+export default async function HomePage() {
+  const news = await getLatestPublishedNews(6);
+
   return (
     <>
       <section className={styles.hero}>
@@ -29,10 +39,41 @@ export default function HomePage() {
         </div>
 
         <div className={styles.cardRow}>
-          {/* Placeholder cards – swap for real content later */}
-          {["Australia", "Royal Melbourne", "Lockhart Travel Club", "Sandbelt Guide"].map((t) => (
-            <article key={t} className={`${styles.card} whiteRoundedBox`} />
-          ))}
+          {news.map((n) => {
+            const img = n.heroImageUrl
+              ? `/images/articles/${n.heroImageUrl}`
+              : undefined;
+
+            return (
+              <article key={n.id} className={`${styles.card} ${styles.newsCard} whiteRoundedBox`}>
+                <Link href={`/news/${n.slug}`} className={styles.newsLink}>
+                  <div className={styles.newsMedia} aria-hidden="true">
+                    {img ? <img className={styles.newsImg} src={img} alt="" loading="lazy" /> : null}
+                  </div>
+
+                  <div className={styles.newsBody}>
+                    <div className={styles.newsTitle}>{n.name}</div>
+                    {n.teaser ? <div className={styles.newsTeaser}>{n.teaser}</div> : null}
+
+                    {(n.author || n.publishedOn) && (
+                      <div className={styles.newsMeta}>
+                        {n.author ? <span className={styles.newsAuthor}>{n.author}</span> : null}
+                        {n.publishedOn ? (
+                          <span className={styles.newsDate}>
+                            {new Date(n.publishedOn).toLocaleDateString("en-US", {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            })}
+                          </span>
+                        ) : null}
+                      </div>
+                    )}
+                  </div>
+                </Link>
+              </article>
+            );
+          })}
         </div>
       </section>
     </>

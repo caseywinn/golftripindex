@@ -177,6 +177,84 @@ export default function HowWeRatePage() {
         </p>
       </section>
 
+      <section className={styles.section} id="apply">
+        <div className={styles.sectionHead}>
+          <h2 className={styles.h2}>Apply to Be a Rater</h2>
+          <p className={styles.lede}>
+            We are always interested in experienced golfers with firsthand destination
+            golf knowledge. If you meet the criteria and would like to contribute, apply below.
+          </p>
+        </div>
+
+        <form
+          className={`${styles.card} ${styles.form} whiteRoundedBox`}
+          method="POST"
+          action="mailto:caddie@golftripindex.com"
+          encType="text/plain"
+        >
+          <div className={styles.formGrid}>
+            <label className={styles.label}>
+              Name
+              <input
+                type="text"
+                name="Name"
+                required
+                className={styles.input}
+              />
+            </label>
+
+            <label className={styles.label}>
+              Email
+              <input
+                type="email"
+                name="Email"
+                required
+                className={styles.input}
+              />
+            </label>
+
+            <label className={styles.label}>
+              Home Location
+              <input
+                type="text"
+                name="Location"
+                placeholder="City, State / Country"
+                className={styles.input}
+              />
+            </label>
+
+            <label className={styles.label}>
+              Courses / Trips Visited
+              <textarea
+                name="Experience"
+                rows={4}
+                placeholder="List notable trips or courses you’ve personally played"
+                className={styles.textarea}
+                required
+              />
+            </label>
+
+            <label className={styles.label}>
+              Why You’d Be a Good Rater
+              <textarea
+                name="Why"
+                rows={4}
+                className={styles.textarea}
+                required
+              />
+            </label>
+          </div>
+
+          <button type="submit" className={styles.button}>
+            Submit Application
+          </button>
+
+          <p className={styles.formNote}>
+            Submitting this form will open your email client to send the application.
+          </p>
+        </form>
+      </section>
+
 
       <footer className={styles.footer}>
         <p className={styles.p}>

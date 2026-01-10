@@ -14,6 +14,7 @@ const base = Airtable.base(baseId);
 const TRIPS_TABLE = "GolfTrips";
 const COURSES_TABLE = "GolfCourses";
 const TRIP_COURSES_TABLE = "TripCourses";
+const NEWS_TABLE = "Articles"; // change to your actual table name if different
 
 // Helpers
 function asString(v: unknown): string | undefined {
@@ -207,3 +208,49 @@ export async function getPublishedCourses() {
   });
 }
 
+function slugify(input: string): string {
+  return input
+    .trim()
+    .toLowerCase()
+    .replace(/['"]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function mapNews(r: Airtable.Record<Airtable.FieldSet>) {
+  const f = r.fields;
+
+  const name = asString(f["Name"]);
+  if (!name) throw new Error("News article missing Name");
+
+  // Prefer an explicit Slug field if you later add one; for now derive from Name.
+  const slug = slugify(name);
+
+  return {
+    id: r.id,
+    slug,
+    name,
+    teaser: asString(f["Teaser"]),
+    fullText: asString(f["Full Text"]),
+    heroImageUrl: asString(f["HeroImageURL"]),
+    imageUrl1: asString(f["ImageURL1"]),
+    imageUrl2: asString(f["ImageURL2"]),
+    imageUrl3: asString(f["ImageURL3"]),
+    imageUrl4: asString(f["ImageURL4"]),
+    author: asString(f["Author"]),
+    publishedOn: asString(f["Published On"]),
+    status: asString(f["Status"]),
+  };
+}
+
+export async function getLatestPublishedNews(limit = 3) {
+  const records = await base(NEWS_TABLE)
+    .select({
+      filterByFormula: `{Status}="published"`,
+      sort: [{ field: "Published On", direction: "desc" }],
+      maxRecords: Math.max(1, Math.min(limit, 12)),
+    })
+    .all();
+
+  return records.map(mapNews);
+}

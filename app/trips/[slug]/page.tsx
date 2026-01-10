@@ -1,7 +1,29 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import styles from "../../../styles/tripDetails.module.css";
 import { getPublishedTripBySlug } from "../../../lib/airtable";
-import { formatStayType, formatCostTier, formatRanking, formatDuration, formatDriving } from "../../../lib/formatters";
+import {
+  formatStayType,
+  formatCostTier,
+  formatDuration,
+  formatDriving,
+} from "../../../lib/formatters";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const trip = await getPublishedTripBySlug(slug);
+
+  if (!trip) return {};
+
+  return {
+    title: `${trip.name} | GolfTripIndex`,
+    description: 'An in-depth rating and review of a golf trip to ${trip.name}, covering course architecture, lodging, food, vibe, and the overall trip experience.',
+  };
+}
 
 function statusLabel(status: string) {
   if (status === "must_play") return "MUST";
@@ -30,12 +52,19 @@ export default async function TripDetailsPage({
     trip.thumbnailImageUrl ||
     `/images/trips/${trip.slug}-hero.jpg`;
 
-  // Course tiles: keep ordering from TripCourses rank
-  const courses = [...trip.courses].sort((a, b) => a.tripCourseRank - b.tripCourseRank);
+  const courses = [...trip.courses].sort(
+    (a, b) => a.tripCourseRank - b.tripCourseRank
+  );
 
-  const mustPlay = courses.filter((c) => c.status === "must_play").map((c) => c.course.name);
-  const shouldPlay = courses.filter((c) => c.status === "should_play").map((c) => c.course.name);
-  const wantMore = courses.filter((c) => c.status === "want_more").map((c) => c.course.name);
+  const mustPlay = courses
+    .filter((c) => c.status === "must_play")
+    .map((c) => c.course.name);
+  const shouldPlay = courses
+    .filter((c) => c.status === "should_play")
+    .map((c) => c.course.name);
+  const wantMore = courses
+    .filter((c) => c.status === "want_more")
+    .map((c) => c.course.name);
 
   function joinNames(names: string[]) {
     return names.length ? names.join(", ") : "-";
@@ -61,19 +90,30 @@ export default async function TripDetailsPage({
 
             <div className={styles.heroScores}>
               <div className={styles.heroScore}>
-                <div className={styles.heroScoreNum}>{safeNum(trip.golfRating)}</div>
+                <div className={styles.heroScoreNum}>
+                  {safeNum(trip.golfRating)}
+                </div>
                 <div className={styles.heroScoreLabel}>Golf</div>
               </div>
+
               <div className={styles.heroScore}>
-                <div className={styles.heroScoreNum}>{safeNum(trip.lodgingRating)}</div>
+                <div className={styles.heroScoreNum}>
+                  {safeNum(trip.lodgingRating)}
+                </div>
                 <div className={styles.heroScoreLabel}>Lodging</div>
               </div>
+
               <div className={styles.heroScore}>
-                <div className={styles.heroScoreNum}>{safeNum(trip.foodRating)}</div>
+                <div className={styles.heroScoreNum}>
+                  {safeNum(trip.foodRating)}
+                </div>
                 <div className={styles.heroScoreLabel}>Food</div>
               </div>
+
               <div className={styles.heroScore}>
-                <div className={styles.heroScoreNum}>{safeNum(trip.vibeRating)}</div>
+                <div className={styles.heroScoreNum}>
+                  {safeNum(trip.vibeRating)}
+                </div>
                 <div className={styles.heroScoreLabel}>Vibe</div>
               </div>
 
@@ -94,29 +134,41 @@ export default async function TripDetailsPage({
               <span className={styles.metaLabel}>Duration:</span>{" "}
               {formatDuration(trip.durationMinDays, trip.durationMaxDays)}
             </div>
+
             <span className={styles.metaDot} aria-hidden="true">
               •
             </span>
+
             <div className={styles.metaItem}>
-              <span className={styles.metaLabel}>Driving:</span> {formatDriving(trip.driving)}
+              <span className={styles.metaLabel}>Driving:</span>{" "}
+              {formatDriving(trip.driving)}
             </div>
+
             <span className={styles.metaDot} aria-hidden="true">
               •
             </span>
+
             <div className={styles.metaItem}>
-              <span className={styles.metaLabel}>Stay Type:</span> {formatStayType(trip.stayType)}
+              <span className={styles.metaLabel}>Stay Type:</span>{" "}
+              {formatStayType(trip.stayType)}
             </div>
+
             <span className={styles.metaDot} aria-hidden="true">
               •
             </span>
+
             <div className={styles.metaItem}>
-              <span className={styles.metaLabel}>Lead Time:</span> {trip.leadTime ?? "—"}
+              <span className={styles.metaLabel}>Lead Time:</span>{" "}
+              {trip.leadTime ?? "—"}
             </div>
+
             <span className={styles.metaDot} aria-hidden="true">
               •
             </span>
+
             <div className={styles.metaItem}>
-              <span className={styles.metaLabel}>Cost:</span> {formatCostTier(trip.costTier)}
+              <span className={styles.metaLabel}>Cost:</span>{" "}
+              {formatCostTier(trip.costTier)}
             </div>
           </div>
 
@@ -132,7 +184,10 @@ export default async function TripDetailsPage({
             const img = `/images/courses/${c.course.slug.toLowerCase()}.jpg`;
 
             return (
-              <div key={`${c.course.id}-${c.tripCourseRank}`} className={`${styles.courseCard} whiteRoundedBox`}>
+              <div
+                key={`${c.course.id}-${c.tripCourseRank}`}
+                className={`${styles.courseCard} whiteRoundedBox`}
+              >
                 <div
                   className={styles.courseImage}
                   style={{ backgroundImage: `url("${img}")` }}
@@ -147,24 +202,37 @@ export default async function TripDetailsPage({
 
                 <div className={styles.courseHeader}>
                   <div className={styles.courseName}>{c.course.name}</div>
-                  <div className={styles.courseStatus}>{statusLabel(c.status)}</div>
+                  <div className={styles.courseStatus}>
+                    {statusLabel(c.status)}
+                  </div>
                 </div>
 
                 <div className={styles.courseRanks}>
                   <div className={styles.rankCell}>
-                    <div className={styles.rankNum}>{c.course.golfDigestRanking ?? "NR"}</div>
+                    <div className={styles.rankNum}>
+                      {c.course.golfDigestRanking ?? "NR"}
+                    </div>
                     <div className={styles.rankLabel}>Golf Digest</div>
                   </div>
+
                   <div className={styles.rankCell}>
-                    <div className={styles.rankNum}>{c.course.golfDotComRanking ?? "NR"}</div>
+                    <div className={styles.rankNum}>
+                      {c.course.golfDotComRanking ?? "NR"}
+                    </div>
                     <div className={styles.rankLabel}>Golf.com</div>
                   </div>
+
                   <div className={styles.rankCell}>
-                    <div className={styles.rankNum}>{c.course.golfweekRanking ?? "NR"}</div>
+                    <div className={styles.rankNum}>
+                      {c.course.golfweekRanking ?? "NR"}
+                    </div>
                     <div className={styles.rankLabel}>Golfweek</div>
                   </div>
+
                   <div className={styles.rankCell}>
-                    <div className={styles.rankNum}>{c.course.consolidatedRanking ?? "NR"}</div>
+                    <div className={styles.rankNum}>
+                      {c.course.consolidatedRanking ?? "NR"}
+                    </div>
                     <div className={styles.rankLabel}>Overall</div>
                   </div>
                 </div>
@@ -172,6 +240,7 @@ export default async function TripDetailsPage({
             );
           })}
         </div>
+
         <div className={styles.bodyInner}>
           {/* Main full-width content */}
           <div className={styles.mainCol}>
@@ -202,7 +271,9 @@ export default async function TripDetailsPage({
 
               <div className={styles.categoryRow}>
                 <div className={styles.categoryLabel}>Should Play:</div>
-                <div className={styles.categoryValue}>{joinNames(shouldPlay)}</div>
+                <div className={styles.categoryValue}>
+                  {joinNames(shouldPlay)}
+                </div>
               </div>
 
               <div className={styles.categoryRow}>
@@ -271,7 +342,6 @@ export default async function TripDetailsPage({
             </div>
           </div>
         </div>
-
       </section>
     </main>
   );

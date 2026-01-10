@@ -78,10 +78,11 @@
 
 .title {
   margin-top: 6px;
-  font-size: 90px;
+  font-size: 86px;
   line-height: 0.95;
   font-weight: 500;
   letter-spacing: -0.02em;
+  color: #fff;
 }
 
 /* Button */
@@ -180,12 +181,76 @@
 .cardRow {
   margin-top: 18px;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 18px;
 }
 
 .card {
-  height: 240px;
+  height: 360px;
+}
+
+.newsCard {
+  overflow: hidden;
+}
+
+.newsLink {
+  display: block;
+  height: 100%;
+  color: inherit;
+  text-decoration: none;
+}
+
+.newsMedia {
+  width: 100%;
+  height: 200px;
+  background: #0b0f1a;
+}
+
+.newsImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.newsBody {
+  padding: 14px 14px 16px;
+}
+
+.newsTitle {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #0488db;
+}
+
+.newsTeaser {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: #4c5568;
+
+  /* Clamp to 3 lines */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.newsMeta {
+  margin-top: 10px;
+  display: flex;
+  gap: 10px;
+  font-size: 11px;
+  color: #7b8597;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.newsAuthor::after {
+  content: "•";
+  margin-left: 10px;
+  color: #c6cad3;
 }
 
 @media (max-width: 640px) {

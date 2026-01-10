@@ -1,6 +1,13 @@
 import Link from "next/link";
 import styles from "../../styles/courseRankings.module.css";
 import { getPublishedCourses } from "../../lib/airtable";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Course Rankings | GolfTripIndex",
+  description:
+    "A conslidated list of the top 100 golf courses in the United States.",
+};
 
 type Course = {
   id: string;
