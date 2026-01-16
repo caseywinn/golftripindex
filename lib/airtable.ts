@@ -254,3 +254,74 @@ export async function getLatestPublishedNews(limit = 3) {
 
   return records.map(mapNews);
 }
+
+export type TripWithFirstCourse = GolfTrip & {
+  firstCourse?: GolfCourse;
+};
+
+export async function getPublishedTripsWithFirstCourse(): Promise<TripWithFirstCourse[]> {
+  // 1) Trips
+  const tripRecords = await base(TRIPS_TABLE)
+    .select({
+      filterByFormula: `{Status}="published"`,
+      maxRecords: 200,
+    })
+    .all();
+
+  const trips = tripRecords.map(mapTrip);
+
+  // 2) TripCourses where Trip Course Rank = 1
+  const tcRecords = await base(TRIP_COURSES_TABLE)
+    .select({
+      filterByFormula: `{Trip Course Rank}=1`,
+      maxRecords: 2000,
+    })
+    .all();
+
+  const tcs = tcRecords.map(mapTripCourse);
+
+  // Map tripId -> courseId (rank=1 course)
+  const firstCourseIdByTripId = new Map<string, string>();
+  for (const tc of tcs) {
+    // In case Airtable ever returns multiple "rank 1" rows, first one wins
+    if (!firstCourseIdByTripId.has(tc.golfTripId)) {
+      firstCourseIdByTripId.set(tc.golfTripId, tc.golfCourseId);
+    }
+  }
+
+  // 3) Fetch only those course IDs
+  const courseIds = Array.from(new Set(Array.from(firstCourseIdByTripId.values())));
+
+  const courseMap = new Map<string, GolfCourse>();
+
+  // chunk to avoid Airtable formula length issues
+  const chunkSize = 80;
+  for (let i = 0; i < courseIds.length; i += chunkSize) {
+    const chunk = courseIds.slice(i, i + chunkSize);
+
+    const courseRecords = await base(COURSES_TABLE)
+      .select({
+        filterByFormula: `OR(${chunk.map((id) => `RECORD_ID()="${id}"`).join(",")})`,
+        maxRecords: 200,
+      })
+      .all();
+
+    for (const r of courseRecords) {
+      courseMap.set(r.id, mapCourse(r));
+    }
+  }
+
+  // 4) Attach firstCourse onto each trip
+  const result: TripWithFirstCourse[] = trips.map((trip) => {
+    const firstCourseId = firstCourseIdByTripId.get(trip.id);
+    const firstCourse = firstCourseId ? courseMap.get(firstCourseId) : undefined;
+
+    return {
+      ...trip,
+      firstCourse,
+    };
+  });
+
+  // keep your ranking sort
+  return result.sort((a, b) => (a.currentRanking ?? 999) - (b.currentRanking ?? 999));
+}

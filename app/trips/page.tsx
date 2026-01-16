@@ -2,6 +2,7 @@ import Link from "next/link";
 import styles from "../../styles/trips.module.css";
 import TripCard from "../../components/TripCard";
 import { getPublishedTrips } from "../../lib/airtable";
+import { getPublishedTripsWithFirstCourse } from "../../lib/airtable";
 import { formatStayType, formatCostTier, formatRanking, formatDuration, formatDriving } from "../../lib/formatters";
 import type { Metadata } from "next";
 
@@ -21,7 +22,7 @@ export default async function TripsPage({
   const sp = await searchParams;
   const days = sp.days ?? "2-5";
 
-  const trips = await getPublishedTrips();
+  const trips = await getPublishedTripsWithFirstCourse();
 
   const sorted = [...trips].sort(
     (a, b) => (a.currentRanking ?? 9999) - (b.currentRanking ?? 9999)
@@ -77,7 +78,11 @@ export default async function TripsPage({
               leadTime={t.leadTime}
               costTier={t.costTier}
               overview={t.overview}
-              thumbnailImageUrl={`/images/trips/${t.slug.toLowerCase()}.jpg`}
+              thumbnailImageUrl={
+                t.firstCourse?.slug
+                  ? `/images/courses/${t.firstCourse.slug.toLowerCase()}.jpg`
+                  : `/images/trips/${t.slug.toLowerCase()}.jpg`
+              }
               golfRating={t.golfRating}
               lodgingRating={t.lodgingRating}
               foodRating={t.foodRating}
