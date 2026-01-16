@@ -9,6 +9,7 @@ export type GolfTrip = {
 
   overview?: string;
   fullDescription?: string;
+  wantMore?: string;
   sampleItinerary?: string;
   sampleItineraryNotes?: string;
   foodAndLodgingOverview?: string;

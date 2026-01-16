@@ -329,7 +329,7 @@
 }
 
 .sideText {
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.75;
   color: #2f3642;
 }
@@ -367,6 +367,66 @@
   color: #2f3642;
 }
 
+@media (min-width:859px) {
+    /* =========================
+    Carousel wrapper
+    ========================= */
+
+  .carouselFrame {
+    max-width: 1200px;
+    margin: 0 auto;
+
+    /* gutter you want on both sides */
+    --gutter: 28px;
+
+    /* this creates the visible padded area */
+    padding: 0 var(--gutter);
+  }
+
+    /* the scroller */
+  .courseGrid {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+
+    scroll-snap-type: x mandatory;
+
+    /* IMPORTANT: allow proper paint in flex contexts */
+    min-width: 0;
+
+    /* IMPORTANT: give the scroller its own padding so first/last card
+      can sit inside the gutter without needing clip-path tricks */
+    padding: 8px 0 16px;
+    margin-bottom: 28px;
+
+    /* Optional: so the last card doesn't stick to edge when scrolled all the way */
+    scroll-padding-left: var(--gutter);
+    scroll-padding-right: var(--gutter);
+  }
+
+  .courseCard {
+    flex: 0 0 calc((100% - 32px) / 3.35);
+    scroll-snap-align: start;
+  }
+}
+
+/* Responsive: 2 across on medium screens */
+@media (max-width: 1024px) {
+  .courseCard {
+    flex: 0 0 calc((100% - 32px) / 2.35);
+    scroll-snap-align: start;
+  }
+}
+
+/* Responsive: 1 across on small screens */
+@media (max-width: 640px) {
+  .courseCard {
+    flex: 0 0 85%;
+  }
+}
+
 /* Responsive */
 @media (max-width: 1100px) {
   .bodyInner {
@@ -380,14 +440,14 @@
 @media (max-width: 860px) {
   .hero {
     height: 200px;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
   }
 
   .heroInner {
     position: relative;        /* NOT static */
     z-index: 3;                /* above heroMedia + heroOverlay */
     max-width: 100%;
-    padding: 80px 18px 0;
+    padding: 50px 18px 0;
     align-items: stretch;
   }
 
@@ -426,7 +486,7 @@
   }
 
   .metaRow {
-    margin-top: 20px;
+    margin-top: 36px;
     font-size: 12px;
     line-height:0.8;
   }
@@ -453,3 +513,4 @@
     grid-template-columns: 1fr;
   }
 }
+

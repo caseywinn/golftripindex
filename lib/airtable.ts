@@ -46,6 +46,7 @@ function mapTrip(r: Airtable.Record<Airtable.FieldSet>): GolfTrip {
     secondaryName: asString(f["Secondary Name"]),
     overview: asString(f["Overview"]),
     fullDescription: asString(f["Full Description"]),
+    wantMore: asString(f["Want More"]),
     sampleItinerary: asString(f["Sample Itinerary"]),
     sampleItineraryNotes: asString(f["Sample Itinerary Notes"]),
     foodAndLodgingOverview: asString(f["Food and Lodging Overview"]),
@@ -107,10 +108,10 @@ function mapTripCourse(r: Airtable.Record<Airtable.FieldSet>): TripCourseRow {
   }
 
   const rank = asNumber(f["Trip Course Rank"]);
-  const status = asString(f["Status"]);
+  const status = f["Status"] as string[] | "";
 
   if (!rank) throw new Error("TripCourse missing Trip Course Rank");
-  if (!status) throw new Error("TripCourse missing Status");
+  //if (!status) throw new Error("TripCourse missing Trip Course Status");
 
   return {
     golfTripId: tripIds[0],

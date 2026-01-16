@@ -26,6 +26,7 @@ export async function generateMetadata({
 }
 
 function statusLabel(status: string) {
+  if (!status) return "";
   if (status === "must_play") return "MUST";
   if (status === "should_play") return "SHOULD";
   if (status === "want_more") return "WANT MORE";
@@ -56,11 +57,22 @@ export default async function TripDetailsPage({
     (a, b) => a.tripCourseRank - b.tripCourseRank
   );
 
+  const gridCoursesMustShould = courses.filter(
+    (c) => c.status !== "want_more"
+  );
+
+  const gridCoursesWantMore = courses.filter(
+    (c) => c.status === "want_more"
+  );
+
   const mustPlay = courses
     .filter((c) => c.status === "must_play")
     .map((c) => c.course.name);
   const shouldPlay = courses
     .filter((c) => c.status === "should_play")
+    .map((c) => c.course.name);
+  const othersPlay = courses
+    .filter((c) => !c.status)
     .map((c) => c.course.name);
   const wantMore = courses
     .filter((c) => c.status === "want_more")
@@ -179,67 +191,60 @@ export default async function TripDetailsPage({
       {/* BODY */}
       <section className={styles.body}>
         {/* Course grid */}
-        <div className={styles.courseGrid}>
-          {courses.map((c) => {
-            const img = `/images/courses/${c.course.slug.toLowerCase()}.jpg`;
+        <div className={styles.carouselFrame}>
+          <div className={styles.courseGrid}>
+            {gridCoursesMustShould.map((c) => {
+              const img = `/images/courses/${c.course.slug.toLowerCase()}.jpg`;
 
-            return (
-              <div
-                key={`${c.course.id}-${c.tripCourseRank}`}
-                className={`${styles.courseCard} whiteRoundedBox`}
-              >
+              return (
                 <div
-                  className={styles.courseImage}
-                  style={{ backgroundImage: `url("${img}")` }}
-                  aria-hidden="true"
+                  key={`${c.course.id}-${c.tripCourseRank}`}
+                  className={`${styles.courseCard} whiteRoundedBox`}
                 >
-                  {c.course.consolidatedRanking ? (
-                    <div className={styles.courseRankOverlay}>
-                      #{c.course.consolidatedRanking}
-                    </div>
-                  ) : null}
-                </div>
+                  <div
+                    className={styles.courseImage}
+                    style={{ backgroundImage: `url("${img}")` }}
+                    aria-hidden="true"
+                  >
+                    {c.course.consolidatedRanking ? (
+                      <div className={styles.courseRankOverlay}>
+                        #{c.course.consolidatedRanking}
+                      </div>
+                    ) : null}
+                  </div>
 
-                <div className={styles.courseHeader}>
-                  <div className={styles.courseName}>{c.course.name}</div>
-                  <div className={styles.courseStatus}>
-                    {statusLabel(c.status)}
+                  <div className={styles.courseHeader}>
+                    <div className={styles.courseName}>{c.course.name}</div>
+                    <div className={styles.courseStatus}>{statusLabel(c.status)}</div>
+                  </div>
+
+                  <div className={styles.courseRanks}>
+                    <div className={styles.rankCell}>
+                      <div className={styles.rankNum}>{c.course.golfDigestRanking ?? "NR"}</div>
+                      <div className={styles.rankLabel}>Golf Digest</div>
+                    </div>
+
+                    <div className={styles.rankCell}>
+                      <div className={styles.rankNum}>{c.course.golfDotComRanking ?? "NR"}</div>
+                      <div className={styles.rankLabel}>Golf.com</div>
+                    </div>
+
+                    <div className={styles.rankCell}>
+                      <div className={styles.rankNum}>{c.course.golfweekRanking ?? "NR"}</div>
+                      <div className={styles.rankLabel}>Golfweek</div>
+                    </div>
+
+                    <div className={styles.rankCell}>
+                      <div className={styles.rankNum}>{c.course.consolidatedRanking ?? "NR"}</div>
+                      <div className={styles.rankLabel}>Overall</div>
+                    </div>
                   </div>
                 </div>
-
-                <div className={styles.courseRanks}>
-                  <div className={styles.rankCell}>
-                    <div className={styles.rankNum}>
-                      {c.course.golfDigestRanking ?? "NR"}
-                    </div>
-                    <div className={styles.rankLabel}>Golf Digest</div>
-                  </div>
-
-                  <div className={styles.rankCell}>
-                    <div className={styles.rankNum}>
-                      {c.course.golfDotComRanking ?? "NR"}
-                    </div>
-                    <div className={styles.rankLabel}>Golf.com</div>
-                  </div>
-
-                  <div className={styles.rankCell}>
-                    <div className={styles.rankNum}>
-                      {c.course.golfweekRanking ?? "NR"}
-                    </div>
-                    <div className={styles.rankLabel}>Golfweek</div>
-                  </div>
-
-                  <div className={styles.rankCell}>
-                    <div className={styles.rankNum}>
-                      {c.course.consolidatedRanking ?? "NR"}
-                    </div>
-                    <div className={styles.rankLabel}>Overall</div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
+
 
         <div className={styles.bodyInner}>
           {/* Main full-width content */}
@@ -247,6 +252,80 @@ export default async function TripDetailsPage({
             {trip.fullDescription ? (
               <div className={styles.prose}>
                 {trip.fullDescription
+                  .split("\n")
+                  .filter(Boolean)
+                  .map((p, idx) => (
+                    <p key={idx}>{p}</p>
+                  ))}
+              </div>
+            ) : trip.overview ? (
+              <div className={styles.prose}>
+                <p>{trip.overview}</p>
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        <div className={styles.carouselFrame}>
+          <div className={styles.courseGrid}>
+            {gridCoursesWantMore.map((c) => {
+              const img = `/images/courses/${c.course.slug.toLowerCase()}.jpg`;
+
+              return (
+                <div
+                  key={`${c.course.id}-${c.tripCourseRank}`}
+                  className={`${styles.courseCard} whiteRoundedBox`}
+                >
+                  <div
+                    className={styles.courseImage}
+                    style={{ backgroundImage: `url("${img}")` }}
+                    aria-hidden="true"
+                  >
+                    {c.course.consolidatedRanking ? (
+                      <div className={styles.courseRankOverlay}>
+                        #{c.course.consolidatedRanking}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className={styles.courseHeader}>
+                    <div className={styles.courseName}>{c.course.name}</div>
+                    <div className={styles.courseStatus}>{statusLabel(c.status)}</div>
+                  </div>
+
+                  <div className={styles.courseRanks}>
+                    <div className={styles.rankCell}>
+                      <div className={styles.rankNum}>{c.course.golfDigestRanking ?? "NR"}</div>
+                      <div className={styles.rankLabel}>Golf Digest</div>
+                    </div>
+
+                    <div className={styles.rankCell}>
+                      <div className={styles.rankNum}>{c.course.golfDotComRanking ?? "NR"}</div>
+                      <div className={styles.rankLabel}>Golf.com</div>
+                    </div>
+
+                    <div className={styles.rankCell}>
+                      <div className={styles.rankNum}>{c.course.golfweekRanking ?? "NR"}</div>
+                      <div className={styles.rankLabel}>Golfweek</div>
+                    </div>
+
+                    <div className={styles.rankCell}>
+                      <div className={styles.rankNum}>{c.course.consolidatedRanking ?? "NR"}</div>
+                      <div className={styles.rankLabel}>Overall</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className={styles.bodyInner}>
+          {/* Main full-width content */}
+          <div className={styles.mainCol}>
+            {trip.wantMore ? (
+              <div className={styles.prose}>
+                {trip.wantMore
                   .split("\n")
                   .filter(Boolean)
                   .map((p, idx) => (
@@ -273,6 +352,13 @@ export default async function TripDetailsPage({
                 <div className={styles.categoryLabel}>Should Play:</div>
                 <div className={styles.categoryValue}>
                   {joinNames(shouldPlay)}
+                </div>
+              </div>
+
+              <div className={styles.categoryRow}>
+                <div className={styles.categoryLabel}>Others:</div>
+                <div className={styles.categoryValue}>
+                  {joinNames(othersPlay)}
                 </div>
               </div>
 
