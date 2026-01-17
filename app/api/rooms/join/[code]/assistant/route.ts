@@ -2,12 +2,18 @@ import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { getPgClient } from "@/lib/db";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+function getOpenAIClient() {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error("OPENAI_API_KEY is not set");
+  return new OpenAI({ apiKey });
+}
 
 export async function POST(
   _req: Request,
   ctx: { params: Promise<{ code: string }> }
 ) {
+  const openai = getOpenAIClient();
+  
   const { code } = await ctx.params;
   const joinCode = code.toUpperCase();
 

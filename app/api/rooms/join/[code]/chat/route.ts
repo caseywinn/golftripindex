@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { getPgClient } from "@/lib/db";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+function getOpenAIClient() {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error("OPENAI_API_KEY is not set");
+  return new OpenAI({ apiKey });
+}
 
 function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -23,6 +27,8 @@ export async function POST(
   if (!process.env.OPENAI_API_KEY) {
     return NextResponse.json({ error: "OPENAI_API_KEY is not set" }, { status: 500 });
   }
+  
+  const openai = getOpenAIClient();
 
   const { code } = await ctx.params;
   const joinCode = code.toUpperCase();
