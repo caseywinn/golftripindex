@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 type Room = {
@@ -22,14 +22,21 @@ type Chat = {
 export default function RoomPage() {
   const router = useRouter();
   const params = useParams<{ code: string }>();
-  const code = useMemo(() => (params?.code || "").toString().toUpperCase(), [params]);
+  const code = useMemo(
+    () => (params?.code || "").toString().toUpperCase(),
+    [params]
+  );
 
   const [room, setRoom] = useState<Room | null>(null);
   const [chat, setChat] = useState<Chat[]>([]);
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [assistantPending, setAssistantPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Prevent overlapping assistant requests if user spams Send
+  const assistantInFlightRef = useRef(false);
 
   async function load() {
     setLoading(true);
@@ -43,15 +50,46 @@ export default function RoomPage() {
       setRoom(roomJson.room);
 
       // messages
-    const chatRes = await fetch(`/api/rooms/join/${code}/messages`);
-    const chatJson = await chatRes.json().catch(() => ({}));
-    if (!chatRes.ok) throw new Error(chatJson?.error || "Failed to load messages");
-    setChat(chatJson.messages || []);
-
+      const chatRes = await fetch(`/api/rooms/join/${code}/messages`);
+      const chatJson = await chatRes.json().catch(() => ({}));
+      if (!chatRes.ok)
+        throw new Error(chatJson?.error || "Failed to load messages");
+      setChat(chatJson.messages || []);
     } catch (e: any) {
       setError(e?.message ?? "Unknown error");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function triggerAssistant() {
+    // only one at a time (simple MVP)
+    if (assistantInFlightRef.current) return;
+
+    assistantInFlightRef.current = true;
+    setAssistantPending(true);
+
+    try {
+      const res = await fetch(`/api/rooms/join/${code}/assistant`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.error || "Assistant failed");
+
+      if (json?.assistantMessage) {
+        setChat((prev) => [...prev, json.assistantMessage]);
+      } else {
+        // Fallback: if API doesn’t return the message, reload thread
+        await load();
+      }
+    } catch (e: any) {
+      // Non-blocking: show error but don't break the flow
+      setError(e?.message ?? "Unknown error");
+    } finally {
+      setAssistantPending(false);
+      assistantInFlightRef.current = false;
     }
   }
 
@@ -63,17 +101,28 @@ export default function RoomPage() {
     setError(null);
 
     try {
-      const res = await fetch(`/api/rooms/join/${code}/chat`, {
+      // 1) Write user message immediately
+      const res = await fetch(`/api/rooms/join/${code}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content }),
       });
 
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json?.error || "Failed to send chat");
+      if (!res.ok) throw new Error(json?.error || "Failed to send message");
 
-      setChat((prev) => [...prev, json.userMessage, json.assistantMessage]);
-        setDraft("");
+      // UI update immediately
+      if (json?.message) {
+        setChat((prev) => [...prev, json.message]);
+      } else {
+        // fallback
+        await load();
+      }
+
+      setDraft("");
+
+      // 2) Trigger assistant in background (do not await)
+      void triggerAssistant();
     } catch (e: any) {
       setError(e?.message ?? "Unknown error");
     } finally {
@@ -112,7 +161,9 @@ export default function RoomPage() {
       {loading && <p style={{ marginTop: 16 }}>Loading...</p>}
 
       {error && (
-        <p style={{ marginTop: 16, color: "crimson", fontWeight: 600 }}>{error}</p>
+        <p style={{ marginTop: 16, color: "crimson", fontWeight: 600 }}>
+          {error}
+        </p>
       )}
 
       {room && (
@@ -131,7 +182,14 @@ export default function RoomPage() {
       )}
 
       <section style={{ marginTop: 20 }}>
-        <h2 style={{ fontSize: 16, fontWeight: 700 }}>Chat</h2>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
+          <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Chat</h2>
+          {assistantPending && (
+            <span style={{ fontSize: 12, color: "#666" }}>
+              Assistant is thinking…
+            </span>
+          )}
+        </div>
 
         <div
           style={{
@@ -158,7 +216,8 @@ export default function RoomPage() {
                   }}
                 >
                   <div style={{ fontSize: 12, color: "#666" }}>
-                    {new Date(c.created_at).toLocaleString()} {c.kind ? `• ${c.kind}` : ""}
+                    {new Date(c.created_at).toLocaleString()}{" "}
+                    {c.kind ? `• ${c.kind}` : ""}
                   </div>
                   <div style={{ marginTop: 6 }}>{c.content}</div>
                 </div>
