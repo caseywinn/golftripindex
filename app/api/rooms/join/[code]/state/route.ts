@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { QueryResult } from "pg";
 import { getPgClient } from "@/lib/db";
+import { defaultRoomState } from "@/lib/roomState";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,25 +26,23 @@ export async function GET(_req: Request, ctx: { params: Promise<{ code: string }
 
     const roomId = roomRes.rows[0].id;
 
-    const res = (await client.query(
-      `select id, room_id, kind, content, payload, created_at
-       from public.messages
-       where room_id = $1
-       order by created_at asc
-       limit 200`,
-      [roomId]
-    )) as QueryResult<{
-      id: string;
-      room_id: string;
-      kind: string;
-      content: string;
-      payload: any;
-      created_at: string;
-    }>;
+    // Ensure state row exists (idempotent)
+    const upsertRes = (await client.query(
+      `insert into public.room_state (room_id, state)
+       values ($1, $2::jsonb)
+       on conflict (room_id) do update set updated_at = now()
+       returning state, updated_at`,
+      [roomId, JSON.stringify(defaultRoomState())]
+    )) as QueryResult<{ state: any; updated_at: string }>;
 
-    return NextResponse.json({ messages: res.rows }, { status: 200 });
+    const row = upsertRes.rows?.[0];
+
+    return NextResponse.json(
+      { state: row?.state ?? defaultRoomState(), updated_at: row?.updated_at ?? null },
+      { status: 200 }
+    );
   } catch (e: any) {
-    console.error("GET /api/rooms/join/[code]/messages failed:", e?.stack ?? e);
+    console.error("GET /api/rooms/join/[code]/state failed:", e?.stack ?? e);
     return NextResponse.json({ error: e?.message ?? String(e) }, { status: 500 });
   } finally {
     try {

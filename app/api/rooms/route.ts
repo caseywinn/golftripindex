@@ -20,22 +20,35 @@ export async function POST() {
     await withTimeout(client.connect(), 3000, "connect");
     console.log("POST /api/rooms: connected");
 
-    // Generate join_code (required by your schema)
     const joinCode = Math.random().toString(36).slice(2, 8).toUpperCase();
     const slug = `room-${Date.now()}`;
 
-    console.log("POST /api/rooms: inserting...");
+    console.log("POST /api/rooms: inserting room...");
     const roomRes = await withTimeout(
       client.query(
         `insert into public.rooms (slug, join_code) values ($1, $2) returning *`,
         [slug, joinCode]
       ),
       5000,
-      "insert"
+      "insert room"
     );
-    console.log("POST /api/rooms: inserted");
 
-    return NextResponse.json({ room: roomRes.rows[0] }, { status: 201 });
+    const room = roomRes.rows[0];
+    console.log("POST /api/rooms: inserted", room?.id);
+
+    console.log("POST /api/rooms: initializing room_state...");
+    await withTimeout(
+      client.query(
+        `insert into public.room_state (room_id, state)
+         values ($1, '{}'::jsonb)
+         on conflict (room_id) do nothing`,
+        [room.id]
+      ),
+      5000,
+      "insert room_state"
+    );
+
+    return NextResponse.json({ room }, { status: 201 });
   } catch (e: any) {
     console.error("POST /api/rooms failed:", e?.stack ?? e);
     return NextResponse.json({ error: e?.message ?? String(e) }, { status: 500 });

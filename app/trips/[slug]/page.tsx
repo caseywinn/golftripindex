@@ -15,7 +15,12 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
+
   const trip = await getPublishedTripBySlug(slug);
+  console.log("TRIP:", trip?.slug, "courses:", trip?.courses?.length);
+  if (trip?.courses?.length) {
+    console.log("FIRST COURSE SHAPE:", trip.courses[0]);
+  }
 
   if (!trip) return {};
 
