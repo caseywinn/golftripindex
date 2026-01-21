@@ -1,6 +1,7 @@
 // src/lib/gti.ts
 import Airtable from "airtable";
 import type { GTISearchHit, GolfTrip, GolfCourse } from "@/lib/types";
+import { getPublishedTripBySlug } from "@/lib/airtable";
 
 type TripCourseStatus = "must_play" | "should_play" | "want_more" | null;
 
@@ -102,10 +103,20 @@ function normalize(s: string) {
 
 function safeNumberish(v: any): number | undefined {
   if (typeof v === "number" && Number.isFinite(v)) return v;
+
   if (typeof v === "string") {
-    const n = Number(v);
+    const s = v.trim();
+    if (!s) return undefined;
+
+    // Extract the first numeric token:
+    // "#11" -> 11, "T11" -> 11, "11th" -> 11, "11 (GD)" -> 11, "11.0" -> 11
+    const m = s.match(/-?\d+(\.\d+)?/);
+    if (!m) return undefined;
+
+    const n = Number(m[0]);
     return Number.isFinite(n) ? n : undefined;
   }
+
   return undefined;
 }
 
@@ -167,6 +178,42 @@ function isTripHit(h: GTISearchHit): h is Extract<GTISearchHit, { type: "trip" }
 }
 function isCourseHit(h: GTISearchHit): h is Extract<GTISearchHit, { type: "course" }> {
   return h.type === "course";
+}
+
+export async function getTop100SummaryForTripSlug(slug: string) {
+  const trip = await getPublishedTripBySlug(slug);
+  if (!trip) return null;
+
+  const allCourses = (trip.courses || []).map((x: any) => x?.course).filter(Boolean);
+
+  const coerceRank = (v: any): number | null => {
+    const n = safeNumberish(v);
+    return typeof n === "number" && Number.isFinite(n) ? n : null;
+  };
+
+  const ranked = allCourses
+    .map((c: any) => {
+      const r = coerceRank(c?.consolidatedRanking);
+      if (r == null) return null;
+      const name = String(c?.name || "").trim();
+      const cslug = String(c?.slug || "").trim();
+      if (!name || !cslug) return null;
+      return { slug: cslug, name, consolidatedRanking: r };
+    })
+    .filter(Boolean) as Array<{ slug: string; name: string; consolidatedRanking: number }>;
+
+  const excludedNoRankingCount = allCourses.length - ranked.length;
+
+  const top100Courses = ranked
+    .filter((c) => c.consolidatedRanking <= 100)
+    .sort((a, b) => a.consolidatedRanking - b.consolidatedRanking);
+
+  return {
+    trip: { slug: trip.slug, name: trip.name },
+    top100Count: top100Courses.length,
+    top100Courses,
+    excludedNoRankingCount,
+  };
 }
 
 function pickTrip(fields: Record<string, any>, id: string): GTISearchHit | null {
@@ -491,6 +538,10 @@ export async function getTripDetailBySlug(slug: string): Promise<TripDetail | nu
   const trip = await getTripBySlug(slug);
   if (!trip) return null;
 
+  // IMPORTANT:
+  // TripCourses links should be resolved by trip RECORD ID, not trip.name.
+  // Keep the second arg for backward compatibility if your getTripCourseLinks signature expects it,
+  // but pass an empty string to avoid name-based matching.
   const groupedIds = await getTripCourseLinks(trip.id, trip.name);
 
   const [must, should, want, unk] = await Promise.all([
@@ -499,6 +550,11 @@ export async function getTripDetailBySlug(slug: string): Promise<TripDetail | nu
     getCoursesByIds(groupedIds.want_more),
     getCoursesByIds(groupedIds.unknown),
   ]);
+
+  // NOTE:
+  // Make sure getCoursesByIds returns course objects that include consolidatedRanking.
+  // (GolfCourses["Consolidated Ranking"] → course.consolidatedRanking)
+  // We do not strip any fields here.
 
   return {
     trip: {
@@ -521,6 +577,58 @@ export async function getTripDetailBySlug(slug: string): Promise<TripDetail | nu
       want_more: want,
       unknown: unk,
     },
+  };
+}
+
+export async function getTop100ForTripSlug(slug: string): Promise<null | {
+  trip: { id: string; slug: string; name: string };
+  top100Count: number;
+  top100Courses: Array<{ slug: string; name: string; consolidatedRanking: number }>;
+  excludedNoRankingCount: number;
+}> {
+  const detail = await getTripDetailBySlug(slug);
+  if (!detail) return null;
+
+  const buckets = detail.courses || ({} as any);
+
+  const all = [
+    ...(Array.isArray(buckets.must_play) ? buckets.must_play : []),
+    ...(Array.isArray(buckets.should_play) ? buckets.should_play : []),
+    ...(Array.isArray(buckets.want_more) ? buckets.want_more : []),
+    ...(Array.isArray(buckets.unknown) ? buckets.unknown : []),
+  ];
+
+  const coerceRank = (v: any): number | null => {
+    const n = safeNumberish(v);
+    return typeof n === "number" && Number.isFinite(n) ? n : null;
+  };
+
+  const ranked = all
+    .map((c: any) => {
+      const r = coerceRank(c?.consolidatedRanking);
+      if (r == null) return null;
+      const name = String(c?.name || "").trim();
+      const slug = String(c?.slug || "").trim();
+      if (!name || !slug) return null;
+      return { slug, name, consolidatedRanking: r };
+    })
+    .filter(Boolean) as Array<{ slug: string; name: string; consolidatedRanking: number }>;
+
+  const excludedNoRankingCount = all.length - ranked.length;
+
+  const top100Courses = ranked
+    .filter((c) => c.consolidatedRanking <= 100)
+    .sort((a, b) => a.consolidatedRanking - b.consolidatedRanking);
+
+  return {
+    trip: {
+      id: detail.trip.id,
+      slug: detail.trip.slug,
+      name: detail.trip.name,
+    },
+    top100Count: top100Courses.length,
+    top100Courses,
+    excludedNoRankingCount,
   };
 }
 
@@ -649,6 +757,178 @@ export async function getTripsTop100Counts(opts?: { limitTrips?: number; limitCo
 
   out.sort((a, b) => b.top100Count - a.top100Count);
   return out;
+}
+
+export type TripTopNCourseCount = {
+  tripId: string;
+  tripSlug: string;
+  tripName: string;
+  topN: number;
+  courseState?: string; // e.g., "CA"
+  count: number;
+  courses: Array<{ courseId: string; courseName: string; consolidatedRanking: number }>;
+  excludedNoRankingCount: number; // within the considered course set
+};
+
+export async function getTripsTopNCourseCounts(args: {
+  topN: number; // e.g., 10, 25, 100
+  courseState?: string; // e.g., "CA"
+  limitTrips?: number;
+  limitCourses?: number;
+  limitTripCourses?: number;
+}) {
+  const topN = Math.max(1, Math.min(1000, Math.floor(args.topN || 100)));
+  const courseState = args.courseState ? String(args.courseState).trim().toUpperCase() : undefined;
+
+  const base = getBase();
+
+  // 1) Pull trips (or cap)
+  const tripRows = await base(TRIPS_TABLE)
+    .select({ maxRecords: args.limitTrips ?? 200 })
+    .firstPage();
+
+  const trips = tripRows
+    .map((r) => {
+      const f: any = r.fields;
+      const name = f[F.Trip.Name];
+      const slug = f[F.Trip.Slug];
+      if (!name || !slug) return null;
+      return { id: r.id, slug: String(slug), name: String(name) };
+    })
+    .filter(Boolean) as Array<{ id: string; slug: string; name: string }>;
+
+  // 2) Pull all courses that qualify (Consolidated Ranking <= topN),
+  // optionally filtered by state.
+  const stateClause = courseState ? `, {${F.Course.State}} = "${escFormula(courseState)}"` : "";
+  const qualifyingCourseRows = await base(COURSES_TABLE)
+    .select({
+      maxRecords: args.limitCourses ?? 2000,
+      filterByFormula: `AND(
+        {${F.Course.ConsolidatedRanking}} > 0,
+        {${F.Course.ConsolidatedRanking}} <= ${topN}
+        ${stateClause}
+      )`,
+    })
+    .firstPage();
+
+  const qualifyingCourseById = new Map<string, { id: string; name: string; consolidatedRanking: number }>();
+
+  for (const r of qualifyingCourseRows) {
+    const f: any = r.fields;
+    const name = f[F.Course.Name];
+    const rank = safeNumberish(f[F.Course.ConsolidatedRanking]);
+    if (!name) continue;
+    if (typeof rank !== "number" || !Number.isFinite(rank)) continue;
+
+    qualifyingCourseById.set(r.id, {
+      id: r.id,
+      name: String(name),
+      consolidatedRanking: rank,
+    });
+  }
+
+  // If no qualifying courses exist (for state/topN), early exit with zeros per trip.
+  // (We still return trip list so caller can say "none found".)
+  if (qualifyingCourseById.size === 0) {
+    return trips.map((t) => ({
+      tripId: t.id,
+      tripSlug: t.slug,
+      tripName: t.name,
+      topN,
+      courseState,
+      count: 0,
+      courses: [],
+      excludedNoRankingCount: 0,
+    })) satisfies TripTopNCourseCount[];
+  }
+
+  // 3) Pull TripCourses and count qualifying courses per trip (client-side join)
+  const tripCourseRows = await base(TRIP_COURSES_TABLE)
+    .select({ maxRecords: args.limitTripCourses ?? 4000 })
+    .firstPage();
+
+  // Map tripId -> set(courseId)
+  const qualifyingByTrip = new Map<string, Set<string>>();
+
+  for (const r of tripCourseRows) {
+    const f: any = r.fields;
+    const tripLinked = f[F.TripCourse.GolfTrip];
+    const courseLinked = f[F.TripCourse.GolfCourse];
+
+    const tripIds = Array.isArray(tripLinked) ? tripLinked.filter((x: any) => typeof x === "string") : [];
+    const courseIds = Array.isArray(courseLinked) ? courseLinked.filter((x: any) => typeof x === "string") : [];
+
+    if (!tripIds.length || !courseIds.length) continue;
+
+    // Some rows can (rarely) link multiple; handle all combinations.
+    for (const tripId of tripIds) {
+      for (const courseId of courseIds) {
+        if (!qualifyingCourseById.has(courseId)) continue;
+
+        if (!qualifyingByTrip.has(tripId)) qualifyingByTrip.set(tripId, new Set<string>());
+        qualifyingByTrip.get(tripId)!.add(courseId);
+      }
+    }
+  }
+
+  // 4) Build output per trip
+  const out: TripTopNCourseCount[] = [];
+
+  for (const t of trips) {
+    const set = qualifyingByTrip.get(t.id) ?? new Set<string>();
+    const courses = Array.from(set)
+      .map((cid) => qualifyingCourseById.get(cid))
+      .filter(Boolean) as Array<{ id: string; name: string; consolidatedRanking: number }>;
+
+    courses.sort((a, b) => a.consolidatedRanking - b.consolidatedRanking);
+
+    out.push({
+      tripId: t.id,
+      tripSlug: t.slug,
+      tripName: t.name,
+      topN,
+      courseState,
+      count: courses.length,
+      courses: courses.map((c) => ({
+        courseId: c.id,
+        courseName: c.name,
+        consolidatedRanking: c.consolidatedRanking,
+      })),
+      excludedNoRankingCount: 0, // by design: we only include ranked courses in this aggregate query
+    });
+  }
+
+  // Sort descending count, then alphabetical for stability
+  out.sort((a, b) => (b.count - a.count) || a.tripName.localeCompare(b.tripName));
+  return out;
+}
+
+export async function getTripWithMostTopNCourses(args: {
+  topN: number;
+  courseState?: string; // e.g., "CA"
+  leaderboardLimit?: number; // default 5
+}) {
+  const leaderboardLimit = Math.max(1, Math.min(10, args.leaderboardLimit ?? 5));
+  const rows = await getTripsTopNCourseCounts({
+    topN: args.topN,
+    courseState: args.courseState,
+    limitTrips: 200,
+    limitCourses: 2000,
+    limitTripCourses: 4000,
+  });
+
+  if (!rows.length) return null;
+
+  const max = rows[0].count;
+  const winners = rows.filter((r) => r.count === max);
+
+  return {
+    topN: rows[0].topN,
+    courseState: rows[0].courseState,
+    winners,
+    leaderboard: rows.slice(0, leaderboardLimit),
+    totalTripsConsidered: rows.length,
+  };
 }
 
 function parseNumberish(v: any): number | undefined {

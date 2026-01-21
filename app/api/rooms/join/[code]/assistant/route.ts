@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getPgClient } from "@/lib/db";
 import type { AssistantPayload } from "@/lib/types";
 import { defaultRoomState } from "@/lib/roomState";
+import { getTop100SummaryForTripSlug } from "@/lib/gti";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

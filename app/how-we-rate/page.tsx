@@ -142,7 +142,7 @@ export default function HowWeRatePage() {
       {/* 3) Rater Credentials */}
       <section className={styles.section} id="credentials">
         <div className={styles.sectionHead}>
-          <h2 className={styles.h2}>3) Rater Credentials</h2>
+          <h2 className={styles.h2}>Rater Credentials</h2>
         </div>
 
         <p className={styles.p}>
