@@ -1,6 +1,7 @@
 import "./globals.css";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
+import CaddieWidget from "@/components/CaddieWidget";
 import { Inter, Inter_Tight } from "next/font/google";
 
 const inter = Inter({
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <SiteHeader />
         {children}
+        <CaddieWidget />
         <SiteFooter />
       </body>
     </html>
