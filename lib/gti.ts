@@ -443,22 +443,31 @@ export async function getTripByNameLike(name: string) {
 }
 
 function extractLinkedIds(v: any): string[] {
-  // Airtable SDK usually returns linked record IDs as string[] for linked fields.
-  if (Array.isArray(v)) return v.filter((x) => typeof x === "string");
-  if (typeof v === "string") return [v];
+  // Airtable linked record field usually returns string[] of recordIds.
+  if (Array.isArray(v)) {
+    // Sometimes it can be [{ id: "rec..." }, ...] depending on how data is shaped
+    const out: string[] = [];
+    for (const item of v) {
+      if (typeof item === "string") out.push(item);
+      else if (item && typeof item === "object" && typeof (item as any).id === "string") out.push((item as any).id);
+    }
+    return out.filter(Boolean);
+  }
+  if (typeof v === "string" && v.trim()) return [v.trim()];
+  if (v && typeof v === "object" && typeof (v as any).id === "string") return [(v as any).id];
   return [];
 }
 
 async function getTripCourseLinks(tripRecordId: string, tripName: string) {
   const base = getBase();
 
-  // Pass 1: filter by record id (best case: linked field contains record IDs)
+  // Pass 1: filter by trip record id (works when {Golf Trip} is a linked-record field)
   const filterById = `FIND("${escFormula(tripRecordId)}", ARRAYJOIN({${F.TripCourse.GolfTrip}}))`;
   let rows = await base(TRIP_COURSES_TABLE)
     .select({ maxRecords: 200, filterByFormula: filterById })
     .firstPage();
 
-  // Pass 2: if 0 rows, try filtering by trip name (if TripCourses stores names / lookup)
+  // Pass 2: fallback to name-based match only if needed
   if (!rows.length && tripName) {
     const tn = escFormula(tripName);
     const filterByName = `FIND("${tn}", ARRAYJOIN({${F.TripCourse.GolfTrip}}))`;
@@ -479,6 +488,7 @@ async function getTripCourseLinks(tripRecordId: string, tripName: string) {
   for (const r of rows) {
     const f: any = r.fields;
     const statusRaw = (f[F.TripCourse.Status] ?? null) as TripCourseStatus;
+
     const courseLinked = f[F.TripCourse.GolfCourse];
     const courseIds = extractLinkedIds(courseLinked);
 
@@ -491,11 +501,12 @@ async function getTripCourseLinks(tripRecordId: string, tripName: string) {
         ? "want_more"
         : "unknown";
 
+    // CRITICAL: FLATTEN so grouped[bucket] is string[] not string[][]
     grouped[bucket].push(...courseIds);
   }
 
   for (const k of Object.keys(grouped) as Array<keyof typeof grouped>) {
-    grouped[k] = Array.from(new Set(grouped[k]));
+    grouped[k] = Array.from(new Set(grouped[k].filter(Boolean)));
   }
 
   return grouped;
@@ -535,26 +546,131 @@ export async function getCoursesByIds(courseRecordIds: string[]) {
 }
 
 export async function getTripDetailBySlug(slug: string): Promise<TripDetail | null> {
+  const t0 = Date.now();
+  const tag = `[getTripDetailBySlug:${slug}]`;
+
+  console.log(`${tag} start`);
+
   const trip = await getTripBySlug(slug);
-  if (!trip) return null;
 
-  // IMPORTANT:
-  // TripCourses links should be resolved by trip RECORD ID, not trip.name.
-  // Keep the second arg for backward compatibility if your getTripCourseLinks signature expects it,
-  // but pass an empty string to avoid name-based matching.
-  const groupedIds = await getTripCourseLinks(trip.id, trip.name);
+  if (!trip) {
+    console.log(`${tag} trip NOT FOUND`);
+    return null;
+  }
 
-  const [must, should, want, unk] = await Promise.all([
-    getCoursesByIds(groupedIds.must_play),
-    getCoursesByIds(groupedIds.should_play),
-    getCoursesByIds(groupedIds.want_more),
-    getCoursesByIds(groupedIds.unknown),
-  ]);
+  // Trip high-signal debug
+  console.log(`${tag} trip found`, {
+    id: trip.id,
+    slug: trip.slug,
+    name: trip.name,
+    secondaryName: trip.secondaryName,
+    costTier: trip.costTier,
+    durationMinDays: trip.durationMinDays,
+    durationMaxDays: trip.durationMaxDays,
+  });
 
-  // NOTE:
-  // Make sure getCoursesByIds returns course objects that include consolidatedRanking.
-  // (GolfCourses["Consolidated Ranking"] → course.consolidatedRanking)
-  // We do not strip any fields here.
+  // If this is not an Airtable record id, TripCourses filter-by-record-id will fail.
+  const looksLikeAirtableRecordId =
+    typeof trip.id === "string" && /^rec[a-zA-Z0-9]{10,}$/.test(trip.id);
+  console.log(`${tag} trip.id looks like Airtable record id?`, looksLikeAirtableRecordId);
+
+  const tLinks0 = Date.now();
+  let groupedIds: {
+    must_play: string[];
+    should_play: string[];
+    want_more: string[];
+    unknown: string[];
+  };
+
+  try {
+    groupedIds = await getTripCourseLinks(trip.id, trip.name);
+  } catch (e: any) {
+    console.error(`${tag} getTripCourseLinks ERROR`, {
+      message: e?.message || String(e),
+      stack: e?.stack,
+    });
+    throw e;
+  }
+
+  console.log(`${tag} getTripCourseLinks ok`, {
+    ms: Date.now() - tLinks0,
+    counts: {
+      must_play: groupedIds?.must_play?.length ?? -1,
+      should_play: groupedIds?.should_play?.length ?? -1,
+      want_more: groupedIds?.want_more?.length ?? -1,
+      unknown: groupedIds?.unknown?.length ?? -1,
+      total:
+        (groupedIds?.must_play?.length ?? 0) +
+        (groupedIds?.should_play?.length ?? 0) +
+        (groupedIds?.want_more?.length ?? 0) +
+        (groupedIds?.unknown?.length ?? 0),
+    },
+    // show a small sample (IDs only)
+    samples: {
+      must_play: (groupedIds?.must_play || []).slice(0, 3),
+      should_play: (groupedIds?.should_play || []).slice(0, 3),
+      want_more: (groupedIds?.want_more || []).slice(0, 3),
+      unknown: (groupedIds?.unknown || []).slice(0, 3),
+    },
+  });
+
+  const tCourses0 = Date.now();
+  let must: any[] = [];
+  let should: any[] = [];
+  let want: any[] = [];
+  let unk: any[] = [];
+
+  try {
+    [must, should, want, unk] = await Promise.all([
+      getCoursesByIds(groupedIds.must_play),
+      getCoursesByIds(groupedIds.should_play),
+      getCoursesByIds(groupedIds.want_more),
+      getCoursesByIds(groupedIds.unknown),
+    ]);
+  } catch (e: any) {
+    console.error(`${tag} getCoursesByIds ERROR`, {
+      message: e?.message || String(e),
+      stack: e?.stack,
+    });
+    throw e;
+  }
+
+  // Course fetch debug
+  console.log(`${tag} getCoursesByIds ok`, {
+    ms: Date.now() - tCourses0,
+    counts: {
+      must_play: must?.length ?? -1,
+      should_play: should?.length ?? -1,
+      want_more: want?.length ?? -1,
+      unknown: unk?.length ?? -1,
+      total: (must?.length ?? 0) + (should?.length ?? 0) + (want?.length ?? 0) + (unk?.length ?? 0),
+    },
+    // show a small sample of names/slugs if present
+    samples: {
+      must_play: (must || []).slice(0, 2).map((c: any) => ({
+        id: c?.id,
+        slug: c?.slug,
+        name: c?.name,
+      })),
+      should_play: (should || []).slice(0, 2).map((c: any) => ({
+        id: c?.id,
+        slug: c?.slug,
+        name: c?.name,
+      })),
+      want_more: (want || []).slice(0, 2).map((c: any) => ({
+        id: c?.id,
+        slug: c?.slug,
+        name: c?.name,
+      })),
+      unknown: (unk || []).slice(0, 2).map((c: any) => ({
+        id: c?.id,
+        slug: c?.slug,
+        name: c?.name,
+      })),
+    },
+  });
+
+  console.log(`${tag} done`, { ms: Date.now() - t0 });
 
   return {
     trip: {

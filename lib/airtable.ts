@@ -173,34 +173,86 @@ export async function getPublishedTripBySlug(
 ): Promise<TripWithCourses | null> {
   const base = getBase();
 
+  const tripFormula = `AND({Status}="published",{Slug}="${slug}")`;
+
   const tripRecords = await base(TRIPS_TABLE)
     .select({
-      filterByFormula: `AND({Status}="published",{Slug}="${slug}")`,
+      filterByFormula: tripFormula,
       maxRecords: 1,
     })
     .all();
 
+  console.log("[getPublishedTripBySlug] slug:", slug);
+  console.log("[getPublishedTripBySlug] formula:", tripFormula);
+  console.log("[getPublishedTripBySlug] tripRecords:", tripRecords.length);
+
   const tripRecord = tripRecords[0];
   if (!tripRecord) return null;
 
+  console.log("[getPublishedTripBySlug] tripRecord.id:", tripRecord.id);
+  console.log(
+    "[getPublishedTripBySlug] tripRecord.fields keys:",
+    Object.keys(tripRecord.fields || {})
+  );
+  console.log("[getPublishedTripBySlug] tripRecord.Status/Slug:", {
+    Status: (tripRecord.fields as any)["Status"],
+    Slug: (tripRecord.fields as any)["Slug"],
+    Name: (tripRecord.fields as any)["Name"],
+  });
+
   const trip = mapTrip(tripRecord);
 
-  // IMPORTANT FIX:
-  // TripCourses.{Golf Trip} is a "link to record" → arrays of trip RECORD IDs.
-  // Filter by tripRecord.id, not by trip.name.
-  const tripId = tripRecord.id;
+  // Deterministic join: use the trip's linked TripCourses record IDs
+  const tripCourseIds = (tripRecord.fields as any)["TripCourses"] as
+    | string[]
+    | undefined;
 
-  const tcRecords = await base(TRIP_COURSES_TABLE)
-    .select({
-      filterByFormula: `FIND("${tripId}", ARRAYJOIN({Golf Trip}))`,
-      maxRecords: 200,
-      sort: [{ field: "Trip Course Rank", direction: "asc" }],
-    })
-    .all();
+  console.log("[getPublishedTripBySlug] tripRecord TripCourses linked ids:", {
+    count: tripCourseIds?.length ?? 0,
+    sample: (tripCourseIds || []).slice(0, 5),
+  });
+
+  if (!tripCourseIds?.length) {
+    return { ...trip, courses: [] };
+  }
+
+  // Fetch TripCourses by record IDs (chunked to avoid formula length limits)
+  const tcRecords: any[] = [];
+  const tcChunkSize = 60;
+
+  for (let i = 0; i < tripCourseIds.length; i += tcChunkSize) {
+    const chunk = tripCourseIds.slice(i, i + tcChunkSize);
+    const tcFormula = `OR(${chunk.map((id) => `RECORD_ID()="${id}"`).join(",")})`;
+
+    console.log("[getPublishedTripBySlug] TripCourses chunk formula:", tcFormula);
+
+    const chunkRecords = await base(TRIP_COURSES_TABLE)
+      .select({
+        filterByFormula: tcFormula,
+        maxRecords: 200,
+        sort: [{ field: "Trip Course Rank", direction: "asc" }],
+      })
+      .all();
+
+    tcRecords.push(...chunkRecords);
+  }
+
+  console.log("[getPublishedTripBySlug] TripCourses fetched by IDs:", tcRecords.length);
 
   if (!tcRecords.length) {
     return { ...trip, courses: [] };
   }
+
+  console.log(
+    "[getPublishedTripBySlug] TripCourses sample keys:",
+    Object.keys(tcRecords[0].fields || {})
+  );
+  console.log("[getPublishedTripBySlug] TripCourses sample link fields:", {
+    "Golf Trip": (tcRecords[0].fields as any)["Golf Trip"],
+    "Golf Course": (tcRecords[0].fields as any)["Golf Course"],
+    "Trip Course Rank": (tcRecords[0].fields as any)["Trip Course Rank"],
+    Status: (tcRecords[0].fields as any)["Status"],
+  });
 
   const tcs = tcRecords
     .map(mapTripCourse)
@@ -208,7 +260,12 @@ export async function getPublishedTripBySlug(
 
   const courseIds = Array.from(new Set(tcs.map((x) => x.golfCourseId))).filter(
     Boolean
-  );
+  ) as string[];
+
+  console.log("[getPublishedTripBySlug] unique courseIds:", {
+    count: courseIds.length,
+    sample: courseIds.slice(0, 10),
+  });
 
   if (!courseIds.length) {
     return { ...trip, courses: [] };
@@ -220,9 +277,9 @@ export async function getPublishedTripBySlug(
 
   for (let i = 0; i < courseIds.length; i += chunkSize) {
     const chunk = courseIds.slice(i, i + chunkSize);
-    const formula = `OR(${chunk
-      .map((id) => `RECORD_ID()="${id}"`)
-      .join(",")})`;
+    const formula = `OR(${chunk.map((id) => `RECORD_ID()="${id}"`).join(",")})`;
+
+    console.log("[getPublishedTripBySlug] Courses chunk formula:", formula);
 
     const courseRecords = await base(COURSES_TABLE)
       .select({
@@ -231,24 +288,33 @@ export async function getPublishedTripBySlug(
       })
       .all();
 
+    console.log("[getPublishedTripBySlug] Courses fetched chunk:", {
+      requested: chunk.length,
+      returned: courseRecords.length,
+    });
+
     for (const r of courseRecords) {
       courseMap.set(r.id, mapCourse(r));
     }
   }
 
+  const courses = tcs
+    .map((tc) => {
+      const course = courseMap.get(tc.golfCourseId);
+      if (!course) return null;
+      return {
+        course,
+        tripCourseRank: tc.tripCourseRank,
+        status: tc.status,
+      };
+    })
+    .filter(Boolean) as TripWithCourses["courses"];
+
+  console.log("[getPublishedTripBySlug] final courses attached:", courses.length);
+
   return {
     ...trip,
-    courses: tcs
-      .map((tc) => {
-        const course = courseMap.get(tc.golfCourseId);
-        if (!course) return null;
-        return {
-          course,
-          tripCourseRank: tc.tripCourseRank,
-          status: tc.status,
-        };
-      })
-      .filter(Boolean) as TripWithCourses["courses"],
+    courses,
   };
 }
 
