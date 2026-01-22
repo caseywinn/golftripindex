@@ -54,9 +54,9 @@ export default async function TripDetailsPage({
   if (!trip) return notFound();
 
   const heroUrl =
+    `/images/trips/${trip.slug}-hero.jpg` || 
     trip.heroImageUrl ||
-    trip.thumbnailImageUrl ||
-    `/images/trips/${trip.slug}-hero.jpg`;
+    trip.thumbnailImageUrl;
 
   const courses = [...trip.courses].sort(
     (a, b) => a.tripCourseRank - b.tripCourseRank
