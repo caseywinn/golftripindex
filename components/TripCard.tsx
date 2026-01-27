@@ -2,7 +2,11 @@ import Link from "next/link";
 import styles from "../styles/tripCard.module.css";
 
 type TripCardProps = {
+  /** Used for scroll anchoring (e.g., id="trip-21") */
+  id?: string;
+
   href: string;
+  slug: string; // ✅ add this
 
   currentRanking: number;
   previousRanking?: number | null;
@@ -18,7 +22,7 @@ type TripCardProps = {
   costTier?: number | null;
 
   overview?: string | null;
-  thumbnailImageUrl?: string | null;
+  thumbnailImageUrl?: string | null; // you can keep this for now if you want
 
   golfRating?: number | null;
   lodgingRating?: number | null;
@@ -26,7 +30,7 @@ type TripCardProps = {
   vibeRating?: number | null;
   overallRating?: number | null;
 
-  variant?: "tile"; // leaving room for future "grid" if you want
+  variant?: "tile";
 };
 
 function dollars(n?: number | null) {
@@ -62,7 +66,9 @@ function miles(n?: number | null) {
 
 export default function TripCard(props: TripCardProps) {
   const {
+    id,
     href,
+    slug, // ✅ add this
     currentRanking,
     previousRanking,
     name,
@@ -74,7 +80,6 @@ export default function TripCard(props: TripCardProps) {
     leadTime,
     costTier,
     overview,
-    thumbnailImageUrl,
     golfRating,
     lodgingRating,
     foodRating,
@@ -82,13 +87,14 @@ export default function TripCard(props: TripCardProps) {
     overallRating,
   } = props;
 
+  // ✅ always use your convention
+  const thumb = `/images/trips/${slug}.jpg`;
+
   return (
-    <Link href={href} className={`${styles.tile} whiteRoundedBox`}>
+    <Link id={id} href={href} className={`${styles.tile} whiteRoundedBox`}>
       <div
         className={styles.media}
-        style={{
-          backgroundImage: thumbnailImageUrl ? `url(${thumbnailImageUrl})` : undefined,
-        }}
+        style={{ backgroundImage: `url(${thumb})` }}
         aria-hidden="true"
       >
         <div className={styles.rank}>#{currentRanking}</div>
@@ -105,15 +111,30 @@ export default function TripCard(props: TripCardProps) {
         <div className={styles.top}>
           <div className={styles.title}>
             {name}
-            {secondaryName ? <span className={styles.secondary}> + {secondaryName}</span> : null}
+            {secondaryName ? (
+              <span className={styles.secondary}> + {secondaryName}</span>
+            ) : null}
           </div>
 
           <div className={styles.meta}>
-            <div><span className={styles.metaLabel}>Duration:</span> {daysRange(durationMinDays, durationMaxDays)}</div>
-            <div><span className={styles.metaLabel}>Driving:</span> {miles(driving)}</div>
-            <div><span className={styles.metaLabel}>Stay Type:</span> {stayType ?? "—"}</div>
-            <div><span className={styles.metaLabel}>Lead Time:</span> {leadTime ?? "—"}</div>
-            <div><span className={styles.metaLabel}>Cost:</span> {dollars(costTier)}</div>
+            <div>
+              <span className={styles.metaLabel}>Duration:</span>{" "}
+              {daysRange(durationMinDays, durationMaxDays)}
+            </div>
+            <div>
+              <span className={styles.metaLabel}>Driving:</span> {miles(driving)}
+            </div>
+            <div>
+              <span className={styles.metaLabel}>Stay Type:</span>{" "}
+              {stayType ?? "—"}
+            </div>
+            <div>
+              <span className={styles.metaLabel}>Lead Time:</span>{" "}
+              {leadTime ?? "—"}
+            </div>
+            <div>
+              <span className={styles.metaLabel}>Cost:</span> {dollars(costTier)}
+            </div>
           </div>
 
           {overview ? <p className={styles.overview}>{overview}</p> : null}
@@ -122,7 +143,9 @@ export default function TripCard(props: TripCardProps) {
         <div className={styles.bottom}>
           <div className={styles.prev}>
             <span className={styles.prevLabel}>Previous:</span>{" "}
-            <span className={styles.prevValue}>{previousRanking ? `#${previousRanking}` : "—"}</span>
+            <span className={styles.prevValue}>
+              {previousRanking ? `#${previousRanking}` : "—"}
+            </span>
           </div>
 
           <div className={styles.scores}>
@@ -144,7 +167,9 @@ export default function TripCard(props: TripCardProps) {
             </div>
 
             <div className={styles.overall}>
-              <div className={styles.overallNum}>{overallScore(overallRating)}</div>
+              <div className={styles.overallNum}>
+                {overallScore(overallRating)}
+              </div>
               <div className={styles.overallLabel}>Overall</div>
             </div>
           </div>

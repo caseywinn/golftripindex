@@ -1,15 +1,12 @@
 import Link from "next/link";
 import styles from "../../styles/trips.module.css";
-import TripCard from "../../components/TripCard";
-import { getPublishedTrips } from "../../lib/airtable";
 import { getPublishedTripsWithFirstCourse } from "../../lib/airtable";
-import { formatStayType, formatCostTier, formatRanking, formatDuration, formatDriving } from "../../lib/formatters";
 import type { Metadata } from "next";
+import TripsListClient from "../../components/TripsListClient";
 
 export const metadata: Metadata = {
   title: "Golf Trip Rankings | GolfTripIndex",
-  description:
-    "An overall ranking of the best golf trips in America.",
+  description: "An overall ranking of the best golf trips in America.",
 };
 
 type SearchParams = Promise<{ days?: string }>;
@@ -28,8 +25,6 @@ export default async function TripsPage({
     (a, b) => (a.currentRanking ?? 9999) - (b.currentRanking ?? 9999)
   );
 
-  const top10 = sorted.slice(0, 10);
-
   return (
     <main className={styles.page}>
       {/* Banner */}
@@ -45,15 +40,19 @@ export default async function TripsPage({
           <div className={styles.segment}>
             <Link
               href="/trips?days=2-5"
-              className={`${styles.segmentItem} ${days === "2-5" ? styles.active : ""}`}
+              className={`${styles.segmentItem} ${
+                days === "2-5" ? styles.active : ""
+              }`}
             >
               2–5 Days
             </Link>
             <Link
               href="/trips?days=6-10"
-              className={`${styles.segmentItem} ${days === "6-10" ? styles.active : ""}`}
+              className={`${styles.segmentItem} ${
+                days === "6-10" ? styles.active : ""
+              }`}
             >
-              6–10 Days
+              6–10 Days (Coming Soon)
             </Link>
           </div>
         </div>
@@ -62,35 +61,7 @@ export default async function TripsPage({
       {/* Trip tiles */}
       <section className={styles.listWrap}>
         <div className={styles.listInner}>
-          <div className={styles.list}>
-          {top10.map((t) => (
-            <TripCard
-              key={t.id}
-              href={`/trips/${t.slug.toLowerCase()}`}
-              currentRanking={t.currentRanking ?? 999}
-              previousRanking={t.previousRanking ?? 999}
-              name={t.name}
-              secondaryName={t.secondaryName}
-              durationMinDays={t.durationMinDays ?? 1}
-              durationMaxDays={t.durationMaxDays ?? 999}
-              driving={t.driving}
-              stayType={formatStayType(t.stayType)}
-              leadTime={t.leadTime}
-              costTier={t.costTier}
-              overview={t.overview}
-              thumbnailImageUrl={
-                t.firstCourse?.slug
-                  ? `/images/courses/${t.firstCourse.slug.toLowerCase()}.jpg`
-                  : `/images/trips/${t.slug.toLowerCase()}.jpg`
-              }
-              golfRating={t.golfRating}
-              lodgingRating={t.lodgingRating}
-              foodRating={t.foodRating}
-              vibeRating={t.vibeRating}
-              overallRating={t.overallRating}
-            />
-          ))}
-          </div>
+          <TripsListClient trips={sorted} pageSize={10} />
         </div>
       </section>
     </main>

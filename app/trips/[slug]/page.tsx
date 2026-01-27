@@ -54,7 +54,7 @@ export default async function TripDetailsPage({
   if (!trip) return notFound();
 
   const heroUrl =
-    `/images/trips/${trip.slug}-hero.jpg` || 
+    `/images/trips/${trip.slug}.jpg` || 
     trip.heroImageUrl ||
     trip.thumbnailImageUrl;
 
