@@ -33,8 +33,8 @@ export async function generateMetadata({
 function statusLabel(status: string) {
   if (!status) return "";
   if (status === "must_play") return "MUST";
-  if (status === "should_play") return "SHOULD";
-  if (status === "want_more") return "WANT MORE";
+  if (status === "should_play") return "";
+  if (status === "want_more") return "";
   return status.toUpperCase();
 }
 
