@@ -90,106 +90,98 @@ export default async function TripDetailsPage({
   return (
     <main className={styles.page}>
       {/* HERO */}
-      <section className={styles.hero}>
+      <section className={styles.banner}>
         <div
-          className={styles.heroMedia}
+          className={styles.bannerMedia}
           style={{ backgroundImage: `url("${heroUrl}")` }}
           aria-hidden="true"
         />
-        <div className={styles.heroOverlay} aria-hidden="true" />
 
-        {/* Center floating card */}
-        <div className={styles.heroInner}>
-          <div className={`${styles.heroCard} blueBannerCard`}>
-            <div className={styles.heroTitle}>
-              #{trip.currentRanking ?? "—"} {trip.name}
+        <div className={styles.bannerPanel}>
+          <div className={styles.bannerInner}>
+            {/* Title spans full width */}
+            <div className={styles.bannerHeader}>
+              <h1 className={styles.bannerTitle}>{trip.name}</h1>
+
+              {/* short deck line like screenshot (use first line of overview if available) */}
+              {trip.subheader ? (
+                <p className={styles.bannerDeck}>
+                  {trip.subheader.split("\n").filter(Boolean)[0]}
+                </p>
+              ) : null}
             </div>
 
-            <div className={styles.heroScores}>
-              <div className={styles.heroScore}>
-                <div className={styles.heroScoreNum}>
-                  {safeNum(trip.golfRating)}
+            <div className={styles.bannerRule} aria-hidden="true" />
+
+            {/* Two-column content area */}
+            <div className={styles.bannerBody}>
+              {/* LEFT: meta */}
+              <div className={styles.bannerMeta}>
+                <div className={styles.bannerMetaRow}>
+                  <span className={styles.bannerMetaKey}>Duration:</span>
+                  <span className={styles.bannerMetaVal}>
+                    {formatDuration(trip.durationMinDays, trip.durationMaxDays)}
+                  </span>
                 </div>
-                <div className={styles.heroScoreLabel}>Golf</div>
+
+                <div className={styles.bannerMetaRow}>
+                  <span className={styles.bannerMetaKey}>Driving:</span>
+                  <span className={styles.bannerMetaVal}>
+                    {formatDriving(trip.driving)}
+                  </span>
+                </div>
+
+                <div className={styles.bannerMetaRow}>
+                  <span className={styles.bannerMetaKey}>Stay Type:</span>
+                  <span className={styles.bannerMetaVal}>
+                    {formatStayType(trip.stayType)}
+                  </span>
+                </div>
+
+                <div className={styles.bannerMetaRow}>
+                  <span className={styles.bannerMetaKey}>Lead Time:</span>
+                  <span className={styles.bannerMetaVal}>{trip.leadTime ?? "—"}</span>
+                </div>
+
+                <div className={styles.bannerMetaRow}>
+                  <span className={styles.bannerMetaKey}>Cost:</span>
+                  <span className={styles.bannerMetaVal}>
+                    {formatCostTier(trip.costTier)}
+                  </span>
+                </div>
               </div>
 
-              <div className={styles.heroScore}>
-                <div className={styles.heroScoreNum}>
-                  {safeNum(trip.lodgingRating)}
+              {/* RIGHT: scores */}
+              <div className={styles.bannerScores}>
+                <div className={styles.bannerScoreRow}>
+                  <span className={styles.bannerScoreKey}>Golf:</span>
+                  <span className={styles.bannerScoreVal}>{safeNum(trip.golfRating)}</span>
                 </div>
-                <div className={styles.heroScoreLabel}>Lodging</div>
-              </div>
 
-              <div className={styles.heroScore}>
-                <div className={styles.heroScoreNum}>
-                  {safeNum(trip.foodRating)}
+                <div className={styles.bannerScoreRow}>
+                  <span className={styles.bannerScoreKey}>Lodging:</span>
+                  <span className={styles.bannerScoreVal}>{safeNum(trip.lodgingRating)}</span>
                 </div>
-                <div className={styles.heroScoreLabel}>Food</div>
-              </div>
 
-              <div className={styles.heroScore}>
-                <div className={styles.heroScoreNum}>
-                  {safeNum(trip.vibeRating)}
+                <div className={styles.bannerScoreRow}>
+                  <span className={styles.bannerScoreKey}>Food:</span>
+                  <span className={styles.bannerScoreVal}>{safeNum(trip.foodRating)}</span>
                 </div>
-                <div className={styles.heroScoreLabel}>Vibe</div>
-              </div>
 
-              <div className={styles.heroDivider} aria-hidden="true" />
-
-              <div className={styles.heroOverall}>
-                <div className={styles.heroOverallNum}>
-                  {safeNum(trip.overallRating).toFixed(2)}
+                <div className={styles.bannerScoreRow}>
+                  <span className={styles.bannerScoreKey}>Vibe:</span>
+                  <span className={styles.bannerScoreVal}>{safeNum(trip.vibeRating)}</span>
                 </div>
-                <div className={styles.heroOverallLabel}>Overall</div>
+
+                <div className={styles.bannerScoreRowOverall}>
+                  <span className={styles.bannerScoreKey}>Overall:</span>
+                  <span className={styles.bannerOverallVal}>
+                    {safeNum(trip.overallRating).toFixed(2)}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
-
-          {/* Meta row below the blue card */}
-          <div className={styles.metaRow}>
-            <div className={styles.metaItem}>
-              <span className={styles.metaLabel}>Duration:</span>{" "}
-              {formatDuration(trip.durationMinDays, trip.durationMaxDays)}
-            </div>
-
-            <span className={styles.metaDot} aria-hidden="true">
-              •
-            </span>
-
-            <div className={styles.metaItem}>
-              <span className={styles.metaLabel}>Driving:</span>{" "}
-              {formatDriving(trip.driving)}
-            </div>
-
-            <span className={styles.metaDot} aria-hidden="true">
-              •
-            </span>
-
-            <div className={styles.metaItem}>
-              <span className={styles.metaLabel}>Stay Type:</span>{" "}
-              {formatStayType(trip.stayType)}
-            </div>
-
-            <span className={styles.metaDot} aria-hidden="true">
-              •
-            </span>
-
-            <div className={styles.metaItem}>
-              <span className={styles.metaLabel}>Lead Time:</span>{" "}
-              {trip.leadTime ?? "—"}
-            </div>
-
-            <span className={styles.metaDot} aria-hidden="true">
-              •
-            </span>
-
-            <div className={styles.metaItem}>
-              <span className={styles.metaLabel}>Cost:</span>{" "}
-              {formatCostTier(trip.costTier)}
-            </div>
-          </div>
-
-          <div className={styles.metaRule} aria-hidden="true" />
         </div>
       </section>
 
@@ -249,7 +241,6 @@ export default async function TripDetailsPage({
             })}
           </div>
         </div>
-
 
         <div className={styles.bodyInner}>
           {/* Main full-width content */}

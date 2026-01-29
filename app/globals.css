@@ -28,15 +28,15 @@ html {
 }
 
 body {
-  margin: 0;
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-ui);
-  font-size: 14px;
-  line-height: 1.6;
   letter-spacing: 0.01em;
   overflow-x: hidden;
-  color: #2f3642;
+  margin: 0 0 18px;
+  font-size: 15px;
+  line-height: 1.8;
+  color: #111;
 }
 
 a { color: inherit; text-decoration: none; }

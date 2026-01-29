@@ -6,7 +6,7 @@ type TripCardProps = {
   id?: string;
 
   href: string;
-  slug: string; // ✅ add this
+  slug: string;
 
   currentRanking: number;
   previousRanking?: number | null;
@@ -22,7 +22,7 @@ type TripCardProps = {
   costTier?: number | null;
 
   overview?: string | null;
-  thumbnailImageUrl?: string | null; // you can keep this for now if you want
+  thumbnailImageUrl?: string | null;
 
   golfRating?: number | null;
   lodgingRating?: number | null;
@@ -68,7 +68,7 @@ export default function TripCard(props: TripCardProps) {
   const {
     id,
     href,
-    slug, // ✅ add this
+    slug,
     currentRanking,
     previousRanking,
     name,
@@ -87,33 +87,43 @@ export default function TripCard(props: TripCardProps) {
     overallRating,
   } = props;
 
-  // ✅ always use your convention
+  // Always use your convention
   const thumb = `/images/trips/${slug}.jpg`;
 
   return (
-    <Link id={id} href={href} className={`${styles.tile} whiteRoundedBox`}>
-      <div
-        className={styles.media}
-        style={{ backgroundImage: `url(${thumb})` }}
-        aria-hidden="true"
+    <article id={id} className={`${styles.tile} whiteRoundedBox`}>
+      {/* Thumbnail is a link */}
+      <Link
+        href={href}
+        className={styles.mediaLink}
+        aria-label={`View trip: ${name}`}
       >
-        <div className={styles.rank}>#{currentRanking}</div>
+        <div
+          className={styles.media}
+          style={{ backgroundImage: `url(${thumb})` }}
+          aria-hidden="true"
+        >
+          <div className={styles.rank}>#{currentRanking}</div>
 
-        <div className={styles.cornerDots} aria-hidden="true">
-          <span />
-          <span />
-          <span />
-          <span />
+          <div className={styles.cornerDots} aria-hidden="true">
+            <span />
+            <span />
+            <span />
+            <span />
+          </div>
         </div>
-      </div>
+      </Link>
 
       <div className={styles.body}>
         <div className={styles.top}>
+          {/* Title is a link */}
           <div className={styles.title}>
-            {name}
-            {secondaryName ? (
-              <span className={styles.secondary}> + {secondaryName}</span>
-            ) : null}
+            <Link href={href} className={styles.titleLink}>
+              {name}
+              {secondaryName ? (
+                <span className={styles.secondary}> + {secondaryName}</span>
+              ) : null}
+            </Link>
           </div>
 
           <div className={styles.meta}>
@@ -167,14 +177,12 @@ export default function TripCard(props: TripCardProps) {
             </div>
 
             <div className={styles.overall}>
-              <div className={styles.overallNum}>
-                {overallScore(overallRating)}
-              </div>
+              <div className={styles.overallNum}>{overallScore(overallRating)}</div>
               <div className={styles.overallLabel}>Overall</div>
             </div>
           </div>
         </div>
       </div>
-    </Link>
+    </article>
   );
 }

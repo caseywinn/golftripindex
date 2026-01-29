@@ -2,151 +2,180 @@
   width: 100%;
 }
 
-/* HERO */
-.hero {
-  position: relative;
+/* =========================
+   SPLIT HERO SHELL (left image + right panel)
+   ========================= */
+
+.banner {
   width: 100%;
-  height: 260px;
+  display: grid;
+  grid-template-columns: 60% 40%;
+  min-height: 300px;
   background: #0b0f1a;
-  overflow: visible;
+  overflow: hidden;
 }
 
-.heroMedia {
-  position: absolute;
-  inset: 0;
+/* Left image */
+.bannerMedia {
+  position: relative;
   background-size: cover;
   background-position: center;
-  transform: scale(1.01);
+  min-height: 300px;
+  transform: none;
 }
 
-.heroOverlay {
+/* Subtle readability overlay on image side */
+.bannerMedia::after {
+  content: "";
   position: absolute;
   inset: 0;
   background: linear-gradient(
     180deg,
     rgba(0, 0, 0, 0.10) 0%,
-    rgba(0, 0, 0, 0.20) 55%,
-    rgba(0, 0, 0, 0.35) 100%
+    rgba(0, 0, 0, 0.18) 55%,
+    rgba(0, 0, 0, 0.26) 100%
   );
 }
 
-.heroInner {
-  position: absolute;
-  left: 50%;
-  bottom: -90px;              /* pushes it below the image */
-  transform: translateX(-50%);
+/* =========================
+   RIGHT PANEL (match screenshot)
+   Only affects banner panel.
+   ========================= */
 
+.bannerPanel {
+  background: #2f2f2f;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* padding and max width live here */
+.bannerInner {
   width: 100%;
-  max-width: 1200px;
-  padding: 0 28px;
-
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  z-index: 2;
+  max-width: 760px;
+  padding: 44px 56px;
+  gap: 12px;
 }
 
-.heroCard {
-  width: min(620px, 92%);
-  padding: 10px 18px 10px;
+.bannerHeader {
+  display: block;
 }
 
-.heroTitle {
+.bannerTitle {
+  margin: 0;
+  font-size: 48px;
+  line-height: 1.05;
+  font-weight: 850;
+  letter-spacing: -0.02em;
   color: #ffffff;
-  font-size: 24px;
-  font-weight: 650;
-  letter-spacing: 0.02em;
+  margin-bottom: 12px;
 }
 
-.heroScores {
-  margin-top: 8px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  gap: 22px;
+.bannerDeck {
+  margin: 12px 0 0 0;
+  max-width: 560px;
+  max-width: 56ch;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
 }
 
-.heroScore {
-  min-width: 54px;
-  text-align: center;
+.bannerRule {
+  margin-top: 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.22);
 }
 
-.heroScoreNum {
-  color: #ffffff;
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 1;
+.bannerBody {
+  margin-top: 22px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 72px;
+  align-items: start;
+  max-width: 500px;
 }
 
-.heroScoreLabel {
-  margin-top: 2px;
-  color: rgba(255,255,255,0.85);
-  font-size: 11px;
-  letter-spacing: 0.06em;
+/* LEFT META */
+.bannerMeta {
+  display: grid;
+  row-gap: 14px;
 }
 
-.heroDivider {
-  width: 1px;
-  height: 34px;
-  background: rgba(255,255,255,0.25);
+.bannerMetaRow {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  column-gap: 6px;
+  align-items: baseline;
+  height: 20px;
 }
 
-.heroOverall {
-  min-width: 72px;
-  text-align: center;
-}
-
-.heroOverallNum {
-  color: #16f28b; /* close to the screenshot “green” overall */
-  font-size: 20px;
-  font-weight: 800;
-  line-height: 1;
-}
-
-.heroOverallLabel {
-  margin-top: 2px;
-  color: rgba(255,255,255,0.85);
-  font-size: 11px;
-  letter-spacing: 0.06em;
-}
-
-/* Meta row under the card */
-.metaRow {
-  margin-top: 24px;
-  font-size: 12px;
-  letter-spacing: 0.02em;
-  color: #6b7280;
-
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-}
-
-.metaItem {
+.bannerMetaKey {
+  color: rgba(255, 255, 255, 0.62);
+  font-weight: 400;
+  font-size: 13px;
+  letter-spacing: 0.01em;
   white-space: nowrap;
 }
 
-.metaLabel {
-  color: #9aa3b2;
-  font-weight: 600;
+.bannerMetaVal {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 14px;
+  font-weight: 500;
 }
 
-.metaDot {
-  opacity: 0.5;
+/* RIGHT SCORES */
+.bannerScores {
+  display: flex;
+  flex-direction: column;
+  row-gap: 14px;
+  width: 150px;
+  margin-left: auto;
+  align-items: stretch;
 }
 
-.metaRule {
-  margin-top: 12px;
-  width: 100%;
-  max-width: 860px;
-  border-bottom: 1px solid #eef1f6;
+.bannerScoreRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+  height: 20px;
 }
 
-/* BODY */
+.bannerScoreRowOverall {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+  height: 20px;
+  position: relative;
+  top: -6px;
+}
+
+.bannerScoreKey {
+  color: rgba(255, 255, 255, 0.78);
+  font-weight: 800;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.bannerScoreVal {
+  color: #ffffff;
+  font-weight: 850;
+  font-size: 14px;
+}
+
+.bannerOverallVal {
+  color: #16f28b;
+  font-weight: 950;
+  font-size: 20px;
+}
+
+/* =========================
+   BODY
+   ========================= */
+
 .body {
-  padding: 110px 0 70px; /* pushes content below overlapping hero */
+  padding: 34px 0 70px;
 }
 
 .bodyInner {
@@ -179,7 +208,7 @@
   margin: 0 0 18px 0;
 }
 
-/* Course grid (2 rows x 3 cols like screenshot) */
+/* Course grid (base) */
 .courseGrid {
   margin-top: 0px;
   display: grid;
@@ -236,10 +265,8 @@
 
   font-size: 28px;
   line-height: 1;
-  letter-spacing: -0.02em;
 
   color: #ffffff;
-
   pointer-events: none;
 
   font-weight: 700;
@@ -367,23 +394,18 @@
   color: #2f3642;
 }
 
-@media (min-width:859px) {
-    /* =========================
-    Carousel wrapper
-    ========================= */
+/* =========================
+   Carousel wrapper
+   ========================= */
 
+@media (min-width: 859px) {
   .carouselFrame {
     max-width: 1200px;
     margin: 0 auto;
-
-    /* gutter you want on both sides */
     --gutter: 28px;
-
-    /* this creates the visible padded area */
     padding: 0 var(--gutter);
   }
 
-    /* the scroller */
   .courseGrid {
     display: flex;
     gap: 16px;
@@ -392,16 +414,11 @@
     -webkit-overflow-scrolling: touch;
 
     scroll-snap-type: x mandatory;
-
-    /* IMPORTANT: allow proper paint in flex contexts */
     min-width: 0;
 
-    /* IMPORTANT: give the scroller its own padding so first/last card
-      can sit inside the gutter without needing clip-path tricks */
     padding: 8px 0 16px;
     margin-bottom: 28px;
 
-    /* Optional: so the last card doesn't stick to edge when scrolled all the way */
     scroll-padding-left: var(--gutter);
     scroll-padding-right: var(--gutter);
   }
@@ -409,6 +426,59 @@
   .courseCard {
     flex: 0 0 calc((100% - 32px) / 3.35);
     scroll-snap-align: start;
+  }
+}
+
+/* Changes proportions of top hero */
+@media (max-width: 1460px) {
+  .banner {
+    grid-template-columns: 50% 50%;
+  }
+}
+
+@media (max-width: 1160px) {
+  .banner {
+    grid-template-columns: 40% 60%;
+  }
+}
+
+/* HERO: stack panel under image under 960px */
+@media (max-width: 960px) {
+  
+  .banner {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .bannerBody {
+    max-width: 100%;
+  }
+
+  .bannerMedia {
+    height: 240px;      /* adjust to taste */
+    min-height: 240px;
+  }
+
+  .bannerPanel {
+    justify-content: flex-start; /* keeps content aligned nicely */
+  }
+
+  .bannerInner {
+    max-width: none;    /* let it use full width */
+    width: 100%;
+    padding: 24px 24px; 
+  }
+
+  .bannerDeck {
+    max-width: 100%;
+  }
+
+  .bannerMetaRow {
+    height: 10px;
+  }
+
+  .bannerScoreRow {
+    height: 10px;
   }
 }
 
@@ -429,88 +499,24 @@
 
 /* Responsive */
 @media (max-width: 1100px) {
-  .bodyInner {
-    grid-template-columns: 1fr 340px;
-  }
   .courseGrid {
     grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 860px) {
-  .hero {
-    height: 200px;
-    margin-bottom: 20px;
-  }
-
-  .heroInner {
-    position: relative;        /* NOT static */
-    z-index: 3;                /* above heroMedia + heroOverlay */
-    max-width: 100%;
-    padding: 50px 18px 0;
-    align-items: stretch;
-  }
-
-  .heroCard {
-    width: 100%;
-    padding: 12px 14px;
-  }
-
-  .heroTitle {
-    font-size: 18px;
-  }
-
-  .heroScores {
-    gap: 0px;
-    flex-wrap: wrap;           /* allow wrapping instead of squishing */
-  }
-
-  .heroScoreNum {
-    font-size: 14px;
-  }
-
-  .heroScoreLabel {
-    font-size: 10px;
-  }
-
-  .heroOverallNum {
-    font-size: 14px;
-  }
-
-  .heroOverallLabel {
-    font-size: 10px;
-  }
-
-  .heroDivider {
-    display: none;             /* simplifies small screens */
-  }
-
-  .metaRow {
-    margin-top: 36px;
-    font-size: 12px;
-    line-height:0.8;
-  }
-
-  .metaDot {
-    display: none;             /* removes noisy separators on mobile */
-  }
-
-  /* Hide Stay Type + Lead Time */
-  .metaRow > *:nth-child(7) {
-    display: none;
-  }
-
-  .bodyInner {
-    grid-template-columns: 1fr;
-  }
-  .sideCol {
-    order: 2;
-  }
-  .courseGrid {
-    grid-template-columns: 1fr;
   }
   .detailGrid {
     grid-template-columns: 1fr;
   }
 }
 
+@media (max-width: 960px) {
+  .bodyInner {
+    padding: 0 18px;
+  }
+
+  .detailGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .courseGrid {
+    grid-template-columns: 1fr;
+  }
+}

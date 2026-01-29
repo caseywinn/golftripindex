@@ -2,106 +2,84 @@
   width: 100%;
 }
 
-/* Banner */
+/* Banner (split hero) */
 .banner {
-  position: relative;
   width: 100%;
-  height: 260px;
+  display: grid;
+  grid-template-columns: 60% 40%;
+  /* Use min-height so content can grow without collapsing/overlapping */
+  min-height: 300px;
   background: #0b0f1a;
-  overflow: visible; /* critical */
+  overflow: hidden; /* prevents stray overflow */
 }
 
 .bannerMedia {
-  position: absolute;
-  inset: 0;
+  position: relative;
   background-image: url("/trips-hero.jpg"); /* put this in /public */
   background-size: cover;
   background-position: center;
-  transform: scale(1.01);
+  min-height: 300px; /* keeps left side from collapsing */
 }
 
-/* Slight readability overlay */
-.bannerMedia::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(0, 0, 0, 0.15) 0%,
-    rgba(0, 0, 0, 0.25) 60%,
-    rgba(0, 0, 0, 0.35) 100%
-  );
-}
-
-.bannerInner {
-  position: absolute;
-  left: 50%;
-  bottom: -90px;              /* pushes it below the image */
-  transform: translateX(-50%);
-
-  width: 100%;
-  max-width: 1200px;
-  padding: 0 28px;
-
+/* Right panel */
+.bannerPanel {
+  background: #2f2f2f;
+  color: #ffffff;
+  padding: 48px 48px 40px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  z-index: 2;
-}
-
-
-/* Center blue card */
-.bannerCard {
-  width: min(400px, 92%);
+  justify-content: center;
+  gap: 12px;
+  min-height: 300px; /* keeps right side consistent with media */
 }
 
 .bannerTitle {
-  color: #ffffff;
-  font-size: 24px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: none;
+  letter-spacing: -0.02em;
+  color: #fff;
+  margin: 0;
+  font-size: 48px;
+  font-weight: 700;
+  line-height: 1.06;
 }
 
 .bannerSub {
-  margin-top: 0px;
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.9);
+  opacity: 0.95;
+  max-width: 56ch;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
 }
 
-/* Toggle row under the card */
+/* Toggle row under title/subtitle */
 .segment {
-  margin-top: 32px;
-  padding-bottom: 14px;
+  margin-top: 10px;
   display: flex;
-  gap: 36px;
+  gap: 28px;
   align-items: center;
-  justify-content: center;
+  flex-wrap: wrap; /* prevents overflow pushing layout weirdly */
 }
 
 .segmentItem {
-  font-size: 13px;
+  font-size: 14px;
   letter-spacing: 0.04em;
-  font-weight: 600;
-  color: #6b7280;
+  color: rgba(255, 255, 255, 0.85);
   text-decoration: none;
-  padding: 8px 10px;
-  border-radius: 999px;
+  padding: 8px 0;
+  border-radius: 0;
 }
 
 .segmentItem:hover {
-  color: #111827;
+  color: #ffffff;
 }
 
 .active {
-  color: #0488db;
+  color: #ffffff;
   text-decoration: underline;
-  text-underline-offset: 6px;
+  text-underline-offset: 8px;
+  text-decoration-thickness: 2px;
 }
 
-/* Content */
+/* Content (unchanged) */
 .content {
   max-width: 1200px;
   margin: 0 auto;
@@ -157,12 +135,13 @@
 /* the area below the hero */
 .listWrap {
   background: #f5f8f9;
-  padding: 96px 0 40px; /* pushes list down under the overlapping hero */
+  /* Do NOT assume overlap; just give breathing room consistently */
+  padding: 40px 0 40px;
 }
 
 /* centered column like the screenshot */
 .listInner {
-  max-width: 1200px;     /* narrower than 1200 so cards match the mock */
+  max-width: 1200px;
   margin: 0 auto;
   padding: 0 28px;
 }
@@ -170,9 +149,8 @@
 .list {
   display: flex;
   flex-direction: column;
-  gap: 22px;            /* more breathing room between tiles */
+  gap: 22px;
 }
-
 
 .dot {
   opacity: 0.6;
@@ -180,34 +158,47 @@
 
 /* Responsive */
 @media (max-width: 980px) {
-  .grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .bannerTitle {
-    font-size: 18px;
+  .segment {
+    gap: 18px;
   }
 
-  .bannerSub {
-    font-size: 10px;
-  }
-
-  /* centered column like the screenshot */
   .listInner {
     padding: 0 10px;
   }
-}
 
-@media (max-width: 640px) {
   .content {
     padding: 36px 18px 70px;
   }
+
   .grid {
     grid-template-columns: 1fr;
   }
+
   .banner {
-    height: 200px;
+    grid-template-columns: 1fr;
+    min-height: 0; /* allow natural height */
   }
-  .segment {
-    gap: 18px;
+
+  .bannerMedia {
+    height: 180px;   /* explicit image height */
+    min-height: 180px;
+  }
+
+  .bannerPanel {
+    min-height: 0;
+    padding: 22px 18px 24px;
+  }
+
+  .bannerTitle {
+    font-size: 30px;
+  }
+
+  .bannerSub {
+    font-size: 14px;
+    max-width: 100%;
+  }
+
+  .listWrap {
+    padding: 28px 0 40px; /* slightly tighter on mobile */
   }
 }

@@ -8,6 +8,7 @@ export type GolfTrip = {
   slug: string;
   name: string;
   secondaryName?: string;
+  subheader?: string;
 
   overview?: string;
   fullDescription?: string;
@@ -96,6 +97,7 @@ export type GTISearchHit =
         | "slug"
         | "name"
         | "secondaryName"
+        | "subheader"
         | "overview"
         | "fullDescription"
         | "wantMore"

@@ -18,7 +18,7 @@ import type { GolfCourse, GolfTrip, TripCourse, TripWithCourses } from "./types"
 const TRIPS_TABLE = "GolfTrips";
 const COURSES_TABLE = "GolfCourses";
 const TRIP_COURSES_TABLE = "TripCourses";
-const NEWS_TABLE = "Articles";
+const ARTICLES_TABLE = "Articles";
 
 // Helpers
 function asString(v: unknown): string | undefined {
@@ -68,6 +68,7 @@ function mapTrip(r: Airtable.Record<Airtable.FieldSet>): GolfTrip {
     slug: f["Slug"] as string,
     name: f["Name"] as string,
     secondaryName: asString(f["Secondary Name"]),
+    subheader: asString(f["Subheader"]),
     overview: asString(f["Overview"]),
     fullDescription: asString(f["Full Description"]),
     wantMore: asString(f["Want More"]),
@@ -391,7 +392,7 @@ function slugify(input: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-function mapNews(r: Airtable.Record<Airtable.FieldSet>) {
+function mapArticles(r: Airtable.Record<Airtable.FieldSet>) {
   const f = r.fields;
 
   const name = asString(f["Name"]);
@@ -401,7 +402,7 @@ function mapNews(r: Airtable.Record<Airtable.FieldSet>) {
 
   return {
     id: r.id,
-    slug,
+    slug: asString(f["Slug"]),
     name,
     teaser: asString(f["Teaser"]),
     fullText: asString(f["Full Text"]),
@@ -416,10 +417,10 @@ function mapNews(r: Airtable.Record<Airtable.FieldSet>) {
   };
 }
 
-export async function getLatestPublishedNews(limit = 3) {
+export async function getLatestPublishedArticles(limit = 3) {
   const base = getBase();
 
-  const records = await base(NEWS_TABLE)
+  const records = await base(ARTICLES_TABLE)
     .select({
       filterByFormula: `{Status}="published"`,
       sort: [{ field: "Published On", direction: "desc" }],
@@ -427,7 +428,7 @@ export async function getLatestPublishedNews(limit = 3) {
     })
     .all();
 
-  return records.map(mapNews);
+  return records.map(mapArticles);
 }
 
 export type TripWithFirstCourse = GolfTrip & {

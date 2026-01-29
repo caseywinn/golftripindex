@@ -31,28 +31,25 @@ export default async function TripsPage({
       <section className={styles.banner}>
         <div className={styles.bannerMedia} aria-hidden="true" />
 
-        <div className={styles.bannerInner}>
-          <div className={`${styles.bannerCard} blueBannerCard`}>
-            <div className={styles.bannerTitle}>2026 Golf Trip Rankings</div>
-            <div className={styles.bannerSub}>PUBLISHED JAN 20, 2026</div>
+        <div className={styles.bannerPanel}>
+          <div className={styles.bannerTitle}>2026 Golf Trip Rankings</div>
+          <div className={styles.bannerSub}>
+            A ranking of the best golf trips in America, offering an informed, independent view that evaluates the full experience—from the quality of the golf to how well a trip actually comes together.
           </div>
 
           <div className={styles.segment}>
             <Link
               href="/trips?days=2-5"
-              className={`${styles.segmentItem} ${
-                days === "2-5" ? styles.active : ""
-              }`}
+              className={`${styles.segmentItem} ${days === "2-5" ? styles.active : ""}`}
             >
-              2–5 Days
+              2-5 Days
             </Link>
+
             <Link
               href="/trips?days=6-10"
-              className={`${styles.segmentItem} ${
-                days === "6-10" ? styles.active : ""
-              }`}
+              className={`${styles.segmentItem} ${days === "6-10" ? styles.active : ""}`}
             >
-              6–10 Days (Coming Soon)
+              6-10 Days (Coming Soon)
             </Link>
           </div>
         </div>

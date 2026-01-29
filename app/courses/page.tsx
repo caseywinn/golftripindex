@@ -43,10 +43,16 @@ export default async function CourseRankingsPage() {
       <section className={styles.banner}>
         <div className={styles.bannerMedia} aria-hidden="true" />
 
-        <div className={styles.bannerInner}>
-          <div className={`${styles.bannerCard} blueBannerCard`}>
-            <div className={styles.bannerTitle}>Course Rankings</div>
-            <div className={styles.bannerSub}>PUBLISHED JAN 20, 2026</div>
+        <div className={styles.bannerPanel}>
+          <div className={styles.bannerTitle}>Golf Course Rankings</div>
+          <div className={styles.bannerSub}>
+            GolfTripIndex course rankings are calculated as an average of the major golf publications, providing a single, objective view that reflects the broader consensus rather than one editorial perspective.
+          </div>
+
+          <div className={styles.segment}>
+            <div className={styles.segmentItem}>
+              Consolidated on Jan 16, 2026
+            </div>
           </div>
         </div>
       </section>
