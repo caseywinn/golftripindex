@@ -499,8 +499,9 @@
   }
 
   .bannerBody {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
     row-gap: 22px;
+    column-gap: 0px;
   }
 
   /* Meta takes full width */
@@ -509,7 +510,8 @@
   }
 
   .bannerMetaRow {
-    height: 6px;
+    grid-template-columns: 70px 1fr;
+    height: 9px;
   }
 
   /* Scores take full width and reset column behavior */
@@ -537,7 +539,7 @@
   .bannerMetaVal {
     color: rgba(255, 255, 255, 0.6);
     font-size: 10px;
-    text-align: right;
+    text-align: left;
   }
 
   .bannerScoreVal {
@@ -548,6 +550,8 @@
   .bannerScoreKey {
     color: rgba(255, 255, 255, 1);
     font-size: 12px;
+    margin-right: auto;
+    margin-left:40px;
   }
 
   .bannerOverallVal {
