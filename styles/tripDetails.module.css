@@ -450,6 +450,10 @@
     min-height: 0;
   }
 
+  .bannerTitle {
+    font-size: 36px;
+  }
+
   .bannerBody {
     max-width: 100%;
   }
@@ -479,6 +483,75 @@
 
   .bannerScoreRow {
     height: 10px;
+  }
+}
+
+/* HERO: stack panel under image under 960px */
+@media (max-width: 540px) {
+  /* Banner body already stacked at larger breakpoints */
+  /* Force single-column layout */
+  .bannerTitle {
+    font-size: 24px;
+  }
+
+  .bannerDeck {
+    font-size: 12px;
+  }
+
+  .bannerBody {
+    grid-template-columns: 1fr;
+    row-gap: 22px;
+  }
+
+  /* Meta takes full width */
+  .bannerMeta {
+    width: 100%;
+  }
+
+  .bannerMetaRow {
+    height: 6px;
+  }
+
+  /* Scores take full width and reset column behavior */
+  .bannerScores {
+    width: 100%;
+    max-width: none;
+    margin-left: 0;
+
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  /* Score rows behave normally again */
+  .bannerScoreRow,
+  .bannerScoreRowOverall {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .bannerMetaKey {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 10px;
+  }
+
+  .bannerMetaVal {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 10px;
+    text-align: right;
+  }
+
+  .bannerScoreVal {
+    color: rgba(255, 255, 255, 1);
+    font-size: 12px;
+  }
+
+  .bannerScoreKey {
+    color: rgba(255, 255, 255, 1);
+    font-size: 12px;
+  }
+
+  .bannerOverallVal {
+    font-size: 14px;
   }
 }
 
