@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Airtable from "airtable";
+import { formatPublishedDate } from "../../../lib/formatters";
 import styles from "../../../styles/article.module.css";
 
 
@@ -118,18 +119,6 @@ function parseFullText(fullText: string): Block[] {
   return blocks;
 }
 
-function formatPublishedDate(value?: string | null) {
-  if (!value) return null;
-  // Airtable date often returns ISO string; handle either.
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-  });
-}
-
 export async function generateMetadata({
   params,
 }: {
@@ -191,46 +180,45 @@ export default async function ArticlePage({
       </section>
 
       {/* BODY */}
-      {/* BODY */}
-<section className={styles.body}>
-  <article className={styles.article}>
-    {blocks.map((b, i) => {
-      if (b.type === "h2") {
-        return (
-          <h2 key={`h2-${i}`} className={styles.h2}>
-            {b.text}
-          </h2>
-        );
-      }
+      <section className={styles.body}>
+        <article className={styles.article}>
+          {blocks.map((b, i) => {
+            if (b.type === "h2") {
+              return (
+                <h2 key={`h2-${i}`} className={styles.h2}>
+                  {b.text}
+                </h2>
+              );
+            }
 
-      if (b.type === "image") {
-        const src = `/images/articles/${article.slug}-${b.index}.jpg`;
+            if (b.type === "image") {
+              const src = `/images/articles/${article.slug}-${b.index}.jpg`;
 
-        return (
-          <figure key={`img-${i}`} className={styles.fullBleed}>
-            <div className={styles.fullBleedInner}>
-              <div className={styles.fullBleedImageWrap}>
-                <Image
-                  src={src}
-                  alt={`${article.name} image ${b.index}`}
-                  fill
-                  className={styles.fullBleedImage}
-                  sizes="(max-width: 1200px) 100vw, 1200px"
-                />
-              </div>
-            </div>
-          </figure>
-        );
-      }
+              return (
+                <figure key={`img-${i}`} className={styles.fullBleed}>
+                  <div className={styles.fullBleedInner}>
+                    <div className={styles.fullBleedImageWrap}>
+                      <Image
+                        src={src}
+                        alt={`${article.name} image ${b.index}`}
+                        fill
+                        className={styles.fullBleedImage}
+                        sizes="(max-width: 1200px) 100vw, 1200px"
+                      />
+                    </div>
+                  </div>
+                </figure>
+              );
+            }
 
-      return (
-        <p key={`p-${i}`} className={styles.p}>
-          {b.text}
-        </p>
-      );
-    })}
-  </article>
-</section>
+            return (
+              <p key={`p-${i}`} className={styles.p}>
+                {b.text}
+              </p>
+            );
+          })}
+        </article>
+      </section>
     </main>
   );
 }

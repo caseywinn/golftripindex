@@ -1,6 +1,7 @@
 import Link from "next/link";
 import styles from "../styles/home.module.css";
 import { getLatestPublishedArticles } from "../lib/airtable";
+import { formatPublishedDate } from "../lib/formatters";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -80,11 +81,7 @@ export default async function HomePage() {
                       {n.author ? <span className={styles.newsAuthor}>{n.author}</span> : null}
                       {n.publishedOn ? (
                         <span className={styles.newsDate}>
-                          {new Date(n.publishedOn).toLocaleDateString("en-US", {
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                          })}
+                          {formatPublishedDate(n.publishedOn)}
                         </span>
                       ) : null}
                     </div>
