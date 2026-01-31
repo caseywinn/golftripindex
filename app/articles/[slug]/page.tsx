@@ -134,6 +134,19 @@ export async function generateMetadata({
   };
 }
 
+function renderInlineBold(text: string): React.ReactNode[] {
+  // Split on **...** and keep the captured content
+  // Example: "hi **there** ok" => ["hi ", "there", " ok"]
+  const parts = text.split(/\*\*(.+?)\*\*/g);
+
+  return parts.map((part, idx) => {
+    const isBold = idx % 2 === 1; // captured groups are odd indexes
+    if (!part) return null;
+
+    return isBold ? <strong key={idx}>{part}</strong> : <span key={idx}>{part}</span>;
+  });
+}
+
 export default async function ArticlePage({
   params,
 }: {
@@ -186,7 +199,7 @@ export default async function ArticlePage({
             if (b.type === "h2") {
               return (
                 <h2 key={`h2-${i}`} className={styles.h2}>
-                  {b.text}
+                  {renderInlineBold(b.text)}
                 </h2>
               );
             }
@@ -213,7 +226,7 @@ export default async function ArticlePage({
 
             return (
               <p key={`p-${i}`} className={styles.p}>
-                {b.text}
+                {renderInlineBold(b.text)}
               </p>
             );
           })}
