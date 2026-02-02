@@ -72,20 +72,17 @@ export type TripWithCourses = GolfTrip & {
   }>;
 };
 
-export type NewsArticle = {
+export type Article = {
   id: string;
   slug: string;
   name: string;
-  teaser?: string;
-  fullText?: string;
-  heroImageUrl?: string;
-  imageUrl1?: string;
-  imageUrl2?: string;
-  imageUrl3?: string;
-  imageUrl4?: string;
-  author?: string;
-  publishedOn?: string; // keep as string; format in UI
-  status?: string;
+  teaser?: string | null;
+  fullText?: string | null;
+  author?: string | null;
+  publishedOn?: string | null; // keep as string; format in UI
+  status?: string | null;
+
+  imageUrls?: Record<number, string>;
 };
 
 export type GTISearchHit =

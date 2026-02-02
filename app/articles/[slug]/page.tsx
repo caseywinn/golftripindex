@@ -2,20 +2,11 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Airtable from "airtable";
+import { Article } from "../../../lib/types";
 import { formatPublishedDate } from "../../../lib/formatters";
 import styles from "../../../styles/article.module.css";
-
-
-type Article = {
-  id: string;
-  name: string;
-  slug: string;
-  teaser?: string | null;
-  fullText?: string | null;
-  author?: string | null;
-  publishedOn?: string | null;
-  status?: string | null;
-};
+import { renderInlineRich, parseFullText, Block } from "../../../lib/richText";
+import React from "react";
 
 function getBase() {
   const apiKey = process.env.AIRTABLE_API_KEY;
@@ -33,6 +24,20 @@ function getBase() {
 
 const ARTICLES_TABLE = process.env.AIRTABLE_ARTICLES_TABLE || "Articles";
 
+function getAirtableUrlField(f: any, key: string): string | null {
+  const v = f?.[key];
+
+  // If it's an Attachment field, Airtable returns an array of objects with `url`.
+  if (Array.isArray(v) && v.length > 0 && typeof v[0]?.url === "string") {
+    return v[0].url;
+  }
+
+  // If it's a plain URL field
+  if (typeof v === "string" && v.trim()) return v.trim();
+
+  return null;
+}
+
 async function getPublishedArticleBySlug(slug: string): Promise<Article | null> {
   const base = getBase();
 
@@ -48,6 +53,13 @@ async function getPublishedArticleBySlug(slug: string): Promise<Article | null> 
 
   const f: any = r.fields;
 
+  // NEW: collect Image N URL fields into a map
+  const imageUrls: Record<number, string> = {};
+  for (let n = 1; n <= 20; n++) {
+    const url = getAirtableUrlField(f, `Image ${n}`);
+    if (url) imageUrls[n] = url;
+  }
+
   return {
     id: r.id,
     name: String(f["Name"] ?? ""),
@@ -57,66 +69,8 @@ async function getPublishedArticleBySlug(slug: string): Promise<Article | null> 
     author: f["Author"] ? String(f["Author"]) : null,
     publishedOn: f["Published On"] ? String(f["Published On"]) : null,
     status: f["Status"] ? String(f["Status"]) : null,
+    imageUrls,
   };
-}
-
-/**
- * Full Text parsing rules:
- * - Section header: "##The Golf Course##"
- * - Image placeholder: "##Image 1##" -> /images/article/[slug]-1.jpg
- * - Otherwise: paragraphs separated by blank lines.
- */
-type Block =
-  | { type: "h2"; text: string }
-  | { type: "image"; index: number }
-  | { type: "p"; text: string };
-
-function parseFullText(fullText: string): Block[] {
-  const lines = fullText.replace(/\r\n/g, "\n").split("\n");
-
-  const blocks: Block[] = [];
-  let paragraphBuf: string[] = [];
-
-  const flushParagraph = () => {
-    const text = paragraphBuf.join(" ").trim();
-    if (text) blocks.push({ type: "p", text });
-    paragraphBuf = [];
-  };
-
-  const headerRe = /^\s*##\s*(.+?)\s*##\s*$/;
-  const imageRe = /^\s*##\s*Image\s+(\d+)\s*##\s*$/i;
-
-  for (const raw of lines) {
-    const line = raw.trim();
-
-    // Blank line -> paragraph break
-    if (!line) {
-      flushParagraph();
-      continue;
-    }
-
-    // Image placeholder
-    const im = line.match(imageRe);
-    if (im) {
-      flushParagraph();
-      blocks.push({ type: "image", index: Number(im[1]) });
-      continue;
-    }
-
-    // Header line
-    const hm = line.match(headerRe);
-    if (hm) {
-      flushParagraph();
-      blocks.push({ type: "h2", text: hm[1].trim() });
-      continue;
-    }
-
-    // Otherwise accumulate text
-    paragraphBuf.push(line);
-  }
-
-  flushParagraph();
-  return blocks;
 }
 
 export async function generateMetadata({
@@ -132,19 +86,6 @@ export async function generateMetadata({
     title: `${article.name} | GolfTripIndex`,
     description: article.teaser ?? undefined,
   };
-}
-
-function renderInlineBold(text: string): React.ReactNode[] {
-  // Split on **...** and keep the captured content
-  // Example: "hi **there** ok" => ["hi ", "there", " ok"]
-  const parts = text.split(/\*\*(.+?)\*\*/g);
-
-  return parts.map((part, idx) => {
-    const isBold = idx % 2 === 1; // captured groups are odd indexes
-    if (!part) return null;
-
-    return isBold ? <strong key={idx}>{part}</strong> : <span key={idx}>{part}</span>;
-  });
 }
 
 export default async function ArticlePage({
@@ -199,13 +140,13 @@ export default async function ArticlePage({
             if (b.type === "h2") {
               return (
                 <h2 key={`h2-${i}`} className={styles.h2}>
-                  {renderInlineBold(b.text)}
+                  {renderInlineRich(b.text, { linkClassName: styles.articleLink })}
                 </h2>
               );
             }
 
             if (b.type === "image") {
-              const src = `/images/articles/${article.slug}-${b.index}.jpg`;
+              const src = article.imageUrls?.[b.index] ?? `/images/articles/${article.slug}-${b.index}.jpg`;
 
               return (
                 <figure key={`img-${i}`} className={styles.fullBleed}>
@@ -224,11 +165,22 @@ export default async function ArticlePage({
               );
             }
 
-            return (
-              <p key={`p-${i}`} className={styles.p}>
-                {renderInlineBold(b.text)}
-              </p>
-            );
+            if (b.type === "p") {
+              return (
+                <p key={`p-${i}`} className={styles.p}>
+                  {b.lines.map((line, j) => (
+                    <React.Fragment key={j}>
+                      {renderInlineRich(line, { linkClassName: styles.articleLink })}
+                      {j < b.lines.length - 1 ? <br /> : null}
+                    </React.Fragment>
+                  ))}
+                </p>
+              );
+            }
+
+            // (optional safety fallback)
+            return null;
+
           })}
         </article>
       </section>

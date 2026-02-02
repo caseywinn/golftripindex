@@ -97,6 +97,16 @@
   color: #111;
 }
 
+.articleLink {
+  color: #1d4ed8; /* blue */
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.articleLink:hover {
+  color: #1e40af; /* darker blue */
+}
+
 /* FULL-BLEED IMAGES (constrained to 1200px) */
 .fullBleed {
   width: 100%;
