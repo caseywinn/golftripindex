@@ -26,6 +26,17 @@ type CompareResponse = {
   };
 };
 
+const PHASES = [
+  "Preparing the matchup…",
+  "Comparing the golf…",
+  "Evaluating lodging and hang…",
+  "Weighing food and off-course options…",
+  "Thinking through travel and logistics…",
+  "Pressure-testing value…",
+  "Dialing in the vibe…",
+  "Writing the verdict…",
+];
+
 export default function CompareClient() {
   const [trips, setTrips] = useState<TripOption[]>([]);
 
@@ -47,6 +58,9 @@ export default function CompareClient() {
   const [comparing, setComparing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Spinner phase text
+  const [phaseIndex, setPhaseIndex] = useState<number>(0);
+
   // ---- Load trips for dropdowns ----
   useEffect(() => {
     (async () => {
@@ -63,27 +77,15 @@ export default function CompareClient() {
 
   // ---- Derived dropdown options (prevent selecting same trip) ----
   // Use DRAFT selection to filter the opposite dropdown (nice UX), but don't touch output.
-  const optionsForA = useMemo(
-    () => trips.filter((t) => t.slug !== draftB),
-    [trips, draftB]
-  );
-  const optionsForB = useMemo(
-    () => trips.filter((t) => t.slug !== draftA),
-    [trips, draftA]
-  );
+  const optionsForA = useMemo(() => trips.filter((t) => t.slug !== draftB), [trips, draftB]);
+  const optionsForB = useMemo(() => trips.filter((t) => t.slug !== draftA), [trips, draftA]);
 
   // Compare button enablement should be based on DRAFT selections.
   const canCompare = Boolean(draftA && draftB && draftA !== draftB) && !comparing;
 
   // Titles should reflect the last COMMITTED comparison (a/b), not the drafts.
-  const tripAName = useMemo(
-    () => trips.find((t) => t.slug === a)?.name ?? "",
-    [trips, a]
-  );
-  const tripBName = useMemo(
-    () => trips.find((t) => t.slug === b)?.name ?? "",
-    [trips, b]
-  );
+  const tripAName = useMemo(() => trips.find((t) => t.slug === a)?.name ?? "", [trips, a]);
+  const tripBName = useMemo(() => trips.find((t) => t.slug === b)?.name ?? "", [trips, b]);
 
   // Clear downstream state ONLY when the committed comparison pair changes (i.e., Compare clicked).
   useEffect(() => {
@@ -94,6 +96,23 @@ export default function CompareClient() {
     setCached(false);
     setError(null);
   }, [a, b]);
+
+  // Phased statuses while comparing (perceived speed)
+  useEffect(() => {
+    if (!comparing) {
+      setPhaseIndex(0);
+      return;
+    }
+
+    // Start with a quick jump from "Preparing…" to the comparison phases
+    setPhaseIndex(0);
+
+    const id = setInterval(() => {
+      setPhaseIndex((i) => (i + 1) % PHASES.length);
+    }, 2500);
+
+    return () => clearInterval(id);
+  }, [comparing]);
 
   async function compareTrips(opts?: { bypassCache?: boolean }) {
     // Commit the drafts first. This is what ensures dropdown changes don't wipe the page.
@@ -123,7 +142,15 @@ export default function CompareClient() {
         }),
       });
 
-      const data = (await res.json()) as any;
+      // Robust JSON parsing (prevents "Unexpected end of JSON input")
+      const text = await res.text();
+      let data: any = null;
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch {
+        throw new Error(`Non-JSON response (${res.status}): ${text?.slice(0, 200)}`);
+      }
+
       if (!res.ok) {
         setError(data?.error || "Compare failed");
         return;
@@ -153,6 +180,54 @@ export default function CompareClient() {
 
   return (
     <main className={styles.page}>
+      {/* ================= SPINNER OVERLAY (BIG) ================= */}
+      {comparing && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(255,255,255,0.95)",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexDirection: "column",
+            gap: 18,
+          }}
+          aria-live="polite"
+          aria-busy="true"
+          role="status"
+        >
+          <div
+            style={{
+              width: 88,
+              height: 88,
+              border: "7px solid #e5e5e5",
+              borderTopColor: "#111",
+              borderRadius: "50%",
+              animation: "spin 1s linear infinite",
+            }}
+          />
+          <div
+            style={{
+              fontSize: 16,
+              opacity: 0.85,
+              transition: "opacity 250ms ease",
+              textAlign: "center",
+              padding: "0 18px",
+              maxWidth: 560,
+              lineHeight: 1.35,
+            }}
+          >
+            {PHASES[phaseIndex]}
+          </div>
+          <div style={{ fontSize: 13, opacity: 0.6 }}>
+            This can take ~10–20 seconds on a fresh generation.
+          </div>
+        </div>
+      )}
+      {/* ========================================================= */}
+
       {/* HERO */}
       <section className={styles.hero}>
         <div className={styles.heroImageWrap}>
@@ -180,7 +255,7 @@ export default function CompareClient() {
           <div className={styles.meta}>
             <span>
               {comparing
-                ? "Nobody's ever asked for that comparison before. The Caddie is taking a moment to study both trips—comparing the golf, the journey, and how each experience actually unfolds."
+                ? "The Caddie is taking a moment to study both trips—comparing the golf, the journey, and how each experience actually unfolds."
                 : output
                 ? "Ready"
                 : "Select two golf trips to compare. This tool goes beyond surface-level rankings to break down how each trip actually plays out so you can see which one truly fits the kind of trip you want to take."}
@@ -189,6 +264,12 @@ export default function CompareClient() {
               <>
                 <span className={styles.dot}>•</span>
                 <span>{new Date(meta.generated_at).toLocaleDateString()}</span>
+              </>
+            ) : null}
+            {cacheKey ? (
+              <>
+                <span className={styles.dot}>•</span>
+                <span>{cached ? "cached" : "fresh"}</span>
               </>
             ) : null}
           </div>
@@ -272,12 +353,8 @@ export default function CompareClient() {
                     {children}
                   </a>
                 ),
-                ul: ({ children }) => (
-                  <ul style={{ margin: "0 0 18px", paddingLeft: 18 }}>{children}</ul>
-                ),
-                ol: ({ children }) => (
-                  <ol style={{ margin: "0 0 18px", paddingLeft: 18 }}>{children}</ol>
-                ),
+                ul: ({ children }) => <ul style={{ margin: "0 0 18px", paddingLeft: 18 }}>{children}</ul>,
+                ol: ({ children }) => <ol style={{ margin: "0 0 18px", paddingLeft: 18 }}>{children}</ol>,
                 li: ({ children }) => <li style={{ marginBottom: 6 }}>{children}</li>,
                 strong: ({ children }) => <strong>{children}</strong>,
               }}
@@ -294,6 +371,15 @@ export default function CompareClient() {
           ) : null} */}
         </article>
       </section>
+
+      {/* Spinner animation */}
+      <style jsx global>{`
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+      `}</style>
     </main>
   );
 }

@@ -12,6 +12,22 @@ function getClientIp(req: Request): string {
   return "unknown";
 }
 
+function getComparePhase(comparing: boolean, cached: boolean) {
+  if (!comparing) return null;
+
+  if (cached) {
+    return {
+      title: "Pulling an existing head-to-head…",
+      sub: "This one’s already been studied.",
+    };
+  }
+
+  return {
+    title: "The Caddie is breaking this down…",
+    sub: "Comparing golf, logistics, and how the trip actually plays.",
+  };
+}
+
 type CompareBody = {
   A: string;
   B: string;
@@ -19,107 +35,116 @@ type CompareBody = {
 };
 
 export async function POST(req: Request) {
-  const t0 = Date.now(); // ⏱ TOTAL TIMER
+  try {
+    const t0 = Date.now(); // ⏱ TOTAL TIMER
 
-  const body = (await req.json()) as CompareBody;
+    const body = (await req.json()) as CompareBody;
 
-  const slugA = (body?.A || "").trim();
-  const slugB = (body?.B || "").trim();
-  const bypassCache = Boolean(body?.bypassCache);
+    const slugA = (body?.A || "").trim();
+    const slugB = (body?.B || "").trim();
+    const bypassCache = Boolean(body?.bypassCache);
 
-  if (!slugA || !slugB) {
-    return NextResponse.json({ error: "Missing A or B" }, { status: 400 });
-  }
-  if (slugA === slugB) {
-    return NextResponse.json({ error: "Pick two different trips" }, { status: 400 });
-  }
 
-  // Rate limit
-  const ip = getClientIp(req);
-  const tRate0 = Date.now();
-  const rl = await rateLimitPerMinute(ip, 5);
-  console.log("TIMING rate-limit ms", Date.now() - tRate0);
+    if (!slugA || !slugB) {
+      return NextResponse.json({ error: "Missing A or B" }, { status: 400 });
+    }
+    if (slugA === slugB) {
+      return NextResponse.json({ error: "Pick two different trips" }, { status: 400 });
+    }
 
-  if (!rl.allowed) {
-    return NextResponse.json(
-      { error: "Rate limit exceeded. Try again shortly." },
-      { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } }
-    );
-  }
+    // Rate limit
+    const ip = getClientIp(req);
+    const tRate0 = Date.now();
+    const rl = await rateLimitPerMinute(ip, 5);
+    console.log("TIMING rate-limit ms", Date.now() - tRate0);
 
-  // 1) Build pack (Airtable)
-  const tPack0 = Date.now();
-  const pack = await buildComparisonPack(slugA, slugB);
-  console.log("TIMING build-pack ms", Date.now() - tPack0);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "Rate limit exceeded. Try again shortly." },
+        { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } }
+      );
+    }
 
-  if (!pack) {
-    return NextResponse.json({ error: "Trips not found" }, { status: 404 });
-  }
+    // 1) Build pack (Airtable)
+    const tPack0 = Date.now();
+    const pack = await buildComparisonPack(slugA, slugB);
+    console.log("TIMING build-pack ms", Date.now() - tPack0);
 
-  const cacheKey = `compare:${pack.tripA.slug}:${pack.tripB.slug}:${pack.data_version}`;
+    if (!pack) {
+      return NextResponse.json({ error: "Trips not found" }, { status: 404 });
+    }
 
-  // 2) Cache read
-  if (!bypassCache) {
-    const tCacheRead0 = Date.now();
-    const cached = await getCompareCache(cacheKey);
-    console.log("TIMING cache-read ms", Date.now() - tCacheRead0);
+    const cacheKey = `compare:${pack.tripA.slug}:${pack.tripB.slug}:${pack.data_version}`;
 
-    if (cached) {
-      console.log("TIMING total ms (cached)", Date.now() - t0);
+    // 2) Cache read
+    if (!bypassCache) {
+      const tCacheRead0 = Date.now();
+      const cached = await getCompareCache(cacheKey);
+      console.log("TIMING cache-read ms", Date.now() - tCacheRead0);
+
+      if (cached) {
+        console.log("TIMING total ms (cached)", Date.now() - t0);
+        return NextResponse.json({
+          cacheKey,
+          cached: true,
+          pack_meta: {
+            generated_at: pack.generated_at,
+            data_version: pack.data_version,
+            tripA: { name: pack.tripA.name, slug: pack.tripA.slug },
+            tripB: { name: pack.tripB.name, slug: pack.tripB.slug },
+          },
+          output: cached,
+        });
+      }
+    }
+
+    // 3) Generate (OpenAI)
+    try {
+      const tGen0 = Date.now();
+      const result = await generateHeadToHead(pack);
+      console.log("TIMING generate ms", Date.now() - tGen0);
+
+      const output = {
+        teaser: result.teaser,
+        article_markdown: result.article_markdown,
+        facts_sidebar: result.facts_sidebar,
+      };
+
+      // 4) Cache write
+      const tCacheWrite0 = Date.now();
+      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      await upsertCompareCache({
+        cacheKey,
+        tripASlug: pack.tripA.slug,
+        tripBSlug: pack.tripB.slug,
+        dataVersion: pack.data_version,
+        expiresAt,
+        output,
+      });
+      console.log("TIMING cache-write ms", Date.now() - tCacheWrite0);
+
+      console.log("TIMING total ms (generated)", Date.now() - t0);
+
       return NextResponse.json({
         cacheKey,
-        cached: true,
+        cached: false,
         pack_meta: {
           generated_at: pack.generated_at,
           data_version: pack.data_version,
           tripA: { name: pack.tripA.name, slug: pack.tripA.slug },
           tripB: { name: pack.tripB.name, slug: pack.tripB.slug },
         },
-        output: cached,
+        output,
       });
+    } catch (e: any) {
+      console.log("TIMING total ms (error)", Date.now() - t0);
+      return NextResponse.json({ error: e?.message || "Compare failed" }, { status: 500 });
     }
-  }
-
-  // 3) Generate (OpenAI)
-  try {
-    const tGen0 = Date.now();
-    const result = await generateHeadToHead(pack);
-    console.log("TIMING generate ms", Date.now() - tGen0);
-
-    const output = {
-      teaser: result.teaser,
-      article_markdown: result.article_markdown,
-      facts_sidebar: result.facts_sidebar,
-    };
-
-    // 4) Cache write
-    const tCacheWrite0 = Date.now();
-    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-    await upsertCompareCache({
-      cacheKey,
-      tripASlug: pack.tripA.slug,
-      tripBSlug: pack.tripB.slug,
-      dataVersion: pack.data_version,
-      expiresAt,
-      output,
-    });
-    console.log("TIMING cache-write ms", Date.now() - tCacheWrite0);
-
-    console.log("TIMING total ms (generated)", Date.now() - t0);
-
-    return NextResponse.json({
-      cacheKey,
-      cached: false,
-      pack_meta: {
-        generated_at: pack.generated_at,
-        data_version: pack.data_version,
-        tripA: { name: pack.tripA.name, slug: pack.tripA.slug },
-        tripB: { name: pack.tripB.name, slug: pack.tripB.slug },
-      },
-      output,
-    });
   } catch (e: any) {
-    console.log("TIMING total ms (error)", Date.now() - t0);
-    return NextResponse.json({ error: e?.message || "Compare failed" }, { status: 500 });
+    console.error("COMPARE route error:", e);
+    return NextResponse.json(
+      { error: e?.message || "Compare failed" },
+      { status: 500 }
+    );
   }
 }

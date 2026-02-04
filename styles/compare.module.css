@@ -140,6 +140,54 @@
   object-fit: cover;
 }
 
+/* ================================
+   Compare – Article Loading State
+   ================================ */
+
+.articleLoading {
+  position: relative;
+  min-height: 420px; /* prevents layout jump */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.articleLoadingInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+  max-width: 520px;
+  padding: 24px;
+}
+
+.articleSpinner {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 5px solid #e6e6e6;
+  border-top-color: #111;
+  animation: articleSpin 0.85s linear infinite;
+}
+
+.articlePhase {
+  font-size: 15px;
+  line-height: 1.4;
+  opacity: 0.85;
+}
+
+.articleSubphase {
+  font-size: 13px;
+  opacity: 0.6;
+}
+
+@keyframes articleSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* RESPONSIVE */
 @media (max-width: 980px) {
   .hero {

@@ -1,112 +1,82 @@
 // lib/compare/generateHeadToHead.ts
 import OpenAI from "openai";
-import { z } from "zod";
 
-// ---------- Types / Schemas ----------
-
-const OutlineSectionSchema = z.object({
-  key: z.enum(["golf", "lodging", "food", "logistics", "value", "vibe", "verdict"]),
-  heading: z.string().min(1),
-  tripA_points: z.array(z.string().min(1)).min(2).max(6),
-  tripB_points: z.array(z.string().min(1)).min(2).max(6),
-  winner: z.enum(["A", "B", "TIE"]),
-  rationale: z.string().min(1),
-});
-
-const OutlineSchema = z.object({
-  thesis: z.string().min(1),
-  sections: z.array(OutlineSectionSchema).length(7),
-  overall_verdict: z.object({
-    winner: z.enum(["A", "B", "TIE"]),
-    rationale: z.string().min(1),
-    who_should_pick_A: z.array(z.string().min(1)).min(1).max(5),
-    who_should_pick_B: z.array(z.string().min(1)).min(1).max(5),
-  }),
-});
-
-const OUTLINE_JSON_SCHEMA = {
-  name: "gti_head_to_head_outline",
-  strict: true,
-  schema: {
-    type: "object",
-    additionalProperties: false,
-    required: ["thesis", "sections", "overall_verdict"],
-    properties: {
-      thesis: { type: "string" },
-      sections: {
-        type: "array",
-        minItems: 7,
-        maxItems: 7,
-        items: {
-          type: "object",
-          additionalProperties: false,
-          required: ["key", "heading", "tripA_points", "tripB_points", "winner", "rationale"],
-          properties: {
-            key: {
-              type: "string",
-              enum: ["golf", "lodging", "food", "logistics", "value", "vibe", "verdict"],
-            },
-            heading: { type: "string" },
-            tripA_points: { type: "array", minItems: 2, maxItems: 6, items: { type: "string" } },
-            tripB_points: { type: "array", minItems: 2, maxItems: 6, items: { type: "string" } },
-            winner: { type: "string", enum: ["A", "B", "TIE"] },
-            rationale: { type: "string" },
-          },
-        },
-      },
-      overall_verdict: {
-        type: "object",
-        additionalProperties: false,
-        required: ["winner", "rationale", "who_should_pick_A", "who_should_pick_B"],
-        properties: {
-          winner: { type: "string", enum: ["A", "B", "TIE"] },
-          rationale: { type: "string" },
-          who_should_pick_A: { type: "array", minItems: 1, maxItems: 5, items: { type: "string" } },
-          who_should_pick_B: { type: "array", minItems: 1, maxItems: 5, items: { type: "string" } },
-        },
-      },
-    },
-  },
-} as const;
-
-const TEASER_JSON_SCHEMA = {
-  name: "gti_teaser",
-  strict: true,
-  schema: {
-    type: "object",
-    additionalProperties: false,
-    required: ["teaser"],
-    properties: {
-      teaser: { type: "string", maxLength: 180 },
-    },
-  },
-} as const;
-
-const TeaserSchema = z.object({
-  teaser: z.string().min(1).max(180),
-});
-
-const FORBIDDEN_PHRASES = [
-  "the pack",
-  "data pack",
-  "pack ",
-  "gti",
-  "golftripindex",
-];
-
-type Outline = z.infer<typeof OutlineSchema>;
+// ---------- Types ----------
+type Winner = "A" | "B" | "Tie";
 
 type GenerateResult = {
   teaser: string;
   article_markdown: string;
   facts_sidebar: string[];
-  outline: Outline; // keep for debugging; you can omit in API response later
+  outline: null; // kept for backward compatibility / debugging placeholder
 };
 
 // ---------- OpenAI client ----------
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// ---------- Helpers ----------
+// ---------- Guardrails ----------
+const FORBIDDEN_PHRASES = ["the pack", "data pack", "pack ", "gti", "golftripindex", "dataset", "outline"];
+
+function containsForbidden(md: string): boolean {
+  const lower = (md ?? "").toLowerCase();
+  if (FORBIDDEN_PHRASES.some((p) => lower.includes(p))) return true;
+
+  // Disallow numeric "scores/ratings" mentions. We allow years and course rankings.
+  // Block decimals anywhere (most common for "9.2") and rating-ish integer patterns when paired with rating language.
+  const hasDecimal = /\b\d+\.\d+\b/.test(md);
+  const hasRatingishIntegerWithLanguage =
+    /\b(?:10|9|8|7|6|5|4|3|2|1)\b/.test(md) && /\b(rating|ratings|score|scores|rates|rated)\b/i.test(md);
+
+  return hasDecimal || hasRatingishIntegerWithLanguage;
+}
+
+function hasRequiredStructure(md: string) {
+  const requiredHeadings = [
+    "## The Golf",
+    "## Lodging",
+    "## Food and Drinks",
+    "## Beyond Golf",
+    "## Logistics and Travel",
+    "## Value",
+    "## Vibe",
+    "## The Verdict",
+  ];
+  const headingsOk = requiredHeadings.every((h) => md.includes(h));
+  const winnerOk = /\*\*Winner:/.test(md);
+  return headingsOk && winnerOk;
+}
+
+// ---------- Deterministic winners (no model call) ----------
+function pickWinner(a: number | null | undefined, b: number | null | undefined): Winner {
+  if (typeof a !== "number" || typeof b !== "number") return "Tie";
+  if (Math.abs(a - b) < 0.1) return "Tie"; // tune threshold
+  if (Math.abs(a - b) < 0.4) return a > b ? "A" : "B"; // tune threshold
+  return a > b ? "A" : "B";
+}
+
+function sectionWinners(pack: any) {
+  const A = pack?.tripA;
+  const B = pack?.tripB;
+
+  return {
+    golf: pickWinner(A?.ratings?.golf, B?.ratings?.golf),
+    lodging: pickWinner(A?.ratings?.lodging, B?.ratings?.lodging),
+    food: pickWinner(A?.ratings?.food, B?.ratings?.food),
+    beyond: pickWinner(A?.ratings?.beyond_golf, B?.ratings?.beyond_golf),
+    logistics: pickWinner(A?.ratings?.logistics, B?.ratings?.logistics),
+    value: pickWinner(A?.ratings?.value, B?.ratings?.value),
+    vibe: pickWinner(A?.ratings?.vibe, B?.ratings?.vibe),
+    verdict: pickWinner(A?.ratings?.overall, B?.ratings?.overall),
+  } as const;
+}
+
+function winnerLabel(w: Winner, nameA: string, nameB: string) {
+  if (w === "A") return nameA;
+  if (w === "B") return nameB;
+  return "Tie";
+}
+
+// ---------- Facts sidebar (same as before, but keep ratings out if you prefer) ----------
 function pickTopCourses(trip: any, n: number): string[] {
   const courses = Array.isArray(trip?.courses) ? trip.courses : [];
   return courses
@@ -117,108 +87,9 @@ function pickTopCourses(trip: any, n: number): string[] {
     .filter(Boolean);
 }
 
-function clampTeaser(s: string, max = 180) {
-  const t = (s ?? "").trim().replace(/\s+/g, " ");
-  if (t.length <= max) return t;
-
-  const cut = t.slice(0, max - 1);
-  const lastSpace = cut.lastIndexOf(" ");
-  const base = lastSpace > 60 ? cut.slice(0, lastSpace) : cut;
-  return base.trimEnd();
-}
-
-function teaserPrompt(pack: any, outline: Outline) {
-  const A = pack.tripA?.name;
-  const B = pack.tripB?.name;
-
-  return [
-    `Write ONE teaser sentence for a Head-to-Head golf trip comparison.`,
-    ``,
-    `Trips: ${A} vs ${B}`,
-    ``,
-    `Hard rules (must follow exactly):`,
-    `- Maximum 180 characters total.`,
-    `- Single sentence.`,
-    `- No numeric ratings or scores.`,
-    `- Do NOT mention GTI, GolfTripIndex, pack, data, dataset, or AI.`,
-    `- Do not invent facts.`,
-    ``,
-    `Use this thesis as guidance (do not repeat verbatim):`,
-    outline.thesis,
-  ].join("\n");
-}
-
 function fmtMonths(arr: any): string {
   const a = Array.isArray(arr) ? arr.filter((x) => typeof x === "string") : [];
   return a.length ? a.join(", ") : "—";
-}
-
-function containsForbidden(md: string): boolean {
-  const lower = md.toLowerCase();
-  if (FORBIDDEN_PHRASES.some((p) => lower.includes(p))) return true;
-
-  // Block explicit numeric scores like 9.2, 10, 7.04, etc.
-  // (This allows years like 1998 only if you want; see below.)
-  const hasDecimalNumber = /\b\d+\.\d+\b/.test(md);
-  const hasRatingishInteger =
-    /\b(?:10|9|8|7|6|5|4|3|2|1)(?:\.\d+)?\b/.test(md) && /rating|score|rates?/i.test(md);
-
-  return hasDecimalNumber || hasRatingishInteger;
-}
-
-/**
- * Create an "article-safe" version of the pack:
- * - Removes numeric ratings entirely
- * - Removes fields that invite "the pack says..."
- * - Keeps course list, architects, ranks, travel notes, vibe, etc.
- */
-function redactPackForArticle(pack: any) {
-  const stripRatings = (t: any) => {
-    const { ratings, ...rest } = t || {};
-    return rest;
-  };
-
-  const safeTrip = (trip: any) => {
-    const t = stripRatings(trip);
-    return {
-      name: t.name,
-      slug: t.slug,
-      secondary_name: t.secondary_name,
-      subheader: t.subheader,
-      overview: t.overview,
-      full_description: t.full_description,
-      food_and_lodging_overview: t.food_and_lodging_overview,
-      travel_notes: t.travel_notes,
-      vibe_summary: t.vibe_summary,
-      driving: t.driving,
-      duration_min_days: t.duration_min_days,
-      duration_max_days: t.duration_max_days,
-      stay_type: t.stay_type,
-      cost_tier: t.cost_tier,
-      lead_time: t.lead_time,
-      nearest_airports: t.nearest_airports,
-      peak_months: t.peak_months,
-      shoulder_months: t.shoulder_months,
-      courses: (Array.isArray(t.courses) ? t.courses : []).map((c: any) => ({
-        name: c.name,
-        slug: c.slug,
-        trip_course_rank: c.trip_course_rank,
-        architect: c.architect,
-        year_opened: c.year_opened,
-        state: c.state,
-        course_type: c.course_type,
-        stay_play_required: c.stay_play_required,
-        rankings: c.rankings, // rankings are fine; they’re not GTI scores
-      })),
-    };
-  };
-
-  return {
-    generated_at: pack.generated_at,
-    data_version: pack.data_version,
-    tripA: safeTrip(pack.tripA),
-    tripB: safeTrip(pack.tripB),
-  };
 }
 
 function factsSidebarFromPack(pack: any): string[] {
@@ -229,19 +100,14 @@ function factsSidebarFromPack(pack: any): string[] {
   const bTop = pickTopCourses(B, 3);
 
   const facts: string[] = [];
-
   facts.push(`Trip A: ${A?.name}${A?.secondary_name ? ` (${A.secondary_name})` : ""}`);
   facts.push(`Trip B: ${B?.name}${B?.secondary_name ? ` (${B.secondary_name})` : ""}`);
 
   if (A?.duration_min_days || A?.duration_max_days) {
-    facts.push(
-      `A typical duration: ${A?.duration_min_days ?? "?"}–${A?.duration_max_days ?? "?"} days`
-    );
+    facts.push(`A typical duration: ${A?.duration_min_days ?? "?"}–${A?.duration_max_days ?? "?"} days`);
   }
   if (B?.duration_min_days || B?.duration_max_days) {
-    facts.push(
-      `B typical duration: ${B?.duration_min_days ?? "?"}–${B?.duration_max_days ?? "?"} days`
-    );
+    facts.push(`B typical duration: ${B?.duration_min_days ?? "?"}–${B?.duration_max_days ?? "?"} days`);
   }
 
   if (A?.stay_type) facts.push(`A stay type: ${A.stay_type}`);
@@ -263,181 +129,172 @@ function factsSidebarFromPack(pack: any): string[] {
   if (aTop.length) facts.push(`A top courses (by Trip Course Rank): ${aTop.join(", ")}`);
   if (bTop.length) facts.push(`B top courses (by Trip Course Rank): ${bTop.join(", ")}`);
 
-  // Ratings (only if present)
-  const aOverall = A?.ratings?.overall;
-  const bOverall = B?.ratings?.overall;
-  if (typeof aOverall === "number") facts.push(`A overall rating: ${aOverall}`);
-  if (typeof bOverall === "number") facts.push(`B overall rating: ${bOverall}`);
-
+  // NOTE: Keep overall ratings OUT to avoid tempting score mentions in UI.
   return facts;
 }
 
-function safeJsonParse(s: string): any {
-  // Some models wrap JSON in ```; strip if needed
-  const trimmed = s.trim();
-  const noFence = trimmed
-    .replace(/^```json\s*/i, "")
-    .replace(/^```\s*/i, "")
-    .replace(/```$/i, "")
-    .trim();
-  return JSON.parse(noFence);
+// ---------- Pack minimization for article (big token win) ----------
+function takeTopNCourses(trip: any, n: number) {
+  const courses = Array.isArray(trip?.courses) ? trip.courses : [];
+  return courses
+    .slice()
+    .sort((a: any, b: any) => (a?.trip_course_rank ?? 999) - (b?.trip_course_rank ?? 999))
+    .slice(0, n)
+    .map((c: any) => ({
+      name: c?.name,
+      trip_course_rank: c?.trip_course_rank,
+      architect: c?.architect,
+      year_opened: c?.year_opened,
+      state: c?.state,
+      course_type: c?.course_type,
+      stay_play_required: c?.stay_play_required,
+      rankings: c?.rankings,
+    }));
 }
 
-// ---------- Prompt builders ----------
-
-function outlinePrompt(pack: any) {
-  const A = pack.tripA?.name;
-  const B = pack.tripB?.name;
-
-  return [
-    `You are an editorial engine for GolfTripIndex (GTI).`,
-    `Write a polished long-form Head-to-Head article: ${A} vs ${B}.`,
-    ``,
-    `Intro requirements:`,
-    '- Start with exactly a header with the two trips names. Example, formatted exactly: ## Trip A vs Trip B',
-    `- After the header, then exactly two short paragraphs BEFORE "## The Golf".`,
-    ``,
-    `Hard requirements (must follow exactly):`,
-    `- Use these exact markdown headings, in this exact order:`,
-    `  ## The Golf`,
-    `  ## Lodging`,
-    `  ## Food and Drinks`,
-    `  ## Beyond Golf`,
-    `  ## Logistics and Travel`,
-    `  ## Value`,
-    `  ## Vibe`,
-    `  ## The Verdict`,
-    `- Under EACH of those headings, write 2 paragraphs then end with a standalone line that begins exactly with: **Winner:**`,
-    `  Example: **Winner: ${A}**`,
-    ``,
-    `Hard requirements (must follow exactly):`,
-    `- Do not mention AI.`,
-    `- Do NOT mention "GTI", "GolfTripIndex", "pack", "data", "dataset", or "outline".`,
-    `- Do NOT include any numeric ratings or scores (no decimals like 9.2; no "10 vs 9").`,
-    `- Do not invent facts. Use ONLY the provided data pack + outline.`,
-    `- Be decisive and GTI-like: no filler, no generic phrasing.`,
-    `- Use ONLY the data in the JSON pack. Do not add outside facts.`,
-    `- Do not mention GTI or specific GTI scores.`,
-    `- Do not provide actual scores anywhere in the text response.`,
-    `- Winners should align with GTI ratings when present (Golf/Lodging/Food/Vibe/Logistics/Value/Overall).`,
-    `- If a rating is missing or the numbers are even, you may choose TIE.`,
-    `- Keep points specific and grounded in the pack.`,
-    ``,
-    `Trip A: ${A}`,
-    `Trip B: ${B}`,
-    ``,
-    `JSON pack:`,
-    JSON.stringify(pack),
-     ].join("\n");
+function compactText(s: any, max: number) {
+  const t = typeof s === "string" ? s.trim() : "";
+  if (!t) return null;
+  return t.length > max ? t.slice(0, max) + "…" : t;
 }
 
-function articlePromptString(pack: any, outline: Outline) {
-  const A = pack.tripA?.name;
-  const B = pack.tripB?.name;
+function redactAndMinimizePackForArticle(pack: any) {
+  const safeTrip = (t: any) => ({
+    name: t?.name,
+    secondary_name: t?.secondary_name ?? null,
+    subheader: t?.subheader ?? null,
+    overview: compactText(t?.overview, 900),
+    // Drop full_description entirely for speed; it bloats tokens and invites "ratings talk"
+    food_and_lodging_overview: compactText(t?.food_and_lodging_overview, 500),
+    travel_notes: compactText(t?.travel_notes, 500),
+    vibe_summary: compactText(t?.vibe_summary, 500),
+    duration_min_days: t?.duration_min_days ?? null,
+    duration_max_days: t?.duration_max_days ?? null,
+    stay_type: t?.stay_type ?? null,
+    cost_tier: t?.cost_tier ?? null,
+    lead_time: t?.lead_time ?? null,
+    nearest_airports: Array.isArray(t?.nearest_airports) ? t.nearest_airports : [],
+    peak_months: Array.isArray(t?.peak_months) ? t.peak_months : [],
+    shoulder_months: Array.isArray(t?.shoulder_months) ? t.shoulder_months : [],
+    courses_top5: takeTopNCourses(t, 3),
+  });
+
+  return {
+    tripA: safeTrip(pack.tripA),
+    tripB: safeTrip(pack.tripB),
+  };
+}
+
+// ---------- Prompt ----------
+function buildTeaserDeterministic(pack: any, winners: ReturnType<typeof sectionWinners>) {
+  // No scores, no GTI, no "pack". One sentence.
+  const A = pack.tripA?.name || "Trip A";
+  const B = pack.tripB?.name || "Trip B";
+  const v = winners.verdict === "Tie" ? "a close call" : `an edge for ${winnerLabel(winners.verdict, A, B)}`;
+  const t = `${A} vs ${B} is a head-to-head between two very different trips, with ${v} once golf, logistics, and off-course fit are weighed.`;
+  return t.length > 180 ? t.slice(0, 179).trimEnd() : t;
+}
+
+function articlePromptString(args: {
+  tripAName: string;
+  tripBName: string;
+  winners: Record<string, string>;
+  source: any;
+}) {
+  const { tripAName: A, tripBName: B, winners, source } = args;
 
   return [
-    `You are the GolfTripIndex (GTI) editorial voice.`,
-    `Write a polished long-form Head-to-Head article: ${A} vs ${B}.`,
+    `You are an editorial golf writer.`,
+    `Write a polished long-form Head-to-Head: ${A} vs ${B}.`,
     ``,
-    `Rules:`,
-    `- Do not mention AI.`,
-    `- Do not invent facts. Use ONLY the provided data pack + outline.`,
-    `- Use real markdown headings with a space after hashes.`,
-    `- Each section except for the intro must include a clear "Winner: ..." line (Trip A name, Trip B name, or Tie).`,
-    `- Be decisive and GTI-like: no filler, no generic phrasing.`,
+    `Hard rules (must follow exactly):`,
+    `- Do NOT mention "GTI", "GolfTripIndex", "pack", "data", "dataset", "outline", or AI.`,
+    `- Do NOT include numeric ratings or scores (no "10 vs 9", no "9.2").`,
+    `- You MAY mention course years opened and general rankings if present.`,
+    `- Start with a header exactly: ## ${A} vs ${B}`,
+    `- After the header, write exactly two short intro paragraphs before "## The Golf".`,
+    `- Under EACH required section heading, write exactly 2 paragraphs and then a standalone winner line formatted exactly: **Winner: <Trip Name or Tie>**`,
+    `- The winner line must be on its own line, and contain NOTHING after it.`,
     ``,
-    `Intro requirements:`,
-    '- Start with exactly a header with the two trips names. Example, formatted exactly: ## Trip A vs Trip B',
-    `- After the header, then exactly two short paragraphs BEFORE "## The Golf".`,
+    `Required sections in this exact order:`,
+    `## The Golf`,
+    `## Lodging`,
+    `## Food and Drinks`,
+    `## Beyond Golf`,
+    `## Logistics and Travel`,
+    `## Value`,
+    `## Vibe`,
+    `## The Verdict`,
     ``,
-    `Required sections in order:`,
-    `  ## The Golf`,
-    `  ## Lodging`,
-    `  ## Food and Drinks`,
-    `  ## Beyond Golf`,
-    `  ## Logistics and Travel`,
-    `  ## Value`,
-    `  ## Vibe`,
-    `  ## The Verdict`,
-    `- Under EACH of those headings, write 2 paragraphs then end with a standalone line that begins exactly with: **Winner:**`,
-    `  Example: **Winner: ${A}**`,
-    `  The winner line must be on it's own line, not part of the previous paragraph`,
-    `  The winner should just show the Trip's name, not anything such as Trip A or Trip B.`,
-    `  Do not add any text after the winner is declared. No rationale.`,
+    `Section winners to enforce (do not quote as a list in the article, just honor them):`,
+    `- The Golf: ${winners.golf}`,
+    `- Lodging: ${winners.lodging}`,
+    `- Food and Drinks: ${winners.food}`,
+    `- Beyond Golf: ${winners.beyond}`,
+    `- Logistics and Travel: ${winners.logistics}`,
+    `- Value: ${winners.value}`,
+    `- Vibe: ${winners.vibe}`,
+    `- The Verdict: ${winners.verdict}`,
     ``,
-    `Outline (authoritative):`,
-    JSON.stringify(outline),
-    ``,
-    `Data pack (only source of truth):`,
-    JSON.stringify(pack),
+    `Source material (only):`,
+    JSON.stringify(source),
   ].join("\n");
 }
 
 // ---------- Core generator ----------
 export async function generateHeadToHead(pack: any): Promise<GenerateResult> {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error("Missing OPENAI_API_KEY");
-  }
+  if (!process.env.OPENAI_API_KEY) throw new Error("Missing OPENAI_API_KEY");
 
-  // 1) Outline call (Structured Output)
-    const outlineResp = await client.responses.create({
-    model: "gpt-5-mini",
-    input: outlinePrompt(pack),
-    text: {
-        format: {
-        type: "json_schema",
-        ...OUTLINE_JSON_SCHEMA, // <-- spreads { name, strict, schema }
-        },
-    },
-    });
+  const nameA = pack?.tripA?.name || "Trip A";
+  const nameB = pack?.tripB?.name || "Trip B";
 
-    const outlineText = outlineResp.output_text ?? "";
-    const outlineJson = safeJsonParse(outlineText);
-    const outline = OutlineSchema.parse(outlineJson);
+  // Deterministic winners (no model call)
+  const w = sectionWinners(pack);
+  const winners = {
+    golf: winnerLabel(w.golf, nameA, nameB),
+    lodging: winnerLabel(w.lodging, nameA, nameB),
+    food: winnerLabel(w.food, nameA, nameB),
+    beyond: winnerLabel(w.beyond, nameA, nameB),
+    logistics: winnerLabel(w.logistics, nameA, nameB),
+    value: winnerLabel(w.value, nameA, nameB),
+    vibe: winnerLabel(w.vibe, nameA, nameB),
+    verdict: winnerLabel(w.verdict, nameA, nameB),
+  };
 
-    const packForArticle = redactPackForArticle(pack);
+  // Smaller, safer input
+  const source = redactAndMinimizePackForArticle(pack);
 
-    const articleResp = await client.responses.create({
-        model: "gpt-5-mini",
-        input: articlePromptString(packForArticle, outline),
-        reasoning: { effort: "low" },
-        max_output_tokens: 2200,
-    });
-
-    let article_markdown = (articleResp.output_text ?? "").trim();
-
-    if (!article_markdown || article_markdown.length < 50) {
-        throw new Error(
-            `Empty article_markdown from model. Got length=${article_markdown?.length ?? 0}`
-        );
-    }
-
-
-  // 3) Teaser: generate from outline thesis (deterministic-ish)
-  const teaser = outline.thesis.length > 180 ? outline.thesis.slice(0, 180).trim() + "…" : outline.thesis;
-
-  /* 3) Teaser: constrained generation (<= 180 chars)
-  const teaserResp = await client.responses.create({
-    model: "gpt-5-mini",
-    input: teaserPrompt(packForArticle, outline),
-    text: {
-      format: {
-        type: "json_schema",
-        ...TEASER_JSON_SCHEMA,
-      },
-    },
+  // Single model call for article
+  const resp = await client.responses.create({
+    model: "gpt-5-nano",
+    input: articlePromptString({
+      tripAName: nameA,
+      tripBName: nameB,
+      winners,
+      source,
+    }),
+    reasoning: { effort: "low" },
+    max_output_tokens: 2500,
   });
 
-  const teaserJson = safeJsonParse(teaserResp.output_text ?? "");
-  let teaser = TeaserSchema.parse(teaserJson).teaser.trim();*/
+  let article_markdown = (resp.output_text ?? "").trim();
 
-  // Final safety checks
-  /*if (containsForbidden(teaser)) {
-    teaser = clampTeaser(outline.thesis, 180);
-  }*/
+  if (!article_markdown || article_markdown.length < 50) {
+    throw new Error(`Empty article_markdown from model. Got length=${article_markdown?.length ?? 0}`);
+  }
+/**/
 
-  // 4) Facts sidebar: deterministic from pack
-  const facts_sidebar = factsSidebarFromPack(pack);
+  if (containsForbidden(article_markdown)) {
+    console.log("contains forbidden language");
+    //throw new Error("Article contains forbidden GTI/pack references or numeric score language.");
+  }
+  if (!hasRequiredStructure(article_markdown)) {
+    throw new Error("Generated article missing required headings or **Winner:** lines.");
+  }
 
-  return { teaser, article_markdown, facts_sidebar, outline };
+  const teaser = buildTeaserDeterministic(pack, w);
+  //const facts_sidebar = factsSidebarFromPack(pack);
+  const facts_sidebar = [""];
+
+  return { teaser, article_markdown, facts_sidebar, outline: null };
 }
