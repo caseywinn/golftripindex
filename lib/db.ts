@@ -7,15 +7,12 @@ declare global {
 }
 
 /**
- * Returns a singleton Pool in a Node.js runtime.
- * IMPORTANT: Do not throw at module scope (breaks Next/Vercel build).
+ * Preferred: returns singleton Pool.
  */
 export function getPgPool(): pg.Pool {
   if (global.__gtiPool) return global.__gtiPool;
 
   const connectionString = process.env.DATABASE_URL;
-
-  // Only validate when actually used at runtime
   if (!connectionString) {
     throw new Error(
       "DATABASE_URL is not set. Add it in Vercel Project Settings → Environment Variables (Production)."
@@ -32,3 +29,9 @@ export function getPgPool(): pg.Pool {
 
   return global.__gtiPool;
 }
+
+/**
+ * Backwards-compat alias for existing route code.
+ * (Those routes currently import getPgClient)
+ */
+export const getPgClient = getPgPool;
