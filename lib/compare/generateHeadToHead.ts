@@ -1,6 +1,12 @@
 // lib/compare/generateHeadToHead.ts
 import OpenAI from "openai";
 
+import {
+  buildHeadToHeadPrompt,
+  lintGolferOutput,
+  buildRevisionPrompt,
+} from "./golferVoice";
+
 // ---------- Types ----------
 type Winner = "A" | "B" | "Tie";
 
@@ -44,6 +50,74 @@ function hasRequiredStructure(md: string) {
   const headingsOk = requiredHeadings.every((h) => md.includes(h));
   const winnerOk = /\*\*Winner:/.test(md);
   return headingsOk && winnerOk;
+}
+
+function normalizeWinnerLines(md: string): string {
+  if (!md) return md;
+
+  // Capture entire remainder of line after Winner:
+  const WINNER_LINE_RE =
+    /(?:\*\*)?\s*Winner\s*(?::|—|-)\s*(?:\*\*)?\s*([^\n\r]*?)(?:\s*\*\*)?(?=\r?\n|$)/gi;
+
+  let out = md.replace(WINNER_LINE_RE, (_m, rawWho) => {
+    let who = String(rawWho ?? "").trim();
+
+    // Strip any stray markdown asterisks anywhere in the winner text
+    who = who.replace(/\*/g, "").replace(/\s+/g, " ").trim();
+
+    return `\n\n**Winner: ${who}**`;
+  });
+
+  out = out.replace(/\n{3,}/g, "\n\n");
+  return out.trim();
+}
+
+const REQUIRED_SECTIONS = [
+  "The Golf",
+  "Lodging",
+  "Food and Drinks",
+  "Beyond Golf",
+  "Logistics and Travel",
+  "Value",
+  "Vibe",
+  "The Verdict",
+] as const;
+
+function normalizeHeadings(md: string, nameA: string, nameB: string): string {
+  let out = (md ?? "").trim();
+
+  // Ensure the main header exists and is exactly "## A vs B" as first non-empty line
+  const expectedTop = `## ${nameA} vs ${nameB}`;
+  const firstLine = out.split(/\r?\n/).find((l) => l.trim().length > 0) ?? "";
+
+  if (firstLine.trim() !== expectedTop) {
+    out = `${expectedTop}\n\n${out}`;
+  }
+
+  // Normalize plain section labels like "The Golf" -> "## The Golf"
+  // Only convert when the line is exactly the section name (possibly with whitespace)
+  for (const s of REQUIRED_SECTIONS) {
+    const re = new RegExp(`^\\s*${escapeRegExp(s)}\\s*$`, "gim");
+    out = out.replace(re, `## ${s}`);
+  }
+
+  return out.trim();
+}
+
+function escapeRegExp(s: string) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function normalizeArticleMarkdown(md: string, nameA: string, nameB: string) {
+  let out = (md ?? "").trim();
+
+  out = normalizeHeadings(out, nameA, nameB);
+  out = normalizeWinnerLines(out);
+
+  //const r = enforceTwoParagraphsPerSection(out);
+  //out = r.md;
+
+  return { md: out };
 }
 
 // ---------- Deterministic winners (no model call) ----------
@@ -204,8 +278,34 @@ function articlePromptString(args: {
   const { tripAName: A, tripBName: B, winners, source } = args;
 
   return [
-    `You are an editorial golf writer.`,
+    `You are a scratch golfer and seasoned travel veteran who has played the Top 100. You organize two annual golf trips per year, one with 4 people, the other with 12-16. Write with the voice of a contributor to The Fried Egg or No Laying Up. Use a conversational, authoritative, and slightly irreverent tone.`,
+    'You want to provide your expertise to help a group of buddies decide which golf trip is better.',
+    `Voice: conversational, authoritative, slightly irreverent. Like a Fried Egg / No Laying Up contributor.`,
     `Write a polished long-form Head-to-Head: ${A} vs ${B}.`,
+    ``,
+    `Voice & POV:`,
+    `- Write like a grizzled scratch golfer who has planned too many trips to romanticize them.`,
+    `- Use golf slang naturally (pure, firm and fast, the walk, at the turn). No try-hard lists.`,
+    `- If one trip wins a section, don’t soften it. Name a loser when it’s a loser.`,
+    `- Do not speak first person.`,
+    ``,
+    `What to Focus On:`,
+    `- Stay inside “The Loop”: what the round feels like as it unfolds.`,
+    `- Architecture over scenery: routing, green complexes, bunkering, angles.`,
+    `- Apply the Buddy Test: settling bets, hangs after 36, post-round vibe.`,
+    `- When discussing the golf, focus on the courses, the architcture, the architect, the variety. Have the authority of a golf course reviewer. Then secondarily mix in experiential details.`,
+    ``,
+    `What to Avoid:`,
+    `- No marketing language (hidden gem, world-class, bucket list).`,
+    `- Strictly avoid: tapestry, testament, bespoke, quintessential, oasis, nestled, boasting, unparalleled.`,
+    `- No corporate transitions (however, moreover, ultimately).`,
+    `- Do not explain or summarize. State it. Move on.`,
+    ``,
+    `Paragraph Shape:`,
+    `- Each paragraph: 50-75 words.`,
+    `- Two beats per paragraph: an initial observation, then a later-round or pressure moment.`,
+    `- Try to include one short sentence fragment per paragraph.`,
+    `- No bullet lists inside sections.`,
     ``,
     `Hard rules (must follow exactly):`,
     `- Do NOT mention "GTI", "GolfTripIndex", "pack", "data", "dataset", "outline", or AI.`,
@@ -213,8 +313,8 @@ function articlePromptString(args: {
     `- You MAY mention course years opened and general rankings if present.`,
     `- Start with a header exactly: ## ${A} vs ${B}`,
     `- After the header, write exactly two short intro paragraphs before "## The Golf".`,
-    `- Under EACH required section heading, write exactly 2 paragraphs and then a standalone winner line formatted exactly: **Winner: <Trip Name or Tie>**`,
-    `- The winner line must be on its own line, and contain NOTHING after it.`,
+    `- For each required section, after exactly two paragraphs, output EXACTLY this line as a new paragraph: **Winner: <Trip Name or Tie>**. That line must be the final line of the section and must appear exactly 8 times (once per required section).`,
+    `- Forbidden words: "gravity", "aura", "energy", "tapestry", "testament", "bespoke", "quintessential", "oasis", "nestled", "boasting", "unparalleled", "hidden gem", "world-class", "bucket list", "fragment", "akin", "advent", "amidst", "overstated", "conversely", "entails", "entrenched", "essential", "foster", "foray", "furthermore", "glean", "hinder", "integral", "intricate", "moreover", "nuance", "nuanced", "pivotal", "plethora", "robust", "tapestry", "unparalleled", "vast"`,
     ``,
     `Required sections in this exact order:`,
     `## The Golf`,
@@ -274,7 +374,7 @@ export async function generateHeadToHead(pack: any): Promise<GenerateResult> {
       source,
     }),
     reasoning: { effort: "low" },
-    max_output_tokens: 2500,
+    max_output_tokens: 4000,
   });
 
   let article_markdown = (resp.output_text ?? "").trim();
@@ -288,7 +388,12 @@ export async function generateHeadToHead(pack: any): Promise<GenerateResult> {
     console.log("contains forbidden language");
     //throw new Error("Article contains forbidden GTI/pack references or numeric score language.");
   }
+
+  const normalized1 = normalizeArticleMarkdown(article_markdown, nameA, nameB);
+  article_markdown = normalized1.md;
+
   if (!hasRequiredStructure(article_markdown)) {
+    console.log("Markdown", article_markdown);
     throw new Error("Generated article missing required headings or **Winner:** lines.");
   }
 
