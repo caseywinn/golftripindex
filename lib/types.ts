@@ -205,3 +205,112 @@ export type ChatMessage = {
   created_at: string;
   payload?: AssistantPayload | null;
 };
+
+export type ComparisonPack = {
+  generated_at: string;      // ISO
+  data_version: string;      // deterministic, for caching
+  tripA: TripPack;
+  tripB: TripPack;
+};
+
+export type TripPack = {
+  name: string;
+  slug: string;
+  secondary_name?: string | null;
+  subheader?: string | null;
+
+  // Editorial text: the model’s “voice fuel”
+  overview?: string | null;
+  full_description?: string | null;
+  food_and_lodging_overview?: string | null;
+  travel_notes?: string | null;
+  vibe_summary?: string | null;
+  driving?: string | null;          // you have a "Driving" field
+  data_dump?: string | null;        // optional; can be noisy
+
+  // Logistics + planning
+  duration_min_days?: number | null;
+  duration_max_days?: number | null;
+  stay_type?: string | null;
+  cost_tier?: number | null;
+  lead_time?: string | null;
+  nearest_airports?: string[];      // Airtable multi-select or array
+  peak_months?: string[];
+  shoulder_months?: string[];
+
+  // Ratings (these are key for “Winner:” calls)
+  ratings?: {
+    golf?: number | null;
+    lodging?: number | null;
+    food?: number | null;
+    vibe?: number | null;
+    beyond_golf?: number | null;
+    logistics?: number | null;
+    value?: number | null;
+    overall?: number | null;
+  };
+
+  // Courses in trip order
+  courses: Array<{
+    name: string;
+    slug: string;
+    trip_course_rank?: number | null;
+    architect?: string | null;
+    year_opened?: number | null;
+    state?: string | null;
+    course_type?: string | null;
+    stay_play_required?: boolean | string | null;
+
+    rankings?: {
+      consolidated?: number | null;
+      golf_digest?: number | null;
+      golfdotcom?: number | null;
+      golfweek?: number | null;
+      trend?: string | null;
+    };
+  }>;
+};
+
+export type HeadToHeadOutput = {
+  teaser: string;
+  article_markdown: string;
+
+  // Optional but recommended: makes users trust it
+  facts_sidebar: string[];
+
+  // For internal validation/debug; you can omit from client response
+  outline: {
+    thesis: string;
+    sections: Array<{
+      key:
+        | "golf"
+        | "lodging"
+        | "food"
+        | "logistics"
+        | "value"
+        | "vibe"
+        | "verdict";
+      heading: string;
+      tripA_points: string[];
+      tripB_points: string[];
+      winner: "A" | "B" | "TIE";
+      rationale: string;
+    }>;
+    overall_verdict: {
+      winner: "A" | "B" | "TIE";
+      rationale: string;
+      who_should_pick_A: string[];
+      who_should_pick_B: string[];
+    };
+  };
+
+  // Every specific claim points back to pack fields
+  claim_ledger: Array<{
+    claim: string;
+    sources: Array<{
+      trip: "A" | "B";
+      path: string; // e.g. "ratings.golf" or "courses[2].architect"
+    }>;
+  }>;
+};
+

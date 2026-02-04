@@ -43,6 +43,11 @@ function safeNum(n: number | undefined) {
   return n;
 }
 
+function safeInt(n: number | undefined) {
+  if (typeof n !== "number") return 0;
+  return Math.floor(n);
+}
+
 export default async function TripDetailsPage({
   params,
 }: {
@@ -155,22 +160,22 @@ export default async function TripDetailsPage({
               <div className={styles.bannerScores}>
                 <div className={styles.bannerScoreRow}>
                   <span className={styles.bannerScoreKey}>Golf:</span>
-                  <span className={styles.bannerScoreVal}>{safeNum(trip.golfRating)}</span>
+                  <span className={styles.bannerScoreVal}>{safeInt(trip.golfRating)}</span>
                 </div>
 
                 <div className={styles.bannerScoreRow}>
                   <span className={styles.bannerScoreKey}>Lodging:</span>
-                  <span className={styles.bannerScoreVal}>{safeNum(trip.lodgingRating)}</span>
+                  <span className={styles.bannerScoreVal}>{safeInt(trip.lodgingRating)}</span>
                 </div>
 
                 <div className={styles.bannerScoreRow}>
                   <span className={styles.bannerScoreKey}>Food:</span>
-                  <span className={styles.bannerScoreVal}>{safeNum(trip.foodRating)}</span>
+                  <span className={styles.bannerScoreVal}>{safeInt(trip.foodRating)}</span>
                 </div>
 
                 <div className={styles.bannerScoreRow}>
                   <span className={styles.bannerScoreKey}>Vibe:</span>
-                  <span className={styles.bannerScoreVal}>{safeNum(trip.vibeRating)}</span>
+                  <span className={styles.bannerScoreVal}>{safeInt(trip.vibeRating)}</span>
                 </div>
 
                 <div className={styles.bannerScoreRowOverall}>
