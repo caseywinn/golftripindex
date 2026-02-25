@@ -117,6 +117,34 @@
   white-space: nowrap;
 }
 
+.metaTooltipWrapper {
+  position: relative;
+  cursor: help;
+}
+
+.metaTooltip {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #0488db;
+  color: #fff;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  text-align: center;
+  white-space: nowrap;
+  transition: opacity 0.2s ease;
+  z-index: 10;
+}
+
+.metaTooltipWrapper:hover .metaTooltip {
+  visibility: visible;
+  opacity: 1;
+}
+
 .bannerMetaVal {
   color: rgba(255, 255, 255, 0.88);
   font-size: 14px;
@@ -556,6 +584,14 @@
 
   .bannerOverallVal {
     font-size: 14px;
+  }
+
+  .metaAsterisk {
+    margin-left: 2px;
+    cursor: help;
+    font-size: 0.85em;
+    vertical-align: super;
+    line-height: 1;
   }
 }
 

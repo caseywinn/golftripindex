@@ -20,7 +20,7 @@ export type GolfTrip = {
 
   durationMinDays: number;
   durationMaxDays: number;
-  driving?: number;
+  driving?: string;
   stayType: StayType;
   leadTime?: string;
   costTier: 1 | 2 | 3 | 4 | 5;

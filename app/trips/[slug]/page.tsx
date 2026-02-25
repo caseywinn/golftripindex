@@ -129,10 +129,17 @@ export default async function TripDetailsPage({
                   </span>
                 </div>
 
-                <div className={styles.bannerMetaRow}>
-                  <span className={styles.bannerMetaKey}>Driving:</span>
+                <div className={`${styles.bannerMetaRow} ${styles.metaTooltipWrapper}`}>
+                  <span className={styles.bannerMetaKey}>
+                    <u>Driving</u>:*
+                  </span>
                   <span className={styles.bannerMetaVal}>
                     {formatDriving(trip.driving)}
+                  </span>
+
+                  <span className={styles.metaTooltip}>
+                    Miles driven between courses after arrival.<br />
+                    Does not include travel to/from an airport.
                   </span>
                 </div>
 

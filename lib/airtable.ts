@@ -77,7 +77,7 @@ function mapTrip(r: Airtable.Record<Airtable.FieldSet>): GolfTrip {
     foodAndLodgingOverview: asString(f["Food and Lodging Overview"]),
     durationMinDays: f["Duration Min Days"] as number,
     durationMaxDays: f["Duration Max Days"] as number,
-    driving: asNumber(f["Driving"]),
+    driving: asString(f["Driving"]),
     stayType: stayType as any,
     leadTime: asString(f["Lead Time"]),
     costTier: costTier as any,
