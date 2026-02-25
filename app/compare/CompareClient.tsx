@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import styles from "@/styles/compare.module.css";
 
 type TripOption = { name: string; slug: string };
@@ -37,7 +38,70 @@ const PHASES = [
   "Writing the verdict…",
 ];
 
-export default function CompareClient() {
+function buildCanonicalPath(A: string, B: string) {
+  return `/compare/${encodeURIComponent(A)}-vs-${encodeURIComponent(B)}`;
+}
+
+function parseCompareFromSearchParams(sp: URLSearchParams): { A: string; B: string } | null {
+  // Supported:
+  // 1) ?A=aspen&B=arcadia-bluffs (preferred explicit)
+  // 2) ?aspen&arcadia-bluffs (keys with empty values)
+
+  const A = sp.get("A") || sp.get("a");
+  const B = sp.get("B") || sp.get("b");
+  if (A && B && A !== B) return { A, B };
+
+  const keys = Array.from(sp.keys()).filter((k) => !["A", "a", "B", "b"].includes(k));
+  if (keys.length >= 2 && keys[0] !== keys[1]) return { A: keys[0], B: keys[1] };
+
+  return null;
+}
+
+function parsePairFromPathname(pathname: string): { A: string; B: string } | null {
+  // Supports:
+  // /compare/aspen-vs-arcadia-bluffs
+  // /compare/aspen/arcadia-bluffs
+
+  const prefix = "/compare";
+  if (!pathname.startsWith(prefix)) return null;
+
+  const tail = pathname.slice(prefix.length); // "" or "/..."
+  const cleaned = tail.replace(/^\/+/, "");
+  if (!cleaned) return null;
+
+  const segments = cleaned.split("/").filter(Boolean);
+
+  // /compare/A/B
+  if (segments.length >= 2) {
+    const A = decodeURIComponent(segments[0] ?? "").trim();
+    const B = decodeURIComponent(segments[1] ?? "").trim();
+    if (!A || !B || A === B) return null;
+    return { A, B };
+  }
+
+  // /compare/A-vs-B
+  const raw = segments[0];
+  const parts = raw.split("-vs-");
+  if (parts.length !== 2) return null;
+
+  const A = decodeURIComponent(parts[0] ?? "").trim();
+  const B = decodeURIComponent(parts[1] ?? "").trim();
+  if (!A || !B || A === B) return null;
+
+  return { A, B };
+}
+
+export default function CompareClient({
+  initialA = "",
+  initialB = "",
+}: {
+  initialA?: string;
+  initialB?: string;
+}) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+
   const [trips, setTrips] = useState<TripOption[]>([]);
 
   // Draft selections (dropdowns). Changing these should NOT clear the page.
@@ -45,7 +109,6 @@ export default function CompareClient() {
   const [draftB, setDraftB] = useState<string>("");
 
   // Committed selections (used for the actual comparison + heading + option filtering).
-  // These only change when the user clicks Compare.
   const [a, setA] = useState<string>("");
   const [b, setB] = useState<string>("");
 
@@ -60,6 +123,9 @@ export default function CompareClient() {
 
   // Spinner phase text
   const [phaseIndex, setPhaseIndex] = useState<number>(0);
+
+  // Ensure auto-run happens only once per direct-load pair
+  const autorunKeyRef = useRef<string>("");
 
   // ---- Load trips for dropdowns ----
   useEffect(() => {
@@ -76,20 +142,17 @@ export default function CompareClient() {
   }, []);
 
   // ---- Derived dropdown options (prevent selecting same trip) ----
-  // Use DRAFT selection to filter the opposite dropdown (nice UX), but don't touch output.
   const optionsForA = useMemo(() => trips.filter((t) => t.slug !== draftB), [trips, draftB]);
   const optionsForB = useMemo(() => trips.filter((t) => t.slug !== draftA), [trips, draftA]);
 
-  // Compare button enablement should be based on DRAFT selections.
   const canCompare = Boolean(draftA && draftB && draftA !== draftB) && !comparing;
 
-  // Titles should reflect the last COMMITTED comparison (a/b), not the drafts.
   const tripAName = useMemo(() => trips.find((t) => t.slug === a)?.name ?? "", [trips, a]);
   const tripBName = useMemo(() => trips.find((t) => t.slug === b)?.name ?? "", [trips, b]);
 
-  // Clear downstream state ONLY when the committed comparison pair changes (i.e., Compare clicked).
+  // Clear downstream state ONLY when committed comparison pair changes
   useEffect(() => {
-    if (!a || !b) return; // don't clear on initial mount
+    if (!a || !b) return;
     setOutput(null);
     setMeta(null);
     setCacheKey(null);
@@ -97,14 +160,13 @@ export default function CompareClient() {
     setError(null);
   }, [a, b]);
 
-  // Phased statuses while comparing (perceived speed)
+  // Phased statuses while comparing
   useEffect(() => {
     if (!comparing) {
       setPhaseIndex(0);
       return;
     }
 
-    // Start with a quick jump from "Preparing…" to the comparison phases
     setPhaseIndex(0);
 
     const id = setInterval(() => {
@@ -114,15 +176,21 @@ export default function CompareClient() {
     return () => clearInterval(id);
   }, [comparing]);
 
-  async function compareTrips(opts?: { bypassCache?: boolean }) {
-    // Commit the drafts first. This is what ensures dropdown changes don't wipe the page.
-    const nextA = draftA;
-    const nextB = draftB;
-
+  async function runCompare(
+    nextA: string,
+    nextB: string,
+    opts?: { bypassCache?: boolean; updateUrl?: boolean }
+  ) {
     if (!nextA || !nextB || nextA === nextB) return;
 
+    // Commit
     setA(nextA);
     setB(nextB);
+
+    // Canonicalize URL when requested
+    if (opts?.updateUrl) {
+      router.replace(buildCanonicalPath(nextA, nextB), { scroll: false });
+    }
 
     setError(null);
     setOutput(null);
@@ -142,7 +210,6 @@ export default function CompareClient() {
         }),
       });
 
-      // Robust JSON parsing (prevents "Unexpected end of JSON input")
       const text = await res.text();
       let data: any = null;
       try {
@@ -157,7 +224,6 @@ export default function CompareClient() {
       }
 
       const parsed = data as CompareResponse;
-
       setCacheKey(parsed.cacheKey || null);
       setCached(Boolean(parsed.cached));
       setMeta(parsed.pack_meta ?? null);
@@ -169,14 +235,49 @@ export default function CompareClient() {
     }
   }
 
+  async function compareTrips(opts?: { bypassCache?: boolean }) {
+    return runCompare(draftA, draftB, {
+      bypassCache: Boolean(opts?.bypassCache),
+      updateUrl: true, // Compare button always writes canonical
+    });
+  }
+
+  // =========================
+  // AUTO-RUN ON DIRECT LOAD
+  // =========================
+  useEffect(() => {
+    // Determine pair from (1) server props, (2) canonical pathname, (3) legacy query
+    const fromProps = initialA && initialB ? { A: initialA, B: initialB } : null;
+    const fromPath = parsePairFromPathname(pathname);
+    const fromQuery = parseCompareFromSearchParams(searchParams);
+
+    const pair = fromProps || fromPath || fromQuery;
+    if (!pair) return;
+
+    const key = `${pair.A}::${pair.B}`;
+    if (autorunKeyRef.current === key) return;
+
+    // Seed UI
+    setDraftA(pair.A);
+    setDraftB(pair.B);
+
+    // If coming from legacy query, normalize to canonical immediately
+    if (fromQuery && !fromPath && !fromProps) {
+      router.replace(buildCanonicalPath(pair.A, pair.B), { scroll: false });
+    }
+
+    autorunKeyRef.current = key;
+
+    // Kick off comparison immediately (do NOT wait for trips list)
+    runCompare(pair.A, pair.B, { updateUrl: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialA, initialB, pathname, searchParams]);
+
   // Hero image strategy:
-  // 1) dedicated compare hero: /public/images/compare/{a}-vs-{b}.jpg (optional)
-  // 2) fallback: Trip A hero
   const heroSrc = `/comparison-hero.jpg`;
   const fallbackHeroSrc = a ? `/images/trips/${a}.jpg` : `/images/compare/placeholder.jpg`;
 
   const title = tripAName && tripBName ? `${tripAName} vs ${tripBName}` : "Head-to-Head";
-  const teaser = output?.teaser ?? "";
 
   return (
     <main className={styles.page}>
@@ -250,9 +351,11 @@ export default function CompareClient() {
         <div className={styles.heroPanel}>
           <h1 className={styles.title}>{title}</h1>
 
-          {/* {teaser ? <p className={styles.teaser}>{teaser}</p> : null} */}
-
           <div className={styles.meta}>
+            Select two golf trips to compare. This tool goes beyond surface-level rankings to break down how each trip actually plays out so you can see which one truly fits the kind of trip you want to take.
+          </div>
+
+          {/*<div className={styles.meta}>
             <span>
               {comparing
                 ? "The Caddie is taking a moment to study both trips—comparing the golf, the journey, and how each experience actually unfolds."
@@ -272,7 +375,7 @@ export default function CompareClient() {
                 <span>{cached ? "cached" : "fresh"}</span>
               </>
             ) : null}
-          </div>
+          </div>*/}
 
           {/* Controls */}
           <div className={styles.comparisons}>
@@ -316,19 +419,9 @@ export default function CompareClient() {
               <button onClick={() => compareTrips()} disabled={!canCompare}>
                 {comparing ? "Comparing…" : "Compare"}
               </button>
-
-              {/* Optional regenerate */}
-              {/* <button
-                onClick={() => compareTrips({ bypassCache: true })}
-                disabled={!Boolean(draftA && draftB && draftA !== draftB) || comparing}
-                title="Bypasses cache to generate a fresh draft"
-              >
-                {comparing ? "Regenerating…" : "Regenerate"}
-              </button> */}
             </div>
           </div>
 
-          {/* Validation / error (based on DRAFT) */}
           {draftA && draftB && draftA === draftB ? (
             <p style={{ color: "crimson", marginTop: 12 }}>
               Trip A and Trip B must be different.
@@ -362,17 +455,9 @@ export default function CompareClient() {
               {output.article_markdown}
             </ReactMarkdown>
           ) : null}
-
-          {/* Optional debug */}
-          {/* {cacheKey ? (
-            <div style={{ marginTop: 20, fontSize: 12, opacity: 0.6 }}>
-              Cache key: {cacheKey} | {cached ? "cached" : "fresh"}
-            </div>
-          ) : null} */}
         </article>
       </section>
 
-      {/* Spinner animation */}
       <style jsx global>{`
         @keyframes spin {
           to {
