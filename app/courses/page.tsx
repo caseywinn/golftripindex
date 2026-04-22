@@ -6,7 +6,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Course Rankings | GolfTripIndex",
   description:
-    "A conslidated list of the top 100 golf courses in the United States.",
+    "A conslidated ranking of the top 100 golf courses in the United States.",
 };
 
 type Course = {
