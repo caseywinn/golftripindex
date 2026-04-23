@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 
 type WidgetMsg = {
   id: string;
@@ -37,7 +38,12 @@ function saveHistory(msgs: WidgetMsg[]) {
 }
 
 export default function CaddieWidget() {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
+
+  // Journey detail pages have their own Journey Caddie widget
+  const isJourneyDetail = /^\/journeys\/[^/]+/.test(pathname ?? "");
+  if (isJourneyDetail) return null;
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [assistantPending, setAssistantPending] = useState(false);

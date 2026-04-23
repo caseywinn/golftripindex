@@ -1,5 +1,16 @@
 import Airtable from "airtable";
-import type { GolfCourse, GolfTrip, TripCourse, TripWithCourses } from "./types";
+import type {
+  GolfCourse,
+  GolfTrip,
+  TripCourse,
+  TripWithCourses,
+  LongTrip,
+  JourneyStop,
+  JourneyStopCourse,
+  JourneyStopWithCourses,
+  JourneyWithStops,
+  CourseImportance,
+} from "./types";
 
 /**
  * GTI Airtable access layer
@@ -15,6 +26,9 @@ import type { GolfCourse, GolfTrip, TripCourse, TripWithCourses } from "./types"
  */
 
 // Tables
+const LONG_TRIPS_TABLE = "LongTrips";
+const STOPS_TABLE = "Stops";
+const STOP_COURSES_TABLE = "StopCourses";
 const TRIPS_TABLE = "GolfTrips";
 const COURSES_TABLE = "GolfCourses";
 const TRIP_COURSES_TABLE = "TripCourses";
@@ -564,4 +578,188 @@ export async function getTripCourseBreakdownByTripId(tripId: string) {
     },
     byStatus,
   };
+}
+
+// ================================
+//  Journey (Long Trip) functions
+// ================================
+
+function mapLongTrip(r: Airtable.Record<Airtable.FieldSet>): LongTrip {
+  const f = r.fields;
+
+  if (!asString(f["Slug"]) || !asString(f["Name"])) {
+    throw new Error("LongTrip missing Slug or Name");
+  }
+
+  return {
+    id: r.id,
+    slug: f["Slug"] as string,
+    name: f["Name"] as string,
+    description: asString(f["Description"]),
+    heroImageUrl: asString(f["Hero Image URL"]),
+    durationMinDays: (asNumber(f["Duration Min Days"]) ?? 6) as number,
+    durationMaxDays: (asNumber(f["Duration Max Days"]) ?? 10) as number,
+    costTier: asNumber(f["Cost Tier"]) as LongTrip["costTier"],
+    status: (asString(f["Status"]) ?? "draft") as string,
+  };
+}
+
+function mapJourneyStop(r: Airtable.Record<Airtable.FieldSet>): JourneyStop {
+  const f = r.fields;
+
+  const tripIds = f["Long Trip"] as string[] | undefined;
+  if (!tripIds?.[0]) throw new Error("Stop missing linked Long Trip");
+
+  return {
+    id: r.id,
+    tripId: tripIds[0],
+    stopOrder: (asNumber(f["Stop Order"]) ?? 0) as number,
+    locationName: (asString(f["Location Name"]) ?? "") as string,
+    overnight: f["Overnight"] === true,
+    hotels: asString(f["Hotels"]),
+    restaurants: asString(f["Restaurants"]),
+    bookingAdvice: asString(f["Booking Advice"]),
+    notes: asString(f["Notes"]),
+  };
+}
+
+type StopCourseRow = {
+  stopId: string;
+  courseId: string;
+  importance: CourseImportance;
+  notes?: string;
+};
+
+function mapStopCourse(r: Airtable.Record<Airtable.FieldSet>): StopCourseRow {
+  const f = r.fields;
+
+  const stopIds = f["Stop"] as string[] | undefined;
+  const courseIds = f["Golf Course"] as string[] | undefined;
+
+  if (!stopIds?.[0] || !courseIds?.[0]) {
+    throw new Error("StopCourse missing linked Stop or Golf Course");
+  }
+
+  const raw = f["Importance"];
+  const importance = (typeof raw === "string" ? raw : "should_play") as CourseImportance;
+
+  return {
+    stopId: stopIds[0],
+    courseId: courseIds[0],
+    importance,
+    notes: asString(f["Notes"]),
+  };
+}
+
+export async function getPublishedJourneys(): Promise<LongTrip[]> {
+  const base = getBase();
+
+  const records = await base(LONG_TRIPS_TABLE)
+    .select({
+      filterByFormula: `{Status}="published"`,
+      maxRecords: 100,
+    })
+    .all();
+
+  return records
+    .map(mapLongTrip)
+    .sort((a, b) => a.durationMinDays - b.durationMinDays);
+}
+
+export async function getPublishedJourneyBySlug(
+  slug: string
+): Promise<JourneyWithStops | null> {
+  const base = getBase();
+
+  const tripRecords = await base(LONG_TRIPS_TABLE)
+    .select({
+      filterByFormula: `AND({Status}="published",{Slug}="${slug}")`,
+      maxRecords: 1,
+    })
+    .all();
+
+  const tripRecord = tripRecords[0];
+  if (!tripRecord) return null;
+
+  const trip = mapLongTrip(tripRecord);
+
+  // Use the linked Stop IDs directly from the trip record
+  const linkedStopIds = (tripRecord.fields as any)["Stops"] as string[] | undefined;
+  if (!linkedStopIds?.length) {
+    return { ...trip, stops: [] };
+  }
+
+  const chunkSize = 60;
+
+  // Fetch Stop records by their IDs
+  const stopRecords: Airtable.Record<Airtable.FieldSet>[] = [];
+  for (let i = 0; i < linkedStopIds.length; i += chunkSize) {
+    const chunk = linkedStopIds.slice(i, i + chunkSize);
+    const formula = `OR(${chunk.map((id) => `RECORD_ID()="${id}"`).join(",")})`;
+    const recs = await base(STOPS_TABLE)
+      .select({ filterByFormula: formula, maxRecords: 50 })
+      .all();
+    stopRecords.push(...recs);
+  }
+
+  if (!stopRecords.length) {
+    return { ...trip, stops: [] };
+  }
+
+  const stops = stopRecords
+    .map(mapJourneyStop)
+    .sort((a, b) => a.stopOrder - b.stopOrder);
+
+  // Collect all StopCourse IDs from the stop records' linked field
+  const allScIds: string[] = [];
+  for (const sr of stopRecords) {
+    const ids = (sr.fields as any)["StopCourses"] as string[] | undefined;
+    if (ids?.length) allScIds.push(...ids);
+  }
+
+  // Fetch StopCourses by their IDs (chunked)
+  const scRecords: Airtable.Record<Airtable.FieldSet>[] = [];
+  for (let i = 0; i < allScIds.length; i += chunkSize) {
+    const chunk = allScIds.slice(i, i + chunkSize);
+    const formula = `OR(${chunk.map((id) => `RECORD_ID()="${id}"`).join(",")})`;
+
+    const chunk_records = await base(STOP_COURSES_TABLE)
+      .select({ filterByFormula: formula, maxRecords: 200 })
+      .all();
+
+    scRecords.push(...chunk_records);
+  }
+
+  const stopCourseRows = scRecords.map(mapStopCourse);
+
+  // Collect unique course IDs and fetch them
+  const courseIds = Array.from(new Set(stopCourseRows.map((x) => x.courseId)));
+  const courseMap = new Map<string, GolfCourse>();
+
+  for (let i = 0; i < courseIds.length; i += chunkSize) {
+    const chunk = courseIds.slice(i, i + chunkSize);
+    const formula = `OR(${chunk.map((id) => `RECORD_ID()="${id}"`).join(",")})`;
+
+    const courseRecords = await base(COURSES_TABLE)
+      .select({ filterByFormula: formula, maxRecords: 200 })
+      .all();
+
+    for (const r of courseRecords) courseMap.set(r.id, mapCourse(r));
+  }
+
+  // Assemble stops with their courses
+  const stopsWithCourses: JourneyStopWithCourses[] = stops.map((stop) => {
+    const courses: JourneyStopCourse[] = stopCourseRows
+      .filter((sc) => sc.stopId === stop.id)
+      .map((sc) => {
+        const course = courseMap.get(sc.courseId);
+        if (!course) return null;
+        return { stopId: stop.id, course, importance: sc.importance, notes: sc.notes };
+      })
+      .filter(Boolean) as JourneyStopCourse[];
+
+    return { ...stop, courses };
+  });
+
+  return { ...trip, stops: stopsWithCourses };
 }

@@ -206,6 +206,51 @@ export type ChatMessage = {
   payload?: AssistantPayload | null;
 };
 
+// ================================
+//  Journey (Long Trip) types
+// ================================
+
+export type CourseImportance = "must_play" | "should_play" | "want_more";
+
+export type LongTrip = {
+  id: string;
+  slug: string;
+  name: string;
+  description?: string;
+  heroImageUrl?: string;
+  durationMinDays: number;
+  durationMaxDays: number;
+  costTier?: 1 | 2 | 3 | 4 | 5;
+  status: string;
+};
+
+export type JourneyStop = {
+  id: string;
+  tripId: string;
+  stopOrder: number;
+  locationName: string;
+  overnight: boolean;
+  hotels?: string;
+  restaurants?: string;
+  bookingAdvice?: string;
+  notes?: string;
+};
+
+export type JourneyStopCourse = {
+  stopId: string;
+  course: GolfCourse;
+  importance: CourseImportance;
+  notes?: string;
+};
+
+export type JourneyStopWithCourses = JourneyStop & {
+  courses: JourneyStopCourse[];
+};
+
+export type JourneyWithStops = LongTrip & {
+  stops: JourneyStopWithCourses[];
+};
+
 export type ComparisonPack = {
   generated_at: string;      // ISO
   data_version: string;      // deterministic, for caching

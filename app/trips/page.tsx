@@ -25,6 +25,11 @@ export default async function TripsPage({
     (a, b) => (a.currentRanking ?? 9999) - (b.currentRanking ?? 9999)
   );
 
+  const filtered =
+    days === "6-10"
+      ? sorted.filter((t) => (t.durationMinDays ?? 0) >= 6)
+      : sorted.filter((t) => (t.durationMinDays ?? 0) <= 5);
+
   return (
     <main className={styles.page}>
       {/* Banner */}
@@ -49,7 +54,7 @@ export default async function TripsPage({
               href="/trips?days=6-10"
               className={`${styles.segmentItem} ${days === "6-10" ? styles.active : ""}`}
             >
-              6-10 Days (Coming Soon)
+              6-10 Days
             </Link>
           </div>
         </div>
@@ -58,7 +63,13 @@ export default async function TripsPage({
       {/* Trip tiles */}
       <section className={styles.listWrap}>
         <div className={styles.listInner}>
-          <TripsListClient trips={sorted} pageSize={10} />
+          {filtered.length > 0 ? (
+            <TripsListClient trips={filtered} pageSize={10} />
+          ) : (
+            <p style={{ color: "#6b7280", fontSize: 15, padding: "40px 0" }}>
+              No {days}-day trips published yet. Check back soon.
+            </p>
+          )}
         </div>
       </section>
     </main>

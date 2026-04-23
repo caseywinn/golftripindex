@@ -1,0 +1,693 @@
+/* ========================
+   PAGE SHELL
+   ======================== */
+.page {
+  width: 100%;
+  background: #f5f8f9;
+  min-height: 100vh;
+}
+
+/* ========================
+   HERO
+   ======================== */
+.hero {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 60% 40%;
+  min-height: 320px;
+  background: #0b0f1a;
+  overflow: hidden;
+}
+
+.heroMedia {
+  position: relative;
+  background-size: cover;
+  background-position: center;
+  min-height: 320px;
+}
+
+.heroMedia::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0.28) 100%);
+}
+
+.heroPanel {
+  background: #2f2f2f;
+  color: #fff;
+  padding: 48px 52px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+}
+
+.heroBadge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.45);
+}
+
+.heroTitle {
+  font-size: 40px;
+  font-weight: 800;
+  line-height: 1.06;
+  letter-spacing: -0.02em;
+  color: #fff;
+  margin: 0;
+}
+
+.heroDesc {
+  font-size: 13px;
+  line-height: 1.65;
+  color: rgba(255,255,255,0.82);
+  max-width: 50ch;
+  margin: 0;
+}
+
+.heroMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255,255,255,0.14);
+}
+
+.heroMetaRow {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.heroMetaKey {
+  color: rgba(255,255,255,0.48);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding-top: 1px;
+}
+
+.heroMetaVal {
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ========================
+   BODY GRID
+   ======================== */
+.pageBody {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 36px 28px 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* ========================
+   STOPS COLUMN
+   ======================== */
+.stopsArea {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* ========================
+   STOP CARD
+   ======================== */
+.stop {
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+
+.stopHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.stopNumber {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #0b0f1a;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stopLocation {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #0b0f1a;
+}
+
+.stopBadge {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.badgeOvernight {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.badgeDriveThrough {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+/* ========================
+   COURSE SCROLL ROW
+   ======================== */
+.courseScroll {
+  --gutter: 20px;
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+  min-width: 0;
+  padding: 16px var(--gutter) 16px;
+  scroll-padding-left: var(--gutter);
+  scroll-padding-right: var(--gutter);
+}
+
+/* ========================
+   COURSE CARD (within stop)
+   ======================== */
+.courseCard {
+  flex: 0 0 calc((100% - 32px) / 3.35);
+  scroll-snap-align: start;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e8edf5;
+  overflow: hidden;
+}
+
+.courseImage {
+  height: 180px;
+  background-size: cover;
+  background-position: center;
+  background-color: #dde4ee;
+  position: relative;
+}
+
+.courseRankOverlay {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.7);
+  letter-spacing: -0.02em;
+  pointer-events: none;
+}
+
+.importanceBadge {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  backdrop-filter: blur(4px);
+}
+
+.importanceMust {
+  background: rgba(11,15,26,0.88);
+  color: #fff;
+}
+
+.importanceShould {
+  background: rgba(30,58,95,0.82);
+  color: #bfdbfe;
+}
+
+.importanceOptional {
+  background: rgba(255,255,255,0.82);
+  color: #6b7280;
+}
+
+.courseName {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0b0f1a;
+  padding: 8px 10px 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.courseRanks {
+  padding: 4px 10px 10px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.rankCell {
+  text-align: center;
+}
+
+.rankNum {
+  font-size: 11px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1;
+}
+
+.rankLabel {
+  margin-top: 3px;
+  font-size: 8px;
+  color: #9ca3af;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+}
+
+/* ========================
+   STOP BODY (logistics, advice, notes)
+   ======================== */
+.stopBody {
+  padding: 16px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.stopLogistics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.logisticsCard {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.logisticsTitle {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #9ca3af;
+  margin-bottom: 6px;
+}
+
+.logisticsText {
+  font-size: 12px;
+  line-height: 1.65;
+  color: #374151;
+  white-space: pre-line;
+}
+
+.bookingAdvice {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.bookingAdviceTitle {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #92400e;
+  margin-bottom: 6px;
+}
+
+.bookingAdviceText {
+  font-size: 12px;
+  line-height: 1.65;
+  color: #451a03;
+  white-space: pre-line;
+}
+
+.stopNotes {
+  font-size: 12px;
+  color: #6b7280;
+  font-style: italic;
+  line-height: 1.6;
+}
+
+/* ========================
+   JOURNEY CADDIE POPUP
+   (floating widget on journey detail pages)
+   ======================== */
+.journeyLauncher {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 9999;
+  border-radius: 999px;
+  border: 1px solid #ddd;
+  background: #fff;
+  padding: 12px 16px;
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+}
+
+.journeyPopup {
+  position: fixed;
+  right: 18px;
+  bottom: 72px;
+  width: 360px;
+  max-width: calc(100vw - 36px);
+  height: 520px;
+  max-height: calc(100vh - 120px);
+  z-index: 9999;
+  background: #fff;
+  border: 1px solid #e6e6e6;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 18px 48px rgba(0,0,0,0.16);
+  display: flex;
+  flex-direction: column;
+}
+
+.chatHeader {
+  padding: 12px 14px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.chatTitle {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0b0f1a;
+}
+
+.chatHeaderClose {
+  border: 1px solid #ddd;
+  background: #fff;
+  border-radius: 10px;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.chatMessages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  background: #fafafa;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.chatBubbleUser {
+  align-self: flex-end;
+  max-width: 85%;
+  background: #0b0f1a;
+  color: #fff;
+  border-radius: 14px 14px 4px 14px;
+  padding: 9px 13px;
+}
+
+.chatBubbleAssistant {
+  align-self: flex-start;
+  max-width: 90%;
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 14px 14px 14px 4px;
+  padding: 9px 13px;
+}
+
+.chatBubbleRole {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.5;
+  margin-bottom: 3px;
+}
+
+.chatBubbleContent {
+  font-size: 12px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+.chatOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.chatOption {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+  color: #374151;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.chatOption:hover:not(:disabled) {
+  background: #e8edf5;
+  border-color: #a0aec0;
+}
+
+.chatOption:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chatThinking {
+  font-size: 11px;
+  color: #9ca3af;
+  padding: 2px 0;
+}
+
+.chatComposer {
+  padding: 10px 12px;
+  border-top: 1px solid #eee;
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.chatInput {
+  flex: 1;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  font-size: 12px;
+  background: #fff;
+  outline: none;
+  min-width: 0;
+}
+
+.chatInput:focus {
+  border-color: #0b0f1a;
+}
+
+.chatSend {
+  padding: 9px 14px;
+  border-radius: 10px;
+  border: none;
+  background: #0b0f1a;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.chatSend:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ========================
+   EMPTY STATE
+   ======================== */
+.empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: #9ca3af;
+  font-size: 15px;
+}
+
+/* ========================
+   LISTING PAGE
+   ======================== */
+.listPage {
+  width: 100%;
+}
+
+.listHero {
+  width: 100%;
+  background: #2f2f2f;
+  color: #fff;
+  padding: 48px 28px 40px;
+}
+
+.listTitle {
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 10px;
+}
+
+.listSub {
+  font-size: 14px;
+  line-height: 1.65;
+  color: rgba(255,255,255,0.85);
+  max-width: 60ch;
+  margin: 0;
+}
+
+.listBody {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px 28px 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.journeyCard {
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow 0.15s;
+}
+
+.journeyCard:hover {
+  box-shadow: 0 6px 24px rgba(0,0,0,0.11);
+}
+
+.journeyCardImage {
+  background-size: cover;
+  background-position: center;
+  background-color: #e2e8f0;
+  min-height: 160px;
+}
+
+.journeyCardBody {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.journeyCardName {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #0b0f1a;
+}
+
+.journeyCardDesc {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #6b7280;
+}
+
+.journeyCardMeta {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 6px;
+}
+
+/* ========================
+   RESPONSIVE
+   ======================== */
+
+@media (max-width: 1024px) {
+  .courseCard {
+    flex: 0 0 calc((100% - 32px) / 2.35);
+  }
+}
+
+@media (max-width: 640px) {
+  .courseCard {
+    flex: 0 0 85%;
+  }
+}
+
+@media (max-width: 960px) {
+  .hero {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .heroMedia {
+    height: 200px;
+    min-height: 200px;
+  }
+
+  .heroPanel {
+    padding: 24px 20px;
+  }
+
+  .heroTitle {
+    font-size: 28px;
+  }
+
+  .pageBody {
+    padding: 24px 18px 60px;
+  }
+
+  .stopLogistics {
+    grid-template-columns: 1fr;
+  }
+
+  .journeyCard {
+    grid-template-columns: 1fr;
+  }
+
+  .journeyCardImage {
+    min-height: 180px;
+  }
+}
