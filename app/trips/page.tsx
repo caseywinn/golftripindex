@@ -1,6 +1,8 @@
 import Link from "next/link";
 import styles from "../../styles/trips.module.css";
-import { getPublishedTripsWithFirstCourse } from "../../lib/airtable";
+import journeyStyles from "../../styles/journey.module.css";
+import { getPublishedTripsWithFirstCourse, getPublishedJourneys } from "../../lib/airtable";
+import { formatDuration, formatCostTier } from "../../lib/formatters";
 import type { Metadata } from "next";
 import TripsListClient from "../../components/TripsListClient";
 
@@ -19,29 +21,65 @@ export default async function TripsPage({
   const sp = await searchParams;
   const days = sp.days ?? "2-5";
 
-  const trips = await getPublishedTripsWithFirstCourse();
+  let content: React.ReactNode;
 
-  const sorted = [...trips].sort(
-    (a, b) => (a.currentRanking ?? 9999) - (b.currentRanking ?? 9999)
-  );
-
-  const filtered =
-    days === "6-10"
-      ? sorted.filter((t) => (t.durationMinDays ?? 0) >= 6)
-      : sorted.filter((t) => (t.durationMinDays ?? 0) <= 5);
+  if (days === "6-10") {
+    const journeys = await getPublishedJourneys();
+    content = journeys.length === 0 ? (
+      <p style={{ color: "#6b7280", fontSize: 15, padding: "40px 0" }}>
+        Journeys coming soon.
+      </p>
+    ) : (
+      <div className={journeyStyles.journeyListWrap}>
+        {journeys.map((j) => (
+          <Link
+            key={j.id}
+            href={`/journeys/${j.slug}`}
+            className={journeyStyles.journeyCard}
+          >
+            <div
+              className={journeyStyles.journeyCardImage}
+              style={{ backgroundImage: `url("/images/journeys/${j.slug}.jpg")` }}
+              aria-hidden="true"
+            />
+            <div className={journeyStyles.journeyCardBody}>
+              <div className={journeyStyles.journeyCardName}>{j.name}</div>
+              {j.description && (
+                <div className={journeyStyles.journeyCardDesc}>{j.description}</div>
+              )}
+              <div className={journeyStyles.journeyCardMeta}>
+                <span>{formatDuration(j.durationMinDays, j.durationMaxDays)}</span>
+                {j.costTier && <span>{formatCostTier(j.costTier)}</span>}
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+    );
+  } else {
+    const trips = await getPublishedTripsWithFirstCourse();
+    const sorted = [...trips].sort(
+      (a, b) => (a.currentRanking ?? 9999) - (b.currentRanking ?? 9999)
+    );
+    const filtered = sorted.filter((t) => (t.durationMinDays ?? 0) <= 5);
+    content = filtered.length > 0 ? (
+      <TripsListClient trips={filtered} pageSize={10} />
+    ) : (
+      <p style={{ color: "#6b7280", fontSize: 15, padding: "40px 0" }}>
+        No 2–5 day trips published yet. Check back soon.
+      </p>
+    );
+  }
 
   return (
     <main className={styles.page}>
-      {/* Banner */}
       <section className={styles.banner}>
         <div className={styles.bannerMedia} aria-hidden="true" />
-
         <div className={styles.bannerPanel}>
           <div className={styles.bannerTitle}>2026 Golf Trip Rankings</div>
           <div className={styles.bannerSub}>
             A ranking of the best golf trips in America, offering an informed, independent view that evaluates the full experience—from the quality of the golf to how well a trip actually comes together.
           </div>
-
           <div className={styles.segment}>
             <Link
               href="/trips?days=2-5"
@@ -49,7 +87,6 @@ export default async function TripsPage({
             >
               2-5 Days
             </Link>
-
             <Link
               href="/trips?days=6-10"
               className={`${styles.segmentItem} ${days === "6-10" ? styles.active : ""}`}
@@ -60,16 +97,9 @@ export default async function TripsPage({
         </div>
       </section>
 
-      {/* Trip tiles */}
       <section className={styles.listWrap}>
         <div className={styles.listInner}>
-          {filtered.length > 0 ? (
-            <TripsListClient trips={filtered} pageSize={10} />
-          ) : (
-            <p style={{ color: "#6b7280", fontSize: 15, padding: "40px 0" }}>
-              No {days}-day trips published yet. Check back soon.
-            </p>
-          )}
+          {content}
         </div>
       </section>
     </main>

@@ -210,6 +210,14 @@ export type ChatMessage = {
 //  Journey (Long Trip) types
 // ================================
 
+export type MapStop = {
+  order: number;
+  name: string;
+  lat: number;
+  lng: number;
+  overnight: boolean;
+};
+
 export type CourseImportance = "must_play" | "should_play" | "want_more";
 
 export type LongTrip = {
@@ -217,6 +225,7 @@ export type LongTrip = {
   slug: string;
   name: string;
   description?: string;
+  fullDescription?: string;
   heroImageUrl?: string;
   durationMinDays: number;
   durationMaxDays: number;

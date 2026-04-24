@@ -596,6 +596,7 @@ function mapLongTrip(r: Airtable.Record<Airtable.FieldSet>): LongTrip {
     slug: f["Slug"] as string,
     name: f["Name"] as string,
     description: asString(f["Description"]),
+    fullDescription: asString(f["Full Description"]),
     heroImageUrl: asString(f["Hero Image URL"]),
     durationMinDays: (asNumber(f["Duration Min Days"]) ?? 6) as number,
     durationMaxDays: (asNumber(f["Duration Max Days"]) ?? 10) as number,
