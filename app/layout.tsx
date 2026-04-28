@@ -3,6 +3,9 @@ import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import CaddieWidget from "@/components/CaddieWidget";
 import { Inter, Inter_Tight } from "next/font/google";
+import type { Metadata } from "next";
+import { JsonLd } from "@/components/JsonLd";
+import { SITE_URL, SITE_NAME } from "@/lib/seo";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -18,16 +21,62 @@ const interTight = Inter_Tight({
   variable: "--font-primary",
 });
 
-// app/layout.tsx
 export const viewport = {
   width: "device-width",
   initialScale: 1,
 };
 
+export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: `${SITE_NAME} | Ranking USA's Best Golf Trips`,
+    template: `%s | ${SITE_NAME}`,
+  },
+  description: "An overall ranking of the best golf trips in America.",
+  alternates: { canonical: SITE_URL },
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const orgSchema = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: SITE_NAME,
+    url: SITE_URL,
+    description: "Ranking America's best golf trips.",
+  };
+
+  const websiteSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: SITE_NAME,
+    url: SITE_URL,
+    potentialAction: {
+      "@type": "SearchAction",
+      target: {
+        "@type": "EntryPoint",
+        urlTemplate: `${SITE_URL}/trips?q={search_term_string}`,
+      },
+      "query-input": "required name=search_term_string",
+    },
+  };
+
   return (
     <html lang="en" className={`${inter.variable} ${interTight.variable}`}>
       <body>
+        <JsonLd data={orgSchema} />
+        <JsonLd data={websiteSchema} />
         <SiteHeader />
         {children}
         <CaddieWidget />

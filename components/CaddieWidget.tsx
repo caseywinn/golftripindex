@@ -40,16 +40,14 @@ function saveHistory(msgs: WidgetMsg[]) {
 export default function CaddieWidget() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-
-  // Journey detail pages have their own Journey Caddie widget
-  const isJourneyDetail = /^\/journeys\/[^/]+/.test(pathname ?? "");
-  if (isJourneyDetail) return null;
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [assistantPending, setAssistantPending] = useState(false);
   const [messages, setMessages] = useState<WidgetMsg[]>([]);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const inFlightRef = useRef(false);
+
+  const isJourneyDetail = /^\/journeys\/[^/]+/.test(pathname ?? "");
 
   // Load persisted local history once
   useEffect(() => {
@@ -79,6 +77,9 @@ export default function CaddieWidget() {
     // API expects: { role, content } with limited history
     return messages.slice(-12).map((m) => ({ role: m.role, content: m.content }));
   }, [messages]);
+
+  // Journey detail pages have their own Journey Caddie widget
+  if (isJourneyDetail) return null;
 
   async function send(contentOverride?: string) {
     const content = (contentOverride ?? draft).trim();

@@ -1,4 +1,20 @@
+import type { Metadata } from "next";
 import CompareClient from "../CompareClient";
+
+export const metadata: Metadata = {
+  title: "Compare Golf Trips | GolfTripIndex",
+  description:
+    "Compare two golf trips side-by-side with AI-powered analysis of courses, ratings, cost, and overall experience.",
+  openGraph: {
+    title: "Compare Golf Trips | GolfTripIndex",
+    description:
+      "Compare two golf trips side-by-side with AI-powered analysis of courses, ratings, cost, and overall experience.",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
+};
 
 function parseFromParams(matchup?: string[]): { A: string; B: string } | null {
   if (!matchup || matchup.length === 0) return null;

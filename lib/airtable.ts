@@ -652,6 +652,25 @@ function mapStopCourse(r: Airtable.Record<Airtable.FieldSet>): StopCourseRow {
   };
 }
 
+export async function getPublishedArticles(): Promise<Array<{ slug: string; name: string; publishedOn?: string }>> {
+  const base = getBase();
+  const records = await base(ARTICLES_TABLE)
+    .select({
+      filterByFormula: `{Status}="published"`,
+      fields: ["Slug", "Name", "Published On"],
+      sort: [{ field: "Published On", direction: "desc" }],
+      maxRecords: 500,
+    })
+    .all();
+  return records
+    .map((r) => ({
+      slug: asString(r.fields["Slug"]) ?? "",
+      name: asString(r.fields["Name"]) ?? "",
+      publishedOn: asString(r.fields["Published On"]),
+    }))
+    .filter((a) => a.slug);
+}
+
 export async function getPublishedJourneys(): Promise<LongTrip[]> {
   const base = getBase();
 

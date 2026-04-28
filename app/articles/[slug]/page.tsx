@@ -7,6 +7,11 @@ import { formatPublishedDate } from "../../../lib/formatters";
 import styles from "../../../styles/article.module.css";
 import { renderInlineRich, parseFullText, Block } from "../../../lib/richText";
 import React from "react";
+import { getPublishedArticles } from "@/lib/airtable";
+import { JsonLd } from "@/components/JsonLd";
+import { SITE_URL, SITE_NAME } from "@/lib/seo";
+
+export const revalidate = 3600;
 
 function getBase() {
   const apiKey = process.env.AIRTABLE_API_KEY;
@@ -73,6 +78,11 @@ async function getPublishedArticleBySlug(slug: string): Promise<Article | null> 
   };
 }
 
+export async function generateStaticParams() {
+  const articles = await getPublishedArticles();
+  return articles.map((a) => ({ slug: a.slug }));
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -82,9 +92,28 @@ export async function generateMetadata({
   const article = await getPublishedArticleBySlug(slug);
   if (!article) return {};
 
+  const url = `${SITE_URL}/articles/${slug}`;
+  const description = article.teaser ?? undefined;
+  const heroImage = `/images/articles/${article.slug}.jpg`;
+
   return {
-    title: `${article.name} | GolfTripIndex`,
-    description: article.teaser ?? undefined,
+    title: article.name,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      title: `${article.name} | ${SITE_NAME}`,
+      description,
+      url,
+      type: "article",
+      images: [{ url: heroImage, width: 1200, height: 630, alt: article.name }],
+      ...(article.publishedOn ? { publishedTime: article.publishedOn } : {}),
+      ...(article.author ? { authors: [article.author] } : {}),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${article.name} | ${SITE_NAME}`,
+      description,
+    },
   };
 }
 
@@ -103,8 +132,38 @@ export default async function ArticlePage({
 
   const heroSrc = `/images/articles/${article.slug}.jpg`;
 
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
+      { "@type": "ListItem", position: 2, name: "Articles", item: `${SITE_URL}/articles` },
+      { "@type": "ListItem", position: 3, name: article.name, item: `${SITE_URL}/articles/${article.slug}` },
+    ],
+  };
+
+  const articleSchema = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: article.name,
+    ...(article.teaser ? { description: article.teaser } : {}),
+    url: `${SITE_URL}/articles/${article.slug}`,
+    image: `${SITE_URL}${heroSrc}`,
+    ...(article.author
+      ? { author: { "@type": "Person", name: article.author } }
+      : {}),
+    ...(article.publishedOn ? { datePublished: article.publishedOn } : {}),
+    publisher: {
+      "@type": "Organization",
+      name: SITE_NAME,
+      url: SITE_URL,
+    },
+  };
+
   return (
     <main className={styles.page}>
+      <JsonLd data={breadcrumbSchema} />
+      <JsonLd data={articleSchema} />
       {/* Hero */}
       <section className={styles.hero}>
         <div className={styles.heroImageWrap}>

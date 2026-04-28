@@ -1,13 +1,22 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import styles from "../../../styles/tripDetails.module.css";
-import { getPublishedTripBySlug } from "../../../lib/airtable";
+import { getPublishedTripBySlug, getPublishedTrips } from "../../../lib/airtable";
 import {
   formatStayType,
   formatCostTier,
   formatDuration,
   formatDriving,
 } from "../../../lib/formatters";
+import { JsonLd } from "@/components/JsonLd";
+import { SITE_URL, SITE_NAME } from "@/lib/seo";
+
+export const revalidate = 86400;
+
+export async function generateStaticParams() {
+  const trips = await getPublishedTrips();
+  return trips.map((t) => ({ slug: t.slug }));
+}
 
 export async function generateMetadata({
   params,
@@ -15,18 +24,30 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-
   const trip = await getPublishedTripBySlug(slug);
-  console.log("TRIP:", trip?.slug, "courses:", trip?.courses?.length);
-  if (trip?.courses?.length) {
-    console.log("FIRST COURSE SHAPE:", trip.courses[0]);
-  }
-
   if (!trip) return {};
 
+  const rawDesc = trip.overview ?? trip.fullDescription ?? "";
+  const description = rawDesc.length > 155
+    ? rawDesc.slice(0, 152).trimEnd() + "…"
+    : rawDesc || `Ratings and review of a golf trip to ${trip.name} — courses, lodging, food, and overall experience.`;
+  const url = `${SITE_URL}/trips/${slug}`;
+
   return {
-    title: `${trip.name} | GolfTripIndex`,
-    description: 'An in-depth rating and review of a golf trip to ${trip.name}, covering course architecture, lodging, food, vibe, and the overall trip experience.',
+    title: trip.name,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      title: `${trip.name} | ${SITE_NAME}`,
+      description,
+      url,
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${trip.name} | ${SITE_NAME}`,
+      description,
+    },
   };
 }
 
@@ -92,8 +113,39 @@ export default async function TripDetailsPage({
     return names.length ? names.join(", ") : "-";
   }
 
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
+      { "@type": "ListItem", position: 2, name: "Trips", item: `${SITE_URL}/trips` },
+      { "@type": "ListItem", position: 3, name: trip.name, item: `${SITE_URL}/trips/${trip.slug}` },
+    ],
+  };
+
+  const tripSchema = {
+    "@context": "https://schema.org",
+    "@type": "TouristDestination",
+    name: trip.name,
+    description: trip.overview ?? trip.fullDescription ?? undefined,
+    url: `${SITE_URL}/trips/${trip.slug}`,
+    ...(trip.overallRating
+      ? {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: trip.overallRating.toFixed(1),
+            bestRating: "100",
+            worstRating: "0",
+            ratingCount: "1",
+          },
+        }
+      : {}),
+  };
+
   return (
     <main className={styles.page}>
+      <JsonLd data={breadcrumbSchema} />
+      <JsonLd data={tripSchema} />
       {/* HERO */}
       <section className={styles.banner}>
         <div

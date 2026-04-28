@@ -1,7 +1,11 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getPublishedJourneyBySlug } from "@/lib/airtable";
+import { getPublishedJourneyBySlug, getPublishedJourneys } from "@/lib/airtable";
 import { formatDuration, formatCostTier } from "@/lib/formatters";
+import { JsonLd } from "@/components/JsonLd";
+import { SITE_URL, SITE_NAME } from "@/lib/seo";
+
+export const revalidate = 86400;
 import JourneyChatPanel from "@/components/JourneyChatPanel";
 import JourneyMap from "@/components/JourneyMap";
 import styles from "@/styles/journey.module.css";
@@ -38,6 +42,11 @@ async function geocodeStop(name: string): Promise<{ lat: number; lng: number } |
   }
 }
 
+export async function generateStaticParams() {
+  const journeys = await getPublishedJourneys();
+  return journeys.map((j) => ({ slug: j.slug }));
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -46,9 +55,25 @@ export async function generateMetadata({
   const { slug } = await params;
   const journey = await getPublishedJourneyBySlug(slug);
   if (!journey) return {};
+
+  const description = journey.description ?? `A multi-day golf journey: ${journey.name}.`;
+  const url = `${SITE_URL}/journeys/${slug}`;
+
   return {
-    title: `${journey.name} | GolfTripIndex`,
-    description: journey.description ?? `A multi-day golf journey: ${journey.name}.`,
+    title: journey.name,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      title: `${journey.name} | ${SITE_NAME}`,
+      description,
+      url,
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${journey.name} | ${SITE_NAME}`,
+      description,
+    },
   };
 }
 
@@ -101,8 +126,29 @@ export default async function JourneyDetailPage({
   const lastStop = journey.stops[totalStops - 1];
   const isLoop = firstStop && lastStop && firstStop.locationName === lastStop.locationName;
 
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
+      { "@type": "ListItem", position: 2, name: "Trips", item: `${SITE_URL}/trips` },
+      { "@type": "ListItem", position: 3, name: journey.name, item: `${SITE_URL}/journeys/${journey.slug}` },
+    ],
+  };
+
+  const journeySchema = {
+    "@context": "https://schema.org",
+    "@type": "TouristTrip",
+    name: journey.name,
+    ...(journey.description ? { description: journey.description } : {}),
+    url: `${SITE_URL}/journeys/${journey.slug}`,
+    touristType: "Golf",
+  };
+
   return (
     <main className={styles.page}>
+      <JsonLd data={breadcrumbSchema} />
+      <JsonLd data={journeySchema} />
 
       {/* HERO — split grid matching trip details */}
       <section className={styles.hero}>
