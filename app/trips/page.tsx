@@ -84,13 +84,13 @@ export default async function TripsPage({
               href="/trips?days=2-5"
               className={`${styles.segmentItem} ${days === "2-5" ? styles.active : ""}`}
             >
-              2-5 Days
+              Trips (2–5 days)
             </Link>
             <Link
               href="/trips?days=6-10"
               className={`${styles.segmentItem} ${days === "6-10" ? styles.active : ""}`}
             >
-              6-10 Days
+              Journeys (6+ days)
             </Link>
           </div>
         </div>
