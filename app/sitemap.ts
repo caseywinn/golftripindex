@@ -5,15 +5,7 @@ import {
   getPublishedArticles,
 } from "@/lib/airtable";
 import { SITE_URL } from "@/lib/seo";
-import {
-  REGIONS,
-  COST_TIERS,
-  DURATION_RANGES,
-  TRIP_TYPES,
-  SEASONS,
-  TOP_100_COUNTS,
-  slugifyState,
-} from "@/lib/filters";
+import { REGIONS, slugifyState } from "@/lib/filters";
 
 export const revalidate = 86400;
 
@@ -38,36 +30,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const filterPages: MetadataRoute.Sitemap = [
     ...REGIONS.map((r) => ({
       url: `${SITE_URL}/trips/region/${r.slug}`,
-      lastModified: now,
-      changeFrequency: "weekly" as const,
-      priority: 0.8,
-    })),
-    ...COST_TIERS.map((c) => ({
-      url: `${SITE_URL}/trips/cost/${c.slug}`,
-      lastModified: now,
-      changeFrequency: "weekly" as const,
-      priority: 0.7,
-    })),
-    ...DURATION_RANGES.map((d) => ({
-      url: `${SITE_URL}/trips/duration/${d.slug}`,
-      lastModified: now,
-      changeFrequency: "weekly" as const,
-      priority: 0.7,
-    })),
-    ...TRIP_TYPES.map((t) => ({
-      url: `${SITE_URL}/trips/type/${t.slug}`,
-      lastModified: now,
-      changeFrequency: "weekly" as const,
-      priority: 0.7,
-    })),
-    ...SEASONS.map((s) => ({
-      url: `${SITE_URL}/trips/season/${s.slug}`,
-      lastModified: now,
-      changeFrequency: "weekly" as const,
-      priority: 0.7,
-    })),
-    ...TOP_100_COUNTS.map((n) => ({
-      url: `${SITE_URL}/trips/top100/${n.slug}`,
       lastModified: now,
       changeFrequency: "weekly" as const,
       priority: 0.8,

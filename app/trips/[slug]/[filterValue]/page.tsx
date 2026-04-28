@@ -1,36 +1,32 @@
-import { notFound } from "next/navigation";
+import { Suspense } from "react";
+import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getPublishedTripsWithFirstCourse } from "@/lib/airtable";
 import {
   REGIONS,
-  COST_TIERS,
-  DURATION_RANGES,
-  TRIP_TYPES,
-  SEASONS,
-  TOP_100_COUNTS,
   slugifyState,
   getFilterMeta,
   filterTrips,
 } from "@/lib/filters";
 import { SITE_URL, SITE_NAME } from "@/lib/seo";
-import TripFilters from "@/components/TripFilters";
 import TripsListClient from "@/components/TripsListClient";
 import styles from "@/styles/trips.module.css";
 
 export const revalidate = 86400;
 
+const SEO_FILTER_TYPES = ["region", "state"] as const;
+type SeoFilterType = (typeof SEO_FILTER_TYPES)[number];
+
+function isSeoFilterType(t: string): t is SeoFilterType {
+  return SEO_FILTER_TYPES.includes(t as SeoFilterType);
+}
+
 export async function generateStaticParams() {
   const trips = await getPublishedTripsWithFirstCourse();
-
   const params: { slug: string; filterValue: string }[] = [];
 
   for (const r of REGIONS) params.push({ slug: "region", filterValue: r.slug });
-  for (const c of COST_TIERS) params.push({ slug: "cost", filterValue: c.slug });
-  for (const d of DURATION_RANGES) params.push({ slug: "duration", filterValue: d.slug });
-  for (const t of TRIP_TYPES) params.push({ slug: "type", filterValue: t.slug });
-  for (const s of SEASONS) params.push({ slug: "season", filterValue: s.slug });
-  for (const n of TOP_100_COUNTS) params.push({ slug: "top100", filterValue: n.slug });
 
   const states = new Set<string>();
   for (const t of trips) {
@@ -49,6 +45,8 @@ export async function generateMetadata({
   params: Promise<{ slug: string; filterValue: string }>;
 }): Promise<Metadata> {
   const { slug: filterType, filterValue } = await params;
+  if (!isSeoFilterType(filterType)) return {};
+
   const meta = getFilterMeta(filterType, filterValue);
   if (!meta) return {};
 
@@ -78,6 +76,11 @@ export default async function TripFilterPage({
   params: Promise<{ slug: string; filterValue: string }>;
 }) {
   const { slug: filterType, filterValue } = await params;
+
+  if (!isSeoFilterType(filterType)) {
+    redirect(`/trips?${filterType}=${filterValue}`);
+  }
+
   const meta = getFilterMeta(filterType, filterValue);
   if (!meta) return notFound();
 
@@ -98,10 +101,10 @@ export default async function TripFilterPage({
 
       <section className={styles.listWrap}>
         <div className={styles.listInner}>
-          <TripFilters activeType={filterType} activeValue={filterValue} />
-
           {filtered.length > 0 ? (
-            <TripsListClient trips={filtered} pageSize={20} />
+            <Suspense fallback={null}>
+              <TripsListClient trips={filtered} pageSize={20} />
+            </Suspense>
           ) : (
             <div style={{ padding: "40px 0", color: "#6b7280", fontSize: 15 }}>
               <p>No trips match this filter yet.</p>

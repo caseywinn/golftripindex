@@ -1,11 +1,11 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import styles from "../../styles/trips.module.css";
 import journeyStyles from "../../styles/journey.module.css";
 import { getPublishedTripsWithFirstCourse, getPublishedJourneys } from "../../lib/airtable";
 import { formatDuration, formatCostTier } from "../../lib/formatters";
 import type { Metadata } from "next";
-import TripsListClient from "../../components/TripsListClient";
-import TripFilters from "../../components/TripFilters";
+import TripsWithFilters from "../../components/TripsWithFilters";
 
 export const metadata: Metadata = {
   title: "Golf Trip Rankings | GolfTripIndex",
@@ -59,18 +59,13 @@ export default async function TripsPage({
     );
   } else {
     const trips = await getPublishedTripsWithFirstCourse();
-    const sorted = [...trips].sort(
-      (a, b) => (a.currentRanking ?? 9999) - (b.currentRanking ?? 9999)
-    );
-    const filtered = sorted.filter((t) => (t.durationMinDays ?? 0) <= 5);
-    content = filtered.length > 0 ? (
-      <>
-        <TripFilters />
-        <TripsListClient trips={filtered} pageSize={10} />
-      </>
+    content = trips.length > 0 ? (
+      <Suspense fallback={null}>
+        <TripsWithFilters trips={trips} pageSize={20} />
+      </Suspense>
     ) : (
       <p style={{ color: "#6b7280", fontSize: 15, padding: "40px 0" }}>
-        No 2–5 day trips published yet. Check back soon.
+        No trips published yet. Check back soon.
       </p>
     );
   }
