@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import styles from "../../../styles/tripDetails.module.css";
 import { getPublishedTripBySlug, getPublishedTrips } from "../../../lib/airtable";
+import CompareWidget from "../../../components/CompareWidget";
 import {
   formatStayType,
   formatCostTier,
@@ -76,8 +77,16 @@ export default async function TripDetailsPage({
 }) {
   const { slug } = await params;
 
-  const trip = await getPublishedTripBySlug(slug);
+  const [trip, allTrips] = await Promise.all([
+    getPublishedTripBySlug(slug),
+    getPublishedTrips(),
+  ]);
   if (!trip) return notFound();
+
+  const otherTrips = allTrips
+    .filter(t => t.slug !== slug)
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map(t => ({ slug: t.slug, name: t.name }));
 
   const heroUrl =
     `/images/trips/${trip.slug}.jpg` || 
@@ -248,6 +257,9 @@ export default async function TripDetailsPage({
           </div>
         </div>
       </section>
+
+      {/* STICKY COMPARE BAR */}
+      <CompareWidget tripName={trip.name} currentSlug={slug} trips={otherTrips} />
 
       {/* BODY */}
       <section className={styles.body}>
