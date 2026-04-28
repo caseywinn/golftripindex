@@ -5,7 +5,7 @@ import {
   getPublishedArticles,
 } from "@/lib/airtable";
 import { SITE_URL } from "@/lib/seo";
-import { REGIONS, slugifyState } from "@/lib/filters";
+import { REGIONS } from "@/lib/filters";
 
 export const revalidate = 86400;
 
@@ -36,20 +36,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
   ];
 
-  // State filter pages — built dynamically from trip data
-  const stateSet = new Set<string>();
-  for (const t of trips) {
-    if (t.state) stateSet.add(slugifyState(t.state));
-  }
-  const statePages: MetadataRoute.Sitemap = Array.from(stateSet)
-    .filter(Boolean)
-    .map((s) => ({
-      url: `${SITE_URL}/trips/state/${s}`,
-      lastModified: now,
-      changeFrequency: "weekly" as const,
-      priority: 0.8,
-    }));
-
   const tripPages: MetadataRoute.Sitemap = trips.map((t) => ({
     url: `${SITE_URL}/trips/${t.slug}`,
     lastModified: now,
@@ -74,7 +60,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     ...staticPages,
     ...filterPages,
-    ...statePages,
     ...tripPages,
     ...articlePages,
     ...journeyPages,

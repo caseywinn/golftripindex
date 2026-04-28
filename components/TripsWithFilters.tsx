@@ -10,15 +10,13 @@ import {
   TRIP_TYPES,
   SEASONS,
   TOP_100_COUNTS,
-  slugifyState,
-  labelFromStateSlug,
   filterTrips,
 } from "@/lib/filters";
 import TripsListClient from "@/components/TripsListClient";
 
-type FilterKey = "region" | "state" | "cost" | "duration" | "type" | "season" | "top100";
+type FilterKey = "region" | "cost" | "duration" | "type" | "season" | "top100";
 
-const ALL_FILTER_KEYS: FilterKey[] = ["region", "state", "cost", "duration", "type", "season", "top100"];
+const ALL_FILTER_KEYS: FilterKey[] = ["region", "cost", "duration", "type", "season", "top100"];
 
 export default function TripsWithFilters({
   trips,
@@ -40,21 +38,6 @@ export default function TripsWithFilters({
     }
     return result;
   }, [searchParams]);
-
-  const stateOptions = useMemo(() => {
-    const seen = new Set<string>();
-    const result: { slug: string; label: string }[] = [];
-    for (const t of trips) {
-      if (t.state) {
-        const slug = slugifyState(t.state);
-        if (slug && !seen.has(slug)) {
-          seen.add(slug);
-          result.push({ slug, label: t.state });
-        }
-      }
-    }
-    return result.sort((a, b) => a.label.localeCompare(b.label));
-  }, [trips]);
 
   const filtered = useMemo(() => {
     let result = [...trips];
@@ -106,7 +89,6 @@ export default function TripsWithFilters({
   function labelFor(key: FilterKey, val: string): string {
     switch (key) {
       case "region": return REGIONS.find(r => r.slug === val)?.label ?? val;
-      case "state": return labelFromStateSlug(val);
       case "cost": return COST_TIERS.find(c => c.slug === val)?.label ?? val;
       case "duration": return DURATION_RANGES.find(d => d.slug === val)?.label ?? val;
       case "type": return TRIP_TYPES.find(t => t.slug === val)?.label ?? val;
@@ -200,14 +182,6 @@ export default function TripsWithFilters({
             activeValues={activeFilters.region ?? []}
             onToggle={v => toggle("region", v)}
           />
-          {stateOptions.length > 0 && (
-            <FilterGroup
-              label="State"
-              items={stateOptions}
-              activeValues={activeFilters.state ?? []}
-              onToggle={v => toggle("state", v)}
-            />
-          )}
           <FilterGroup
             label="Budget"
             items={COST_TIERS.map(c => ({ slug: c.slug, label: c.label }))}

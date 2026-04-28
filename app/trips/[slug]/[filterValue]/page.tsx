@@ -3,19 +3,14 @@ import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getPublishedTripsWithFirstCourse } from "@/lib/airtable";
-import {
-  REGIONS,
-  slugifyState,
-  getFilterMeta,
-  filterTrips,
-} from "@/lib/filters";
+import { REGIONS, getFilterMeta, filterTrips } from "@/lib/filters";
 import { SITE_URL, SITE_NAME } from "@/lib/seo";
 import TripsListClient from "@/components/TripsListClient";
 import styles from "@/styles/trips.module.css";
 
 export const revalidate = 86400;
 
-const SEO_FILTER_TYPES = ["region", "state"] as const;
+const SEO_FILTER_TYPES = ["region"] as const;
 type SeoFilterType = (typeof SEO_FILTER_TYPES)[number];
 
 function isSeoFilterType(t: string): t is SeoFilterType {
@@ -23,19 +18,8 @@ function isSeoFilterType(t: string): t is SeoFilterType {
 }
 
 export async function generateStaticParams() {
-  const trips = await getPublishedTripsWithFirstCourse();
   const params: { slug: string; filterValue: string }[] = [];
-
   for (const r of REGIONS) params.push({ slug: "region", filterValue: r.slug });
-
-  const states = new Set<string>();
-  for (const t of trips) {
-    if (t.state) states.add(slugifyState(t.state));
-  }
-  for (const s of states) {
-    if (s) params.push({ slug: "state", filterValue: s });
-  }
-
   return params;
 }
 
