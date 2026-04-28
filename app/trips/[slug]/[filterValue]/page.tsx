@@ -23,21 +23,21 @@ export const revalidate = 86400;
 export async function generateStaticParams() {
   const trips = await getPublishedTripsWithFirstCourse();
 
-  const params: { filterType: string; filterValue: string }[] = [];
+  const params: { slug: string; filterValue: string }[] = [];
 
-  for (const r of REGIONS) params.push({ filterType: "region", filterValue: r.slug });
-  for (const c of COST_TIERS) params.push({ filterType: "cost", filterValue: c.slug });
-  for (const d of DURATION_RANGES) params.push({ filterType: "duration", filterValue: d.slug });
-  for (const t of TRIP_TYPES) params.push({ filterType: "type", filterValue: t.slug });
-  for (const s of SEASONS) params.push({ filterType: "season", filterValue: s.slug });
-  for (const n of TOP_100_COUNTS) params.push({ filterType: "top100", filterValue: n.slug });
+  for (const r of REGIONS) params.push({ slug: "region", filterValue: r.slug });
+  for (const c of COST_TIERS) params.push({ slug: "cost", filterValue: c.slug });
+  for (const d of DURATION_RANGES) params.push({ slug: "duration", filterValue: d.slug });
+  for (const t of TRIP_TYPES) params.push({ slug: "type", filterValue: t.slug });
+  for (const s of SEASONS) params.push({ slug: "season", filterValue: s.slug });
+  for (const n of TOP_100_COUNTS) params.push({ slug: "top100", filterValue: n.slug });
 
   const states = new Set<string>();
   for (const t of trips) {
     if (t.state) states.add(slugifyState(t.state));
   }
   for (const s of states) {
-    if (s) params.push({ filterType: "state", filterValue: s });
+    if (s) params.push({ slug: "state", filterValue: s });
   }
 
   return params;
@@ -46,9 +46,9 @@ export async function generateStaticParams() {
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ filterType: string; filterValue: string }>;
+  params: Promise<{ slug: string; filterValue: string }>;
 }): Promise<Metadata> {
-  const { filterType, filterValue } = await params;
+  const { slug: filterType, filterValue } = await params;
   const meta = getFilterMeta(filterType, filterValue);
   if (!meta) return {};
 
@@ -75,9 +75,9 @@ export async function generateMetadata({
 export default async function TripFilterPage({
   params,
 }: {
-  params: Promise<{ filterType: string; filterValue: string }>;
+  params: Promise<{ slug: string; filterValue: string }>;
 }) {
-  const { filterType, filterValue } = await params;
+  const { slug: filterType, filterValue } = await params;
   const meta = getFilterMeta(filterType, filterValue);
   if (!meta) return notFound();
 
