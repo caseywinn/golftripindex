@@ -14,10 +14,10 @@ export const REGIONS = [
 ] as const;
 
 export const COST_TIERS = [
-  { slug: "budget", label: "Budget", tier: 1 },
-  { slug: "moderate", label: "Moderate", tier: 2 },
-  { slug: "premium", label: "Premium", tier: 3 },
-  { slug: "luxury", label: "Luxury", tier: 4 },
+  { slug: "budget", label: "Budget", tiers: [1, 2] as number[], display: "$–$$" },
+  { slug: "moderate", label: "Moderate", tiers: [3] as number[], display: "$$$" },
+  { slug: "premium", label: "Premium", tiers: [4] as number[], display: "$$$$" },
+  { slug: "luxury", label: "Luxury", tiers: [5] as number[], display: "$$$$$" },
 ] as const;
 
 export const DURATION_RANGES = [
@@ -87,11 +87,10 @@ export function getFilterMeta(
     case "cost": {
       const def = COST_TIERS.find((c) => c.slug === filterValue);
       if (!def) return null;
-      const dollars = "$".repeat(def.tier);
       return {
-        title: `${def.label} Golf Trips (${dollars})`,
+        title: `${def.label} Golf Trips (${def.display})`,
         description: `The best ${def.label.toLowerCase()} golf trips in America, ranked by quality, courses, and overall experience.`,
-        heading: `Golf Trips — ${def.label} (${dollars})`,
+        heading: `Golf Trips — ${def.label} (${def.display})`,
       };
     }
     case "duration": {
@@ -156,7 +155,7 @@ export function filterTrips<T extends FilterableTrip>(
       );
     case "cost": {
       const def = COST_TIERS.find((c) => c.slug === filterValue);
-      return def ? trips.filter((t) => t.costTier === def.tier) : [];
+      return def ? trips.filter((t) => def.tiers.includes(t.costTier)) : [];
     }
     case "duration": {
       const def = DURATION_RANGES.find((d) => d.slug === filterValue);
