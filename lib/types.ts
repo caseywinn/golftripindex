@@ -37,7 +37,7 @@ export type GolfTrip = {
   state?: string;
   region?: string;
   seasons?: string[];
-  hasTop100Course?: boolean;
+  top100Count?: number;
 
   thumbnailImageUrl?: string;
   heroImageUrl?: string;

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { REGIONS, COST_TIERS, DURATION_RANGES, TRIP_TYPES, SEASONS } from "@/lib/filters";
+import { REGIONS, COST_TIERS, DURATION_RANGES, TRIP_TYPES, SEASONS, TOP_100_COUNTS } from "@/lib/filters";
 
 type Props = {
   activeType?: string;
@@ -45,8 +45,6 @@ export default function TripFilters({ activeType, activeValue }: Props) {
   function href(type: string, value: string) {
     return isActive(type, value) ? "/trips" : `/trips/${type}/${value}`;
   }
-
-  const isTop100Active = activeType === "top-100";
 
   return (
     <div style={{ marginBottom: 28, paddingBottom: 20, borderBottom: "1px solid #e5e7eb" }}>
@@ -96,10 +94,12 @@ export default function TripFilters({ activeType, activeValue }: Props) {
       </div>
 
       <div style={row}>
-        <span style={label}>Feature</span>
-        <Link href={isTop100Active ? "/trips" : "/trips/top-100"} style={chip(isTop100Active)}>
-          Top 100 Courses
-        </Link>
+        <span style={label}>Top 100</span>
+        {TOP_100_COUNTS.map((c) => (
+          <Link key={c.slug} href={href("top100", c.slug)} style={chip(isActive("top100", c.slug))}>
+            {c.label}
+          </Link>
+        ))}
       </div>
     </div>
   );

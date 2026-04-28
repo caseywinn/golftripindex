@@ -39,6 +39,14 @@ export const SEASONS = [
   { slug: "winter", label: "Winter" },
 ] as const;
 
+export const TOP_100_COUNTS = [
+  { slug: "1", label: "1+", min: 1 },
+  { slug: "2", label: "2+", min: 2 },
+  { slug: "3", label: "3+", min: 3 },
+  { slug: "4", label: "4+", min: 4 },
+  { slug: "5", label: "5+", min: 5 },
+] as const;
+
 export function slugifyState(value: string): string {
   return value
     .trim()
@@ -113,6 +121,15 @@ export function getFilterMeta(
         heading: `Golf Trips — Best in ${def.label}`,
       };
     }
+    case "top100": {
+      const min = parseInt(filterValue, 10);
+      if (isNaN(min)) return null;
+      return {
+        title: `Golf Trips with ${min}+ Top 100 Courses`,
+        description: `Golf trips that include at least ${min} Top 100 ranked course${min === 1 ? "" : "s"} in America, ranked by overall experience and course quality.`,
+        heading: `Golf Trips — ${min}+ Top 100 Courses`,
+      };
+    }
     default:
       return null;
   }
@@ -120,7 +137,7 @@ export function getFilterMeta(
 
 type FilterableTrip = Pick<
   GolfTrip,
-  "region" | "state" | "costTier" | "durationMinDays" | "stayType" | "seasons" | "hasTop100Course"
+  "region" | "state" | "costTier" | "durationMinDays" | "stayType" | "seasons" | "top100Count"
 >;
 
 export function filterTrips<T extends FilterableTrip>(
@@ -158,6 +175,11 @@ export function filterTrips<T extends FilterableTrip>(
       return trips.filter((t) =>
         t.seasons?.some((s) => s.toLowerCase() === filterValue)
       );
+    case "top100": {
+      const min = parseInt(filterValue, 10);
+      if (isNaN(min)) return [];
+      return trips.filter((t) => (t.top100Count ?? 0) >= min);
+    }
     default:
       return [];
   }

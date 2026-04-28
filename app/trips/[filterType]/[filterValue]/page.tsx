@@ -8,6 +8,7 @@ import {
   DURATION_RANGES,
   TRIP_TYPES,
   SEASONS,
+  TOP_100_COUNTS,
   slugifyState,
   getFilterMeta,
   filterTrips,
@@ -29,6 +30,7 @@ export async function generateStaticParams() {
   for (const d of DURATION_RANGES) params.push({ filterType: "duration", filterValue: d.slug });
   for (const t of TRIP_TYPES) params.push({ filterType: "type", filterValue: t.slug });
   for (const s of SEASONS) params.push({ filterType: "season", filterValue: s.slug });
+  for (const n of TOP_100_COUNTS) params.push({ filterType: "top100", filterValue: n.slug });
 
   const states = new Set<string>();
   for (const t of trips) {

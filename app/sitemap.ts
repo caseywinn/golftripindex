@@ -11,6 +11,7 @@ import {
   DURATION_RANGES,
   TRIP_TYPES,
   SEASONS,
+  TOP_100_COUNTS,
   slugifyState,
 } from "@/lib/filters";
 
@@ -32,7 +33,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/courses`, lastModified: now, changeFrequency: "weekly", priority: 0.8 },
     { url: `${SITE_URL}/compare`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
     { url: `${SITE_URL}/how-we-rate`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
-    { url: `${SITE_URL}/trips/top-100`, lastModified: now, changeFrequency: "weekly", priority: 0.8 },
   ];
 
   const filterPages: MetadataRoute.Sitemap = [
@@ -65,6 +65,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: now,
       changeFrequency: "weekly" as const,
       priority: 0.7,
+    })),
+    ...TOP_100_COUNTS.map((n) => ({
+      url: `${SITE_URL}/trips/top100/${n.slug}`,
+      lastModified: now,
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
     })),
   ];
 
