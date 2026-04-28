@@ -105,6 +105,13 @@ function mapTrip(r: Airtable.Record<Airtable.FieldSet>): GolfTrip {
     currentRanking: asNumber(f["Current Ranking"]),
     previousRanking: asNumber(f["Previous Ranking"]),
 
+    state: asString(f["State"]),
+    region: asString(f["Region"]),
+    seasons: Array.isArray(f["Best Seasons"])
+      ? (f["Best Seasons"] as string[])
+      : undefined,
+    hasTop100Course: f["Has Top 100 Course"] === true,
+
     thumbnailImageUrl: asString(f["Thumbnail Image URL"]),
     heroImageUrl: asString(f["Hero Image URL"]),
 

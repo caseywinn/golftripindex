@@ -5,6 +5,7 @@ import { getPublishedTripsWithFirstCourse, getPublishedJourneys } from "../../li
 import { formatDuration, formatCostTier } from "../../lib/formatters";
 import type { Metadata } from "next";
 import TripsListClient from "../../components/TripsListClient";
+import TripFilters from "../../components/TripFilters";
 
 export const metadata: Metadata = {
   title: "Golf Trip Rankings | GolfTripIndex",
@@ -63,7 +64,10 @@ export default async function TripsPage({
     );
     const filtered = sorted.filter((t) => (t.durationMinDays ?? 0) <= 5);
     content = filtered.length > 0 ? (
-      <TripsListClient trips={filtered} pageSize={10} />
+      <>
+        <TripFilters />
+        <TripsListClient trips={filtered} pageSize={10} />
+      </>
     ) : (
       <p style={{ color: "#6b7280", fontSize: 15, padding: "40px 0" }}>
         No 2–5 day trips published yet. Check back soon.

@@ -34,6 +34,11 @@ export type GolfTrip = {
   currentRanking?: number;
   previousRanking?: number;
 
+  state?: string;
+  region?: string;
+  seasons?: string[];
+  hasTop100Course?: boolean;
+
   thumbnailImageUrl?: string;
   heroImageUrl?: string;
 };
