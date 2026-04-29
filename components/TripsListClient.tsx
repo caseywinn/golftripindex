@@ -125,7 +125,7 @@ export default function TripsListClient({
               href={`/trips/${t.slug.toLowerCase()}`}
               slug={t.slug.toLowerCase()}
               currentRanking={t.currentRanking ?? 999}
-              previousRanking={t.previousRanking ?? 999}
+              previousRanking={t.previousRanking}
               name={t.name}
               secondaryName={t.secondaryName}
               durationMinDays={t.durationMinDays ?? 1}

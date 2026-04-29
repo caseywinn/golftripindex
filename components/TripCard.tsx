@@ -153,7 +153,7 @@ export default function TripCard(props: TripCardProps) {
           <div className={styles.prev}>
             <span className={styles.prevLabel}>Previous:</span>{" "}
             <span className={styles.prevValue}>
-              {previousRanking ? `#${previousRanking}` : "—"}
+              {previousRanking ? `#${previousRanking}` : "NA"}
             </span>
           </div>
 
