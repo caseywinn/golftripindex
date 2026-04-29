@@ -28,14 +28,13 @@ export async function generateMetadata({
   const trip = await getPublishedTripBySlug(slug);
   if (!trip) return {};
 
-  const rawDesc = trip.overview ?? trip.fullDescription ?? "";
-  const description = rawDesc.length > 155
-    ? rawDesc.slice(0, 152).trimEnd() + "…"
-    : rawDesc || `Ratings and review of a golf trip to ${trip.name} — courses, lodging, food, and overall experience.`;
+  const description =
+    trip.seoDescription ||
+    `GolfTripIndex rates the full ${trip.name} golf trip — courses, lodging, food, and cost. Find out if it's worth your group's next trip.`;
   const url = `${SITE_URL}/trips/${slug}`;
 
   return {
-    title: trip.name,
+    title: `${trip.name} Golf Trip`,
     description,
     alternates: { canonical: url },
     openGraph: {

@@ -16,6 +16,7 @@ export type GolfTrip = {
   sampleItinerary?: string;
   sampleItineraryNotes?: string;
   foodAndLodgingOverview?: string;
+  seoDescription?: string;
   dataDump?: string;
 
   durationMinDays: number;

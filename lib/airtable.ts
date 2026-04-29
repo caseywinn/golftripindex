@@ -115,6 +115,7 @@ function mapTrip(r: Airtable.Record<Airtable.FieldSet>): GolfTrip {
     thumbnailImageUrl: asString(f["Thumbnail Image URL"]),
     heroImageUrl: asString(f["Hero Image URL"]),
 
+    seoDescription: asString(f["SEO Description"]),
     dataDump: asString(f["Data Dump"]),
   };
 }

@@ -30,10 +30,11 @@ export const viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `${SITE_NAME} | Ranking USA's Best Golf Trips`,
+    default: `${SITE_NAME} — Rate the Trip, Not Just the Courses`,
     template: `%s | ${SITE_NAME}`,
   },
-  description: "An overall ranking of the best golf trips in America.",
+  description:
+    "GolfTripIndex rates the full golf trip — courses, logistics, lodging, food, and cost. Find where your group's next trip is actually worth taking.",
   alternates: { canonical: SITE_URL },
   openGraph: {
     type: "website",
@@ -55,7 +56,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     "@type": "Organization",
     name: SITE_NAME,
     url: SITE_URL,
-    description: "Ranking America's best golf trips.",
+    description: "Rating the full golf trip — courses, logistics, lodging, food, and cost.",
   };
 
   const websiteSchema = {
