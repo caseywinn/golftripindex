@@ -89,7 +89,7 @@ export default async function TripDetailsPage({
     .map(t => ({ slug: t.slug, name: t.name }));
 
   const heroUrl =
-    `/images/trips/${trip.slug}.jpg` || 
+    `/images/trips/${trip.slug}.jpg` ||
     trip.heroImageUrl ||
     trip.thumbnailImageUrl;
 

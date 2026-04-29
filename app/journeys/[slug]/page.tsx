@@ -106,7 +106,7 @@ export default async function JourneyDetailPage({
   const journey = await getPublishedJourneyBySlug(slug);
   if (!journey) return notFound();
 
-  const heroUrl = journey.heroImageUrl ?? `/images/journeys/${journey.slug}.jpg`;
+  const heroUrl = `/images/journeys/${journey.slug}.jpg`;
   const totalStops = journey.stops.length;
 
   const mapsKey = process.env.GOOGLE_MAPS_API_KEY ?? "";

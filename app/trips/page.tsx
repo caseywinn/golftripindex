@@ -86,12 +86,10 @@ export default async function TripsPage({
             >
               Trips (2–5 days)
             </Link>
-            <Link
-              href="/trips?days=6-10"
-              className={`${styles.segmentItem} ${days === "6-10" ? styles.active : ""}`}
-            >
+            <span className={`${styles.segmentItem} ${styles.segmentDisabled}`}>
               Journeys (6+ days)
-            </Link>
+              <span className={styles.comingSoon}>Coming Soon</span>
+            </span>
           </div>
         </div>
       </section>

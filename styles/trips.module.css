@@ -72,6 +72,24 @@
   color: #ffffff;
 }
 
+.segmentDisabled {
+  opacity: 0.45;
+  cursor: default;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.comingSoon {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
 .active {
   color: #ffffff;
   text-decoration: underline;

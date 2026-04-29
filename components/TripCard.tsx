@@ -87,7 +87,6 @@ export default function TripCard(props: TripCardProps) {
     overallRating,
   } = props;
 
-  // Always use your convention
   const thumb = `/images/trips/${slug}.jpg`;
 
   return (
