@@ -5,6 +5,7 @@ import CaddieWidget from "@/components/CaddieWidget";
 import { Inter, Inter_Tight } from "next/font/google";
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/JsonLd";
+import GoogleAnalytics from "@/components/GoogleAnalytics";
 import { SITE_URL, SITE_NAME } from "@/lib/seo";
 
 const inter = Inter({
@@ -75,6 +76,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${inter.variable} ${interTight.variable}`}>
       <body>
+        <GoogleAnalytics />
         <JsonLd data={orgSchema} />
         <JsonLd data={websiteSchema} />
         <SiteHeader />
