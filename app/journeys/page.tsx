@@ -18,9 +18,9 @@ export default async function JourneysPage() {
       <section className={tripsStyles.banner}>
         <div className={tripsStyles.bannerMedia} aria-hidden="true" />
         <div className={tripsStyles.bannerPanel}>
-          <div className={tripsStyles.bannerTitle}>2026 Golf Journeys</div>
+          <div className={tripsStyles.bannerTitle}>Golf Journeys</div>
           <div className={tripsStyles.bannerSub}>
-            Extended golf trips of 6 or more days, ranked for those who want to go all in on the experience.
+            A collection of America's best extended golf trips, rated on the full experience: the courses, the lodging, the food, and how it all comes together when you have a week or more to play.
           </div>
           <div className={tripsStyles.segment}>
             <Link href="/trips" className={tripsStyles.segmentItem}>
