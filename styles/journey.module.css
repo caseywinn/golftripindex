@@ -645,6 +645,98 @@
 }
 
 /* ========================
+   JOURNEY LISTING GRID (article-style cards on /journeys)
+   ======================== */
+.journeyListGrid {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+.journeyListCard {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.journeyListImageWrap {
+  width: 100%;
+  height: 220px;
+  background: #0b0f1a;
+  overflow: hidden;
+}
+
+.journeyListImageLink {
+  display: block;
+  height: 100%;
+}
+
+.journeyListImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.journeyListCard:hover .journeyListImg {
+  transform: scale(1.03);
+}
+
+.journeyListBody {
+  padding: 16px 16px 18px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.journeyListName {
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: #0b0f1a;
+  line-height: 1.3;
+}
+
+.journeyListNameLink {
+  color: inherit;
+  text-decoration: none;
+}
+
+.journeyListNameLink:hover {
+  color: #0488db;
+}
+
+.journeyListTeaser {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: #4c5568;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.journeyListPills {
+  margin-top: 12px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.journeyListPill {
+  font-size: 11px;
+  font-weight: 600;
+  color: #4c5568;
+  background: #f0f2f7;
+  border-radius: 999px;
+  padding: 3px 10px;
+  letter-spacing: 0.01em;
+}
+
+/* ========================
    JOURNEY CARDS (used on trips listing page)
    ======================== */
 .journeyListWrap {
@@ -782,8 +874,8 @@
     font-size: 15px;
   }
 
-  .routeStripInner {
-    padding: 12px 20px;
+  .routeStrip {
+    display: none;
   }
 
   .pageBody {
@@ -821,5 +913,9 @@
 
   .journeyCardBody {
     padding: 20px;
+  }
+
+  .journeyListGrid {
+    grid-template-columns: 1fr;
   }
 }
