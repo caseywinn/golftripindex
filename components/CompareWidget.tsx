@@ -22,9 +22,10 @@ export default function CompareWidget({
   useEffect(() => {
     const footer = document.querySelector("footer");
     if (!footer) return;
+    const el = footer;
 
     function update() {
-      const r = footer.getBoundingClientRect();
+      const r = el.getBoundingClientRect();
       const vh = window.innerHeight;
       const visible = Math.max(0, Math.min(r.bottom, vh) - Math.max(r.top, 0));
       setBottomOffset(visible);
