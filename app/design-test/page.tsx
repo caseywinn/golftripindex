@@ -1,12 +1,13 @@
 import Link from "next/link";
-import styles from "../styles/home.module.css";
-import { getLatestPublishedArticles, getPublishedTrips } from "../lib/airtable";
-import { formatPublishedDate } from "../lib/formatters";
+import styles from "../../styles/home.module.css";
+import dt from "../../styles/designTest.module.css";
+import { getLatestPublishedArticles, getPublishedTrips } from "../../lib/airtable";
+import { formatPublishedDate } from "../../lib/formatters";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Golf Trip Index | Ranking USA's Best Golf Trips",
-  description: "An overall ranking of the best golf trips in America.",
+  title: "Design Test | Golf Trip Index",
+  robots: { index: false, follow: false },
 };
 
 function intScore(n?: number | null) {
@@ -19,30 +20,31 @@ function overallScore(n?: number | null) {
   return Number(n).toFixed(1);
 }
 
-export default async function HomePage() {
+export default async function DesignTestPage() {
   const [articles, allTrips] = await Promise.all([
     getLatestPublishedArticles(6),
     getPublishedTrips(),
   ]);
 
-  // Rotates through all ranked trips in order, advancing by one each week automatically.
+  // Rotate through trips by week — changes automatically every 7 days, no manual work needed.
+  // weekIndex increments every week (Unix epoch weeks). Wraps around when all trips have been featured.
   const weekIndex = Math.floor(Date.now() / (7 * 24 * 60 * 60 * 1000));
   const featured = allTrips[weekIndex % allTrips.length];
 
   return (
     <>
       {/* ── HERO ── */}
-      <section className={styles.hero}>
-        <div className={styles.heroMedia} aria-hidden="true" />
-        <div className={styles.heroInner}>
-          <p className={styles.heroLabel}>Golf Trip Index</p>
-          <h1 className={styles.heroTitle}>
+      <section className={dt.hero}>
+        <div className={dt.heroMedia} aria-hidden="true" />
+        <div className={dt.heroInner}>
+          <p className={dt.heroLabel}>Golf Trip Index</p>
+          <h1 className={dt.heroTitle}>
             A definitive ranking of America's best golf trips
           </h1>
-          <p className={styles.heroSub}>
+          <p className={dt.heroSub}>
             Rated on courses, lodging, food, cost, and vibe.
           </p>
-          <Link href="/trips" className={styles.heroCta}>
+          <Link href="/trips" className={dt.heroCta}>
             Explore Rankings
           </Link>
         </div>
@@ -50,67 +52,67 @@ export default async function HomePage() {
 
       {/* ── FEATURED TRIP ── */}
       {featured && (
-        <div className={styles.ftWrap}>
-          <div className={styles.ftCard}>
+        <div className={dt.ftWrap}>
+          <div className={dt.ftCard}>
             <Link
               href={`/trips/${featured.slug}`}
-              className={styles.ftImage}
+              className={dt.ftImage}
               style={{ backgroundImage: `url(/images/trips/${featured.slug}.jpg)` }}
               aria-label={featured.name}
             >
               {featured.currentRanking && (
-                <div className={styles.ftRankBadge}>
+                <div className={dt.ftRankBadge}>
                   #{featured.currentRanking} Ranked
                 </div>
               )}
             </Link>
 
-            <div className={styles.ftBody}>
-              <p className={styles.ftEyebrow}>Trip of the Week</p>
+            <div className={dt.ftBody}>
+              <p className={dt.ftEyebrow}>Trip of the Week</p>
 
-              <h2 className={styles.ftName}>
-                <Link href={`/trips/${featured.slug}`} className={styles.ftNameLink}>
+              <h2 className={dt.ftName}>
+                <Link href={`/trips/${featured.slug}`} className={dt.ftNameLink}>
                   {featured.name}
                   {featured.secondaryName && (
-                    <span className={styles.ftSecondary}> + {featured.secondaryName}</span>
+                    <span className={dt.ftSecondary}> + {featured.secondaryName}</span>
                   )}
                 </Link>
               </h2>
 
               {featured.state && (
-                <div className={styles.ftMeta}>
-                  <span className={styles.ftStateBadge}>{featured.state}</span>
+                <div className={dt.ftMeta}>
+                  <span className={dt.ftStateBadge}>{featured.state}</span>
                 </div>
               )}
 
-              <div className={styles.ftScoreRow}>
-                <div className={styles.ftScore}>
-                  <span className={styles.ftScoreNum}>{intScore(featured.golfRating)}</span>
-                  <span className={styles.ftScoreLabel}>Golf</span>
+              <div className={dt.ftScoreRow}>
+                <div className={dt.ftScore}>
+                  <span className={dt.ftScoreNum}>{intScore(featured.golfRating)}</span>
+                  <span className={dt.ftScoreLabel}>Golf</span>
                 </div>
-                <div className={styles.ftScore}>
-                  <span className={styles.ftScoreNum}>{intScore(featured.lodgingRating)}</span>
-                  <span className={styles.ftScoreLabel}>Lodging</span>
+                <div className={dt.ftScore}>
+                  <span className={dt.ftScoreNum}>{intScore(featured.lodgingRating)}</span>
+                  <span className={dt.ftScoreLabel}>Lodging</span>
                 </div>
-                <div className={styles.ftScore}>
-                  <span className={styles.ftScoreNum}>{intScore(featured.foodRating)}</span>
-                  <span className={styles.ftScoreLabel}>Food</span>
+                <div className={dt.ftScore}>
+                  <span className={dt.ftScoreNum}>{intScore(featured.foodRating)}</span>
+                  <span className={dt.ftScoreLabel}>Food</span>
                 </div>
-                <div className={styles.ftScore}>
-                  <span className={styles.ftScoreNum}>{intScore(featured.vibeRating)}</span>
-                  <span className={styles.ftScoreLabel}>Vibe</span>
+                <div className={dt.ftScore}>
+                  <span className={dt.ftScoreNum}>{intScore(featured.vibeRating)}</span>
+                  <span className={dt.ftScoreLabel}>Vibe</span>
                 </div>
-                <div className={styles.ftOverallScore}>
-                  <span className={styles.ftOverallNum}>{overallScore(featured.overallRating)}</span>
-                  <span className={styles.ftOverallLabel}>Overall</span>
+                <div className={dt.ftOverallScore}>
+                  <span className={dt.ftOverallNum}>{overallScore(featured.overallRating)}</span>
+                  <span className={dt.ftOverallLabel}>Overall</span>
                 </div>
               </div>
 
               {featured.overview && (
-                <p className={styles.ftOverview}>{featured.overview}</p>
+                <p className={dt.ftOverview}>{featured.overview}</p>
               )}
 
-              <Link href={`/trips/${featured.slug}`} className={styles.ftReadMore}>
+              <Link href={`/trips/${featured.slug}`} className={dt.ftReadMore}>
                 Read the full review →
               </Link>
             </div>
@@ -118,7 +120,7 @@ export default async function HomePage() {
         </div>
       )}
 
-      {/* ── ARTICLES ── */}
+      {/* ── ARTICLES (unchanged) ── */}
       <section className={styles.section} id="home-content">
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Latest News</h2>
