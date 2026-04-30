@@ -25,9 +25,11 @@ export default async function HomePage() {
     getPublishedTrips(),
   ]);
 
-  // Rotates through all ranked trips in order, advancing by one each week automatically.
+  // Picks a different trip each week in a non-sequential order that looks random,
+  // but is consistent for all visitors throughout the week.
   const weekIndex = Math.floor(Date.now() / (7 * 24 * 60 * 60 * 1000));
-  const featured = allTrips[weekIndex % allTrips.length];
+  const hash = Math.imul(weekIndex, 2654435761) >>> 0;
+  const featured = allTrips[hash % allTrips.length];
 
   return (
     <>
