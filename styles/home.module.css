@@ -448,16 +448,8 @@
     font-size: 22px;
   }
 
-  .ftScore {
-    min-width: 44px;
-  }
-
-  .ftScoreNum {
-    font-size: 17px;
-  }
-
-  .ftOverallNum {
-    font-size: 22px;
+  .ftScoreRow {
+    display: none;
   }
 
   .cardRow {
