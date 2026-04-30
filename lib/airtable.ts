@@ -149,23 +149,21 @@ type TripCourseRow = {
   status: TripCourse["status"];
 };
 
-function mapTripCourse(r: Airtable.Record<Airtable.FieldSet>): TripCourseRow {
+function mapTripCourse(r: Airtable.Record<Airtable.FieldSet>): TripCourseRow | null {
   const f = r.fields;
 
   // Airtable "link to record" fields come back as arrays of record IDs
   const tripIds = f["Golf Trip"] as string[] | undefined;
   const courseIds = f["Golf Course"] as string[] | undefined;
 
-  if (!tripIds?.[0] || !courseIds?.[0]) {
-    throw new Error("TripCourse missing linked Golf Trip or Golf Course");
-  }
+  if (!tripIds?.[0] || !courseIds?.[0]) return null;
 
   const rank = asNumber(f["Trip Course Rank"]);
   const raw = f["Status"];
   const status =
     Array.isArray(raw) ? (raw[0] ?? "") : typeof raw === "string" ? raw : "";
 
-  if (rank == null) throw new Error("TripCourse missing Trip Course Rank");
+  if (rank == null) return null;
 
   return {
     golfTripId: tripIds[0],
@@ -279,6 +277,7 @@ export async function getPublishedTripBySlug(
 
   const tcs = tcRecords
     .map(mapTripCourse)
+    .filter((x): x is TripCourseRow => x !== null)
     .sort((a, b) => a.tripCourseRank - b.tripCourseRank);
 
   const courseIds = Array.from(new Set(tcs.map((x) => x.golfCourseId))).filter(
@@ -480,7 +479,7 @@ export async function getPublishedTripsWithFirstCourse(): Promise<
     })
     .all();
 
-  const tcs = tcRecords.map(mapTripCourse);
+  const tcs = tcRecords.map(mapTripCourse).filter((x): x is TripCourseRow => x !== null);
 
   // Map tripId -> courseId (rank=1 course)
   const firstCourseIdByTripId = new Map<string, string>();
@@ -539,7 +538,7 @@ export async function getTripCourseBreakdownByTripId(tripId: string) {
     })
     .all();
 
-  const tcs = tcRecords.map(mapTripCourse).sort((a, b) => a.tripCourseRank - b.tripCourseRank);
+  const tcs = tcRecords.map(mapTripCourse).filter((x): x is TripCourseRow => x !== null).sort((a, b) => a.tripCourseRank - b.tripCourseRank);
   const courseIds = Array.from(new Set(tcs.map((x) => x.golfCourseId)));
 
   const chunkSize = 80;
