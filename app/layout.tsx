@@ -30,11 +30,11 @@ export const viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `${SITE_NAME} — Rate the Trip, Not Just the Courses`,
+    default: `${SITE_NAME} | Ranking USA's Best Golf Trips`,
     template: `%s | ${SITE_NAME}`,
   },
   description:
-    "GolfTripIndex rates the full golf trip — courses, logistics, lodging, food, and cost. Find where your group's next trip is actually worth taking.",
+    "Golf Trip Index rates the full trip experience — courses, logistics, lodging, food, and cost. Find where your group's next golf trip is actually worth taking.",
   alternates: { canonical: SITE_URL },
   openGraph: {
     type: "website",
