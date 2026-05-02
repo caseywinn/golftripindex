@@ -1,63 +1,27 @@
 import { NextResponse } from "next/server";
-import { runCaddieTurnShared, type ChatRoleMsg } from "@/lib/caddieEngine";
-
-function safeJson(req: Request) {
-  return req.json().catch(() => ({}));
-}
-
-function defaultState() {
-  return {
-    mode: null,
-    activeTripSlug: null,
-    activeTripName: null,
-    activeState: null,
-    players: null,
-    daysOfGolf: null,
-    timeframe: null,
-    budgetTier: null,
-    vibe: [],
-    top100Focus: null,
-    homeAirport: null,
-    step: "widget",
-  };
-}
+import { runUniversalTurn } from "@/lib/universalEngine";
+import type { ContextType } from "@/lib/universalEngine";
 
 export async function POST(req: Request) {
   try {
-    const body = await safeJson(req);
+    const body = await req.json().catch(() => ({}));
     const content = String(body?.content ?? "").trim();
-    const messages = Array.isArray(body?.messages) ? (body.messages as ChatRoleMsg[]) : [];
+    const messages = Array.isArray(body?.messages) ? body.messages : [];
+    const contextSlug = body?.contextSlug ? String(body.contextSlug).trim() : undefined;
+    const contextType = (body?.contextType as ContextType) || undefined;
 
     if (!content) return NextResponse.json({ error: "Missing content" }, { status: 400 });
 
-    const out = await runCaddieTurnShared({
-      content,
-      currentState: defaultState(),
-      history: messages, // widget messages are role-based; engine handles this
-      // widget: keep public enrichments off for now
-      publicInfo: null,
-      publicGolfDetails: null,
-      publicWeb: null,
-    });
+    const out = await runUniversalTurn({ content, messages, contextSlug, contextType });
 
     return NextResponse.json({
       assistantMessage: {
         id: `asst_${Date.now()}`,
-        kind: "assistant",
+        role: "assistant",
         content: out.assistantContent,
+        followUpOptions: out.followUpOptions,
         created_at: new Date().toISOString(),
-        payload: {
-          ...out.assistantPayload,
-          _meta: {
-            gti_count: out.gtiResultsCount,
-            has_trip_detail: out.tripDetailUsed,
-            anchor: out.anchor,
-            state_patch: out.state_patch,
-          },
-        },
       },
-      // widget does not persist state; return it in case you later want client-side memory
-      state_patch: out.state_patch,
     });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message ?? "Unknown error" }, { status: 500 });

@@ -6,7 +6,6 @@ import { JsonLd } from "@/components/JsonLd";
 import { SITE_URL, SITE_NAME } from "@/lib/seo";
 
 export const revalidate = 86400;
-import JourneyChatPanel from "@/components/JourneyChatPanel";
 import JourneyMap from "@/components/JourneyMap";
 import styles from "@/styles/journey.module.css";
 import type { CourseImportance, JourneyStopCourse, MapStop } from "@/lib/types";
@@ -339,7 +338,6 @@ export default async function JourneyDetailPage({
         )}
       </div>
 
-      <JourneyChatPanel journeySlug={journey.slug} journeyName={journey.name} />
     </main>
   );
 }

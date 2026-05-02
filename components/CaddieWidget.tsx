@@ -2,11 +2,15 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import type { ContextType } from "@/lib/universalEngine";
 
 type WidgetMsg = {
   id: string;
   role: "user" | "assistant";
   content: string;
+  followUpOptions?: string[];
   created_at: string;
   pending?: boolean;
   failed?: boolean;
@@ -16,7 +20,7 @@ function makeTempId() {
   return `tmp_${Date.now()}_${Math.random().toString(16).slice(2)}`;
 }
 
-const LS_KEY = "gti_caddie_widget_v1";
+const LS_KEY = "gti_caddie_widget_v2";
 
 function loadHistory(): WidgetMsg[] {
   try {
@@ -37,28 +41,76 @@ function saveHistory(msgs: WidgetMsg[]) {
   }
 }
 
+function getSeed(contextType?: ContextType): { content: string; followUpOptions: string[] } {
+  if (contextType === "trip") {
+    return {
+      content: "Hi there, I'm the GTI Caddie. If you have any questions about the trip (courses, lodging, or planning), I'm here to help.",
+      followUpOptions: [
+        "Which courses are must play?",
+        "What other courses are nearby?",
+        "What's the best time of year to visit?",
+        "Which airports are the closest?",
+      ],
+    };
+  }
+  if (contextType === "journey") {
+    return {
+      content: "Hi there, I'm the GTI Caddie. If you have any questions about the journey (courses, lodging, or planning), I'm here to help.",
+      followUpOptions: [
+        "How many days do we need?",
+        "How much driving is required?",
+        "What's the best time of year to visit?",
+        "How many top 100 courses are included?",
+      ],
+    };
+  }
+  return {
+    content: "Hi there, I'm the GTI Caddie, here to help you find and plan the golf trip of a lifetime.",
+    followUpOptions: [
+      "Which trips have the most top 100 courses?",
+      "What are the best winter trips?",
+      "What are the best weekend trips?",
+      "Help me decide between two trips.",
+    ],
+  };
+}
+
 export default function CaddieWidget() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
-  const [assistantPending, setAssistantPending] = useState(false);
   const [messages, setMessages] = useState<WidgetMsg[]>([]);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const inFlightRef = useRef(false);
 
-  const isJourneyDetail = /^\/journeys\/[^/]+/.test(pathname ?? "");
+  // Detect trip or journey context from current URL
+  const contextInfo = useMemo<{ contextSlug?: string; contextType?: ContextType }>(() => {
+    const tripMatch = (pathname ?? "").match(/^\/trips\/([^/]+)/);
+    if (tripMatch) return { contextSlug: tripMatch[1], contextType: "trip" };
 
-  // Load persisted local history once
+    const journeyMatch = (pathname ?? "").match(/^\/journeys\/([^/]+)/);
+    if (journeyMatch) return { contextSlug: journeyMatch[1], contextType: "journey" };
+
+    return {};
+  }, [pathname]);
+
+  // Load persisted history once on mount
   useEffect(() => {
     const h = loadHistory();
-    setMessages(h.length ? h : [{
-      id: "seed",
-      role: "assistant",
-      content:
-        "I’m Caddie. Tell me your group size, days, flying/driving, and the vibe you want (pure golf, resort, hidden gems, architecture).",
-      created_at: new Date().toISOString(),
-    }]);
+    if (h.length) {
+      setMessages(h);
+    } else {
+      const seed = getSeed(contextInfo.contextType);
+      setMessages([{
+        id: "seed",
+        role: "assistant",
+        content: seed.content,
+        followUpOptions: seed.followUpOptions,
+        created_at: new Date().toISOString(),
+      }]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Persist on change
@@ -73,89 +125,88 @@ export default function CaddieWidget() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [open, messages]);
 
-  const recentForApi = useMemo(() => {
-    // API expects: { role, content } with limited history
-    return messages.slice(-12).map((m) => ({ role: m.role, content: m.content }));
-  }, [messages]);
-
-  // Journey detail pages have their own Journey Caddie widget
-  if (isJourneyDetail) return null;
+  const recentForApi = useMemo(
+    () =>
+      messages
+        .filter((m) => !m.pending && !m.failed)
+        .slice(-12)
+        .map((m) => ({ role: m.role, content: m.content })),
+    [messages]
+  );
 
   async function send(contentOverride?: string) {
     const content = (contentOverride ?? draft).trim();
-    if (!content) return;
-    if (inFlightRef.current) return;
+    if (!content || inFlightRef.current) return;
 
     inFlightRef.current = true;
 
-    // Optimistic append
     const tempId = makeTempId();
-    const optimistic: WidgetMsg = {
-      id: tempId,
-      role: "user",
-      content,
-      created_at: new Date().toISOString(),
-      pending: true,
-    };
-
-    setMessages((prev) => [...prev, optimistic]);
+    setMessages((prev) => [
+      ...prev,
+      { id: tempId, role: "user", content, created_at: new Date().toISOString(), pending: true },
+    ]);
     setDraft("");
     setSending(true);
-    setAssistantPending(true);
 
     try {
       const res = await fetch("/api/caddie/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content, messages: recentForApi }),
+        body: JSON.stringify({
+          content,
+          messages: recentForApi,
+          contextSlug: contextInfo.contextSlug,
+          contextType: contextInfo.contextType,
+        }),
       });
 
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json?.error || "Chat failed");
 
-      // Mark user msg complete
       setMessages((prev) =>
         prev.map((m) => (m.id === tempId ? { ...m, pending: false } : m))
       );
 
       if (json?.assistantMessage?.content) {
-        const asst: WidgetMsg = {
-          id: json.assistantMessage.id ?? makeTempId(),
-          role: "assistant",
-          content: String(json.assistantMessage.content),
-          created_at: json.assistantMessage.created_at ?? new Date().toISOString(),
-        };
-        setMessages((prev) => [...prev, asst]);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: json.assistantMessage.id ?? makeTempId(),
+            role: "assistant",
+            content: String(json.assistantMessage.content),
+            followUpOptions: Array.isArray(json.assistantMessage.followUpOptions)
+              ? json.assistantMessage.followUpOptions
+              : [],
+            created_at: json.assistantMessage.created_at ?? new Date().toISOString(),
+          },
+        ]);
       }
     } catch (e: any) {
-      const msg = e?.message ?? "Unknown error";
       setMessages((prev) =>
-        prev.map((m) =>
-          m.id === tempId ? { ...m, pending: false, failed: true } : m
-        )
+        prev.map((m) => (m.id === tempId ? { ...m, pending: false, failed: true } : m))
       );
       setMessages((prev) => [
         ...prev,
         {
           id: makeTempId(),
           role: "assistant",
-          content: `Error: ${msg}`,
+          content: `Error: ${e?.message ?? "Unknown error"}`,
           created_at: new Date().toISOString(),
         },
       ]);
     } finally {
       setSending(false);
-      setAssistantPending(false);
       inFlightRef.current = false;
     }
   }
 
   function clear() {
+    const s = getSeed(contextInfo.contextType);
     const seed: WidgetMsg[] = [{
       id: "seed",
       role: "assistant",
-      content:
-        "Fresh start. Where are you coming from, how many golfers, and how many days?",
+      content: s.content,
+      followUpOptions: s.followUpOptions,
       created_at: new Date().toISOString(),
     }];
     setMessages(seed);
@@ -175,14 +226,21 @@ export default function CaddieWidget() {
           borderRadius: 999,
           border: "1px solid #ddd",
           background: "white",
-          padding: "12px 14px",
+          padding: "8px 17px 8px 12px",
           fontWeight: 800,
+          fontSize: 13,
           cursor: "pointer",
           boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
         }}
-        aria-label="Open Caddie"
+        aria-label="Open GTI Caddie"
       >
-        Caddie
+        <span style={{ display: "flex", alignItems: "center", gap: 8, overflow: "visible" }}>
+          <img src="/gti-avatar-thumb.png" alt="" aria-hidden="true" style={{
+            width: 36, height: 36, borderRadius: "50%",
+            flexShrink: 0, marginLeft: -4, marginTop: -4, marginBottom: -4,
+          }} />
+          GTI Caddie
+        </span>
       </button>
 
       {/* Panel */}
@@ -217,8 +275,12 @@ export default function CaddieWidget() {
               gap: 10,
             }}
           >
-            <div style={{ fontWeight: 800 }}>GTI Caddie</div>
-
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <img src="/gti-avatar-thumb.png" alt="" aria-hidden="true" style={{
+                width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
+              }} />
+              <span style={{ fontWeight: 800 }}>GTI Caddie</span>
+            </div>
             <div style={{ display: "flex", gap: 8 }}>
               <button
                 onClick={clear}
@@ -267,23 +329,82 @@ export default function CaddieWidget() {
                   style={{
                     alignSelf: m.role === "user" ? "flex-end" : "flex-start",
                     maxWidth: "88%",
-                    padding: "10px 12px",
-                    borderRadius: 14,
-                    border: "1px solid #e8e8e8",
-                    background: m.role === "user" ? "white" : "#fff",
-                    opacity: m.pending ? 0.65 : 1,
                   }}
                 >
-                  <div style={{ fontSize: 11, color: "#777", marginBottom: 4 }}>
-                    {m.role}
-                    {m.pending ? " • sending…" : ""}
-                    {m.failed ? " • failed" : ""}
+                  <div
+                    style={{
+                      padding: "10px 12px",
+                      borderRadius: 14,
+                      border: "1px solid #e8e8e8",
+                      background: "white",
+                      opacity: m.pending ? 0.65 : 1,
+                    }}
+                  >
+                    <div style={{ fontSize: 11, color: "#777", marginBottom: 4 }}>
+                      {m.role === "user" ? "You" : "GTI Caddie"}
+                      {m.pending ? " · sending…" : ""}
+                      {m.failed ? " · failed" : ""}
+                    </div>
+                    <div style={{ fontSize: 14, lineHeight: 1.55 }}>
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          p: ({ children }) => <p style={{ margin: "0 0 6px" }}>{children}</p>,
+                          ul: ({ children }) => <ul style={{ margin: "4px 0 6px", paddingLeft: 18 }}>{children}</ul>,
+                          ol: ({ children }) => <ol style={{ margin: "4px 0 6px", paddingLeft: 18 }}>{children}</ol>,
+                          li: ({ children }) => <li style={{ marginBottom: 2 }}>{children}</li>,
+                          strong: ({ children }) => <strong style={{ fontWeight: 700 }}>{children}</strong>,
+                          h1: ({ children }) => <p style={{ fontWeight: 700, margin: "0 0 4px" }}>{children}</p>,
+                          h2: ({ children }) => <p style={{ fontWeight: 700, margin: "0 0 4px" }}>{children}</p>,
+                          h3: ({ children }) => <p style={{ fontWeight: 700, margin: "0 0 4px" }}>{children}</p>,
+                          a: ({ href, children }) => <a href={href} style={{ color: "#1a6fc4", textDecoration: "underline" }}>{children}</a>,
+                        }}
+                      >
+                        {m.content}
+                      </ReactMarkdown>
+                    </div>
                   </div>
-                  <div style={{ whiteSpace: "pre-wrap" }}>{m.content}</div>
+
+                  {/* Follow-up chips */}
+                  {m.role === "assistant" &&
+                    m.followUpOptions &&
+                    m.followUpOptions.length > 0 && (
+                      <div
+                        style={{
+                          display: "flex",
+                          flexWrap: "wrap",
+                          gap: 6,
+                          marginTop: 6,
+                        }}
+                      >
+                        {m.followUpOptions.map((opt, i) => (
+                          <button
+                            key={i}
+                            onClick={() => void send(opt)}
+                            disabled={sending}
+                            style={{
+                              border: "1px solid #ddd",
+                              background: "white",
+                              borderRadius: 20,
+                              padding: "5px 10px",
+                              fontSize: 12,
+                              cursor: sending ? "not-allowed" : "pointer",
+                              color: "#333",
+                              textAlign: "left",
+                            }}
+                          >
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                 </div>
               ))}
-              {assistantPending && (
-                <div style={{ fontSize: 12, color: "#666" }}>Caddie is thinking…</div>
+
+              {sending && (
+                <div style={{ fontSize: 12, color: "#666", alignSelf: "flex-start" }}>
+                  GTI Caddie is thinking…
+                </div>
               )}
               <div ref={bottomRef} />
             </div>
@@ -326,10 +447,6 @@ export default function CaddieWidget() {
               >
                 Send
               </button>
-            </div>
-
-            <div style={{ marginTop: 8, fontSize: 11, color: "#777" }}>
-              Tip: “8 guys, 3 days, flying from LAX, want non-traditional + great architecture.”
             </div>
           </div>
         </div>

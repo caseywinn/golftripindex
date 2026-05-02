@@ -776,10 +776,10 @@ export type Top100TripCount = {
 export async function getTripsTop100Counts(opts?: { limitTrips?: number; limitCourses?: number }) {
   const base = getBase();
 
-  // 1) Pull all trips (or cap)
+  // 1) Pull all trips
   const tripRows = await base(TRIPS_TABLE)
     .select({ maxRecords: opts?.limitTrips ?? 200 })
-    .firstPage();
+    .all();
 
   const trips = tripRows
     .map((r) => {
@@ -792,7 +792,6 @@ export async function getTripsTop100Counts(opts?: { limitTrips?: number; limitCo
     .filter(Boolean) as Array<{ id: string; slug: string; name: string }>;
 
   // 2) Pull all courses that are Top 100 (Consolidated Ranking <= 100)
-  // Airtable filter: {Consolidated Ranking} <= 100
   const top100CourseRows = await base(COURSES_TABLE)
     .select({
       maxRecords: opts?.limitCourses ?? 500,
@@ -801,7 +800,7 @@ export async function getTripsTop100Counts(opts?: { limitTrips?: number; limitCo
         {${F.Course.ConsolidatedRanking}} <= 100
       )`,
     })
-    .firstPage();
+    .all();
 
   const top100CourseById = new Map<
     string,
@@ -819,11 +818,10 @@ export async function getTripsTop100Counts(opts?: { limitTrips?: number; limitCo
     });
   }
 
-  // 3) Pull TripCourses and count Top 100 per trip
-  // We fetch a larger set and compute client-side.
+  // 3) Pull all TripCourses and count Top 100 per trip
   const tripCourseRows = await base(TRIP_COURSES_TABLE)
     .select({ maxRecords: 2000 })
-    .firstPage();
+    .all();
 
   // Map tripId -> set(courseId)
   const top100ByTrip = new Map<string, Set<string>>();
@@ -898,10 +896,10 @@ export async function getTripsTopNCourseCounts(args: {
 
   const base = getBase();
 
-  // 1) Pull trips (or cap)
+  // 1) Pull all trips
   const tripRows = await base(TRIPS_TABLE)
     .select({ maxRecords: args.limitTrips ?? 200 })
-    .firstPage();
+    .all();
 
   const trips = tripRows
     .map((r) => {
@@ -925,7 +923,7 @@ export async function getTripsTopNCourseCounts(args: {
         ${stateClause}
       )`,
     })
-    .firstPage();
+    .all();
 
   const qualifyingCourseById = new Map<string, { id: string; name: string; consolidatedRanking: number }>();
 
@@ -958,10 +956,10 @@ export async function getTripsTopNCourseCounts(args: {
     })) satisfies TripTopNCourseCount[];
   }
 
-  // 3) Pull TripCourses and count qualifying courses per trip (client-side join)
+  // 3) Pull all TripCourses and count qualifying courses per trip (client-side join)
   const tripCourseRows = await base(TRIP_COURSES_TABLE)
     .select({ maxRecords: args.limitTripCourses ?? 4000 })
-    .firstPage();
+    .all();
 
   // Map tripId -> set(courseId)
   const qualifyingByTrip = new Map<string, Set<string>>();
