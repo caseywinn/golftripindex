@@ -3,10 +3,12 @@ import styles from "../styles/home.module.css";
 import { getLatestPublishedArticles, getPublishedTrips } from "../lib/airtable";
 import { formatPublishedDate } from "../lib/formatters";
 import type { Metadata } from "next";
+import { SITE_URL } from "../lib/seo";
 
 export const metadata: Metadata = {
   title: "Golf Trip Index | Ranking USA's Best Golf Trips",
   description: "An overall ranking of the best golf trips in America.",
+  alternates: { canonical: SITE_URL },
 };
 
 function intScore(n?: number | null) {

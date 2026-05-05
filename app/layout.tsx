@@ -35,7 +35,6 @@ export const metadata: Metadata = {
   },
   description:
     "Golf Trip Index rates the full trip experience — courses, logistics, lodging, food, and cost. Find where your group's next golf trip is actually worth taking.",
-  alternates: { canonical: SITE_URL },
   openGraph: {
     type: "website",
     siteName: SITE_NAME,

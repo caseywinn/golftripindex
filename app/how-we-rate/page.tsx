@@ -3,11 +3,13 @@
 
 import type { Metadata } from "next";
 import styles from "../../styles/howWeRate.module.css";
+import { SITE_URL } from "../../lib/seo";
 
 export const metadata: Metadata = {
   title: "How We Rate | GolfTripIndex",
   description:
     "Our ranking methodology: trip ratings, consolidated course rankings, and rater credentials.",
+  alternates: { canonical: `${SITE_URL}/how-we-rate` },
 };
 
 export default function HowWeRatePage() {

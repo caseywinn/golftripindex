@@ -4,10 +4,12 @@ import { formatDuration, formatCostTier } from "../../lib/formatters";
 import styles from "../../styles/journey.module.css";
 import tripsStyles from "../../styles/trips.module.css";
 import type { Metadata } from "next";
+import { SITE_URL } from "../../lib/seo";
 
 export const metadata: Metadata = {
   title: "Golf Journey Rankings | GolfTripIndex",
   description: "A ranking of the best extended golf journeys in America.",
+  alternates: { canonical: `${SITE_URL}/journeys` },
 };
 
 export default async function JourneysPage() {

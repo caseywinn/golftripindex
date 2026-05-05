@@ -4,10 +4,12 @@ import styles from "../../styles/trips.module.css";
 import { getPublishedTripsWithFirstCourse } from "../../lib/airtable";
 import type { Metadata } from "next";
 import TripsWithFilters from "../../components/TripsWithFilters";
+import { SITE_URL } from "../../lib/seo";
 
 export const metadata: Metadata = {
   title: "Golf Trip Rankings | GolfTripIndex",
   description: "An overall ranking of the best golf trips in America.",
+  alternates: { canonical: `${SITE_URL}/trips` },
 };
 
 export default async function TripsPage() {

@@ -1,20 +1,37 @@
 import type { Metadata } from "next";
 import CompareClient from "../CompareClient";
+import { SITE_URL } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Compare Golf Trips | GolfTripIndex",
-  description:
-    "Compare two golf trips side-by-side with AI-powered analysis of courses, ratings, cost, and overall experience.",
-  openGraph: {
-    title: "Compare Golf Trips | GolfTripIndex",
-    description:
-      "Compare two golf trips side-by-side with AI-powered analysis of courses, ratings, cost, and overall experience.",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-  },
-};
+const BASE_TITLE = "Compare Golf Trips | GolfTripIndex";
+const BASE_DESCRIPTION =
+  "Compare two golf trips side-by-side with AI-powered analysis of courses, ratings, cost, and overall experience.";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: { matchup?: string[] };
+}): Promise<Metadata> {
+  const matchup = params?.matchup;
+  const canonical =
+    matchup && matchup.length > 0
+      ? `${SITE_URL}/compare/${matchup.join("/")}`
+      : `${SITE_URL}/compare`;
+
+  return {
+    title: BASE_TITLE,
+    description: BASE_DESCRIPTION,
+    alternates: { canonical },
+    openGraph: {
+      title: BASE_TITLE,
+      description: BASE_DESCRIPTION,
+      url: canonical,
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+    },
+  };
+}
 
 function parseFromParams(matchup?: string[]): { A: string; B: string } | null {
   if (!matchup || matchup.length === 0) return null;

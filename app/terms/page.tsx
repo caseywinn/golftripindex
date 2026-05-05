@@ -1,8 +1,10 @@
 import styles from "../../styles/terms.module.css";
 import type { Metadata } from "next";
+import { SITE_URL } from "../../lib/seo";
 
 export const metadata: Metadata = {
   title: "Terms & Conditions | GolfTripIndex",
+  alternates: { canonical: `${SITE_URL}/terms` },
 };
 
 export default function TermsPage() {
