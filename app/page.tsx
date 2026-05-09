@@ -5,6 +5,8 @@ import { formatPublishedDate } from "../lib/formatters";
 import type { Metadata } from "next";
 import { SITE_URL } from "../lib/seo";
 
+export const revalidate = 604800; // regenerate once per week so the featured trip rotates automatically
+
 export const metadata: Metadata = {
   title: "Golf Trip Index | Ranking USA's Best Golf Trips",
   description: "An overall ranking of the best golf trips in America.",
