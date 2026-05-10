@@ -1,0 +1,195 @@
+/* ── Responsive visibility ── */
+
+.desktopFilters {
+  display: none;
+}
+
+.mobileFilters {
+  display: block;
+}
+
+@media (min-width: 768px) {
+  .desktopFilters {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 17px;
+  }
+
+  .mobileFilters {
+    display: none;
+  }
+}
+
+/* ── Dropdown trigger button ── */
+
+.dropBtn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 7px 12px;
+  background: #fff;
+  border: 1.5px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  white-space: nowrap;
+  line-height: 1;
+  transition: border-color 0.12s;
+  width: 100%;
+}
+
+.dropBtn:hover {
+  border-color: #9ca3af;
+}
+
+.dropBtnActive {
+  background: #0b0f1a;
+  border-color: #0b0f1a;
+  color: #fff;
+  font-weight: 600;
+}
+
+.dropBtnOpen {
+  border-color: #0b0f1a;
+}
+
+.chevron {
+  width: 12px;
+  height: 12px;
+  opacity: 0.5;
+  flex-shrink: 0;
+  transition: transform 0.15s;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+  opacity: 1;
+}
+
+.activeDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+/* ── Dropdown wrapper (relative anchor) ── */
+
+.dropWrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── Dropdown panel ── */
+
+.dropPanel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 100;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  padding: 10px;
+  min-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Keep right-edge panels from clipping off-screen */
+.dropPanelRight {
+  left: auto;
+  right: 0;
+}
+
+/* ── Option rows inside panel ── */
+
+.optionBtn {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 7px 10px;
+  background: none;
+  border: none;
+  border-radius: 5px;
+  font-size: 13px;
+  color: #374151;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.optionBtn:hover {
+  background: #f3f4f6;
+}
+
+.optionBtnActive {
+  color: #0b0f1a;
+  font-weight: 600;
+}
+
+.checkbox {
+  width: 15px;
+  height: 15px;
+  border-radius: 4px;
+  border: 1.5px solid #d1d5db;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  transition: background 0.1s, border-color 0.1s;
+}
+
+.checkboxChecked {
+  background: #0b0f1a;
+  border-color: #0b0f1a;
+}
+
+.checkmark {
+  width: 9px;
+  height: 9px;
+  stroke: #fff;
+  stroke-width: 2.5;
+  fill: none;
+}
+
+/* ── Clear all (desktop) ── */
+
+.clearBtn {
+  background: none;
+  border: none;
+  color: #6b7280;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 0;
+  text-decoration: underline;
+  margin-left: 4px;
+}
+
+.clearBtn:hover {
+  color: #111;
+}
+
+/* ── Result count + clear row ── */
+
+.metaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 21px;
+}
+
+.resultCount {
+  font-size: 13px;
+  color: #6b7280;
+}

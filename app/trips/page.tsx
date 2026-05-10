@@ -7,8 +7,8 @@ import TripsWithFilters from "../../components/TripsWithFilters";
 import { SITE_URL } from "../../lib/seo";
 
 export const metadata: Metadata = {
-  title: "Golf Trip Rankings | GolfTripIndex",
-  description: "An overall ranking of the best golf trips in America.",
+  title: "Golf Trip Rankings",
+  description: "Independent rankings of America's best golf trips — rated on courses, lodging, food, cost, and vibe. Updated for 2026.",
   alternates: { canonical: `${SITE_URL}/trips` },
 };
 
@@ -31,7 +31,7 @@ export default async function TripsPage() {
       <section className={styles.banner}>
         <div className={styles.bannerMedia} aria-hidden="true" />
         <div className={styles.bannerPanel}>
-          <div className={styles.bannerTitle}>2026 Golf Trip Rankings</div>
+          <h1 className={styles.bannerTitle}>2026 Golf Trip Rankings</h1>
           <div className={styles.bannerSub}>
             A ranking of the best golf trips in America, offering an informed, independent view that evaluates the full experience, from the quality of the golf to how well a trip actually comes together.
           </div>

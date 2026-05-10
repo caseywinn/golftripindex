@@ -7,7 +7,7 @@ import type { Metadata } from "next";
 import { SITE_URL } from "../../lib/seo";
 
 export const metadata: Metadata = {
-  title: "Golf Journey Rankings | GolfTripIndex",
+  title: "Golf Journey Rankings",
   description: "A ranking of the best extended golf journeys in America.",
   alternates: { canonical: `${SITE_URL}/journeys` },
 };
@@ -20,7 +20,7 @@ export default async function JourneysPage() {
       <section className={tripsStyles.banner}>
         <div className={tripsStyles.bannerMedia} aria-hidden="true" />
         <div className={tripsStyles.bannerPanel}>
-          <div className={tripsStyles.bannerTitle}>Golf Journeys</div>
+          <h1 className={tripsStyles.bannerTitle}>Golf Journeys</h1>
           <div className={tripsStyles.bannerSub}>
             A collection of America's best extended golf trips, rated on the full experience: the courses, the lodging, the food, and how it all comes together when you have a week or more to play.
           </div>

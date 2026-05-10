@@ -1,0 +1,148 @@
+/* ── Block variant (trip / journey / article pages) ── */
+
+.block {
+  background: #f5f8f9;
+  border-top: 1px solid #eef1f6;
+  padding: 48px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+}
+
+.heading {
+  font-size: 22px;
+  font-weight: 600;
+  color: #0b0f1a;
+  letter-spacing: -0.02em;
+}
+
+.subtext {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+
+.form {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  max-width: 420px;
+  margin-top: 4px;
+}
+
+.input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #0b0f1a;
+  outline: none;
+  background: #fff;
+  min-width: 0;
+}
+
+.input:focus {
+  border-color: #0b0f1a;
+}
+
+.button {
+  padding: 10px 18px;
+  background: #0b0f1a;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.button:hover {
+  opacity: 0.85;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.success {
+  font-size: 14px;
+  color: #374151;
+  margin-top: 4px;
+}
+
+.error {
+  font-size: 13px;
+  color: #b91c1c;
+  margin-top: 4px;
+}
+
+/* ── Compact variant (footer) ── */
+
+.compact {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 20px 28px 4px;
+  flex-wrap: wrap;
+}
+
+.compactLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.compactForm {
+  display: flex;
+  gap: 6px;
+}
+
+.compactInput {
+  padding: 7px 12px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 5px;
+  font-size: 13px;
+  color: #0b0f1a;
+  outline: none;
+  width: 200px;
+  background: #fff;
+}
+
+.compactInput:focus {
+  border-color: #0b0f1a;
+}
+
+.compactButton {
+  padding: 7px 13px;
+  background: #0b0f1a;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.compactButton:hover {
+  opacity: 0.85;
+}
+
+.compactButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.compactSuccess {
+  font-size: 13px;
+  color: #374151;
+}

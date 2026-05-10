@@ -11,6 +11,7 @@ import {
 } from "../../../lib/formatters";
 import { JsonLd } from "@/components/JsonLd";
 import { SITE_URL, SITE_NAME } from "@/lib/seo";
+import EmailSignup from "@/components/EmailSignup";
 
 export const revalidate = 86400;
 
@@ -34,7 +35,7 @@ export async function generateMetadata({
   const url = `${SITE_URL}/trips/${slug}`;
 
   return {
-    title: `${trip.name} Golf Trip`,
+    title: `${trip.name} Golf Trip Review`,
     description,
     alternates: { canonical: url },
     openGraph: {
@@ -133,17 +134,17 @@ export default async function TripDetailsPage({
 
   const tripSchema = {
     "@context": "https://schema.org",
-    "@type": "TouristDestination",
-    name: trip.name,
+    "@type": "TouristAttraction",
+    name: `${trip.name} Golf Trip`,
     description: trip.overview ?? trip.fullDescription ?? undefined,
     url: `${SITE_URL}/trips/${trip.slug}`,
     ...(trip.overallRating
       ? {
           aggregateRating: {
             "@type": "AggregateRating",
-            ratingValue: trip.overallRating.toFixed(1),
-            bestRating: "100",
-            worstRating: "0",
+            ratingValue: (trip.overallRating / 10).toFixed(1),
+            bestRating: "10",
+            worstRating: "1",
             ratingCount: "1",
           },
         }
@@ -500,6 +501,12 @@ export default async function TripDetailsPage({
           </div>
         </div>
       </section>
+      <EmailSignup
+        heading="Know before you book."
+        subtext="Rankings and new trips, straight to you."
+        buttonText="Sign up"
+        extraBottomPadding={64}
+      />
     </main>
   );
 }

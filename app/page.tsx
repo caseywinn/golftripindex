@@ -4,6 +4,8 @@ import { getLatestPublishedArticles, getPublishedTrips } from "../lib/airtable";
 import { formatPublishedDate } from "../lib/formatters";
 import type { Metadata } from "next";
 import { SITE_URL } from "../lib/seo";
+import EmailSignup from "@/components/EmailSignup";
+import HeroEmailForm from "@/components/HeroEmailForm";
 
 export const revalidate = 604800; // regenerate once per week so the featured trip rotates automatically
 
@@ -48,9 +50,12 @@ export default async function HomePage() {
           <p className={styles.heroSub}>
             Rated on courses, lodging, food, cost, and vibe.
           </p>
-          <Link href="/trips" className={styles.heroCta}>
-            Explore Rankings
-          </Link>
+          <div className={styles.heroActions}>
+            <Link href="/trips" className={styles.heroCta}>
+              Explore Rankings
+            </Link>
+            <HeroEmailForm />
+          </div>
         </div>
       </section>
 
@@ -185,6 +190,12 @@ export default async function HomePage() {
           })}
         </div>
       </section>
+
+      <EmailSignup
+        heading="Get the next ranking first."
+        subtext="New trips, journeys, and stories from GTI, straight to your inbox."
+        buttonText="Sign up"
+      />
     </>
   );
 }

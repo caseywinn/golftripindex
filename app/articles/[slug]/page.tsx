@@ -10,6 +10,7 @@ import React from "react";
 import { getPublishedArticles } from "@/lib/airtable";
 import { JsonLd } from "@/components/JsonLd";
 import { SITE_URL, SITE_NAME } from "@/lib/seo";
+import EmailSignup from "@/components/EmailSignup";
 
 export const revalidate = 3600;
 
@@ -149,14 +150,18 @@ export default async function ArticlePage({
     ...(article.teaser ? { description: article.teaser } : {}),
     url: `${SITE_URL}/articles/${article.slug}`,
     image: `${SITE_URL}${heroSrc}`,
-    ...(article.author
-      ? { author: { "@type": "Person", name: article.author } }
-      : {}),
+    author: article.author
+      ? { "@type": "Person", name: article.author }
+      : { "@type": "Organization", name: `${SITE_NAME} Editorial Team` },
     ...(article.publishedOn ? { datePublished: article.publishedOn } : {}),
     publisher: {
       "@type": "Organization",
       name: SITE_NAME,
       url: SITE_URL,
+      logo: {
+        "@type": "ImageObject",
+        url: `${SITE_URL}/logo-gti.png`,
+      },
     },
   };
 
@@ -213,7 +218,7 @@ export default async function ArticlePage({
                     <div className={styles.fullBleedImageWrap}>
                       <Image
                         src={src}
-                        alt={`${article.name} image ${b.index}`}
+                        alt={`${article.name} — photo ${b.index}`}
                         fill
                         className={styles.fullBleedImage}
                         sizes="(max-width: 1200px) 100vw, 1200px"
@@ -243,6 +248,11 @@ export default async function ArticlePage({
           })}
         </article>
       </section>
+      <EmailSignup
+        heading="Read the next one first."
+        subtext="New stories from GTI, straight to your inbox."
+        buttonText="Sign up"
+      />
     </main>
   );
 }

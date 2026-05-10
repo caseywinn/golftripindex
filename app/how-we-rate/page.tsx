@@ -3,18 +3,29 @@
 
 import type { Metadata } from "next";
 import styles from "../../styles/howWeRate.module.css";
-import { SITE_URL } from "../../lib/seo";
+import { SITE_URL, SITE_NAME } from "../../lib/seo";
+import { JsonLd } from "@/components/JsonLd";
 
 export const metadata: Metadata = {
-  title: "How We Rate | GolfTripIndex",
+  title: "How We Rate",
   description:
     "Our ranking methodology: trip ratings, consolidated course rankings, and rater credentials.",
   alternates: { canonical: `${SITE_URL}/how-we-rate` },
 };
 
 export default function HowWeRatePage() {
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
+      { "@type": "ListItem", position: 2, name: "How We Rate", item: `${SITE_URL}/how-we-rate` },
+    ],
+  };
+
   return (
     <main className={styles.page}>
+      <JsonLd data={breadcrumbSchema} />
       <header className={styles.hero}>
         <div className={styles.heroInner}>
           <h1 className={styles.h1}>How We Rate</h1>

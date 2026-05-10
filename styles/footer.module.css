@@ -3,6 +3,25 @@
   background: #ffffff;
 }
 
+.nav {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  padding: 20px 28px 0;
+}
+
+.navLink {
+  font-size: 12px;
+  color: #6b7280;
+  text-decoration: none;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.navLink:hover {
+  color: #111;
+}
+
 .inner {
   height: 72px;
   max-width: 1200px;

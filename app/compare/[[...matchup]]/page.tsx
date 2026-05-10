@@ -1,10 +1,16 @@
 import type { Metadata } from "next";
 import CompareClient from "../CompareClient";
-import { SITE_URL } from "@/lib/seo";
+import { SITE_URL, SITE_NAME } from "@/lib/seo";
 
-const BASE_TITLE = "Compare Golf Trips | GolfTripIndex";
 const BASE_DESCRIPTION =
   "Compare two golf trips side-by-side with AI-powered analysis of courses, ratings, cost, and overall experience.";
+
+function slugToTitle(slug: string): string {
+  return slug
+    .split("-")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
 
 export async function generateMetadata({
   params,
@@ -17,13 +23,21 @@ export async function generateMetadata({
       ? `${SITE_URL}/compare/${matchup.join("/")}`
       : `${SITE_URL}/compare`;
 
+  const pair = parseFromParams(matchup);
+  const title = pair
+    ? `${slugToTitle(pair.A)} vs. ${slugToTitle(pair.B)}`
+    : "Compare Golf Trips";
+  const description = pair
+    ? `Compare ${slugToTitle(pair.A)} and ${slugToTitle(pair.B)} side-by-side — courses, ratings, cost, and overall experience.`
+    : BASE_DESCRIPTION;
+
   return {
-    title: BASE_TITLE,
-    description: BASE_DESCRIPTION,
+    title,
+    description,
     alternates: { canonical },
     openGraph: {
-      title: BASE_TITLE,
-      description: BASE_DESCRIPTION,
+      title: `${title} | ${SITE_NAME}`,
+      description,
       url: canonical,
       type: "website",
     },

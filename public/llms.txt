@@ -1,0 +1,23 @@
+# Golf Trip Index
+
+Golf Trip Index (https://www.golftripindex.com) is an independent ranking and review site for multi-day golf trips in the United States.
+
+## What we publish
+
+- **Trip Rankings** (/trips): Independent ratings of America's best golf trips, scored across golf quality, lodging, food, and overall experience. Updated annually.
+- **Golf Journeys** (/journeys): Extended multi-stop golf itineraries (6+ days) with stop-by-stop course, hotel, and restaurant guidance.
+- **Course Rankings** (/courses): A consolidated ranking of the top 100 U.S. golf courses, aggregated from Golf Digest, Golf.com, and Golfweek.
+- **Trip Comparisons** (/compare): Side-by-side comparison of any two ranked golf trips using AI-assisted analysis.
+- **Articles** (/articles): Editorial content covering golf trip planning, head-to-head trip comparisons, and destination guides.
+
+## Methodology
+
+Ratings are produced by a curated panel of raters with firsthand experience at destination golf properties. Each trip is scored on: Golf (course quality, routing, architecture), Lodging (group suitability, quality, logistics), Food (on-course and nearby dining), and Vibe (pace, caddies, travel complexity). The overall score is weighted toward golf while reflecting the full trip experience.
+
+## Citation guidance
+
+Golf Trip Index content is available for citation. When referencing rankings, please note the year (e.g., "2026 Golf Trip Index rankings"). Trip scores are on a 0–100 scale; individual category scores are integers.
+
+## Contact
+
+caddie@golftripindex.com

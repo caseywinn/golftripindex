@@ -2,6 +2,7 @@ import "./globals.css";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import CaddieWidget from "@/components/CaddieWidget";
+import SessionProviderWrapper from "@/components/SessionProviderWrapper";
 import { Inter, Inter_Tight } from "next/font/google";
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/JsonLd";
@@ -34,7 +35,7 @@ export const metadata: Metadata = {
     template: `%s | ${SITE_NAME}`,
   },
   description:
-    "Golf Trip Index rates the full trip experience — courses, logistics, lodging, food, and cost. Find where your group's next golf trip is actually worth taking.",
+    "Golf Trip Index ranks America's best golf trips on courses, lodging, food, cost, and vibe — the only guide built for group trip planning.",
   openGraph: {
     type: "website",
     siteName: SITE_NAME,
@@ -50,39 +51,49 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const orgSchema = {
+  const siteSchema = {
     "@context": "https://schema.org",
-    "@type": "Organization",
-    name: SITE_NAME,
-    url: SITE_URL,
-    description: "Rating the full golf trip — courses, logistics, lodging, food, and cost.",
-  };
-
-  const websiteSchema = {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    name: SITE_NAME,
-    url: SITE_URL,
-    potentialAction: {
-      "@type": "SearchAction",
-      target: {
-        "@type": "EntryPoint",
-        urlTemplate: `${SITE_URL}/trips?q={search_term_string}`,
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": `${SITE_URL}/#organization`,
+        name: SITE_NAME,
+        url: SITE_URL,
+        logo: {
+          "@type": "ImageObject",
+          url: `${SITE_URL}/logo-gti.png`,
+        },
+        sameAs: ["https://www.instagram.com/golftripindex"],
       },
-      "query-input": "required name=search_term_string",
-    },
+      {
+        "@type": "WebSite",
+        "@id": `${SITE_URL}/#website`,
+        url: SITE_URL,
+        name: SITE_NAME,
+        publisher: { "@id": `${SITE_URL}/#organization` },
+        potentialAction: {
+          "@type": "SearchAction",
+          target: {
+            "@type": "EntryPoint",
+            urlTemplate: `${SITE_URL}/trips?q={search_term_string}`,
+          },
+          "query-input": "required name=search_term_string",
+        },
+      },
+    ],
   };
 
   return (
     <html lang="en" className={`${inter.variable} ${interTight.variable}`}>
       <body>
         <GoogleAnalytics />
-        <JsonLd data={orgSchema} />
-        <JsonLd data={websiteSchema} />
-        <SiteHeader />
-        {children}
-        <CaddieWidget />
-        <SiteFooter />
+        <JsonLd data={siteSchema} />
+        <SessionProviderWrapper>
+          <SiteHeader />
+          {children}
+          <CaddieWidget />
+          <SiteFooter />
+        </SessionProviderWrapper>
       </body>
     </html>
   );

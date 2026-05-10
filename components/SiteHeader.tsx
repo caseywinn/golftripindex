@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useSession, signOut } from "next-auth/react";
 import styles from "../styles/header.module.css";
 
 export default function SiteHeader() {
   const [open, setOpen] = useState(false);
+  const { data: session } = useSession();
 
   return (
     <header className={styles.header}>
@@ -38,11 +40,11 @@ export default function SiteHeader() {
           <Link href="/trips" className={styles.navLink} onClick={() => setOpen(false)}>
             TRIP RANKINGS
           </Link>
-          <Link href="/courses" className={styles.navLink} onClick={() => setOpen(false)}>
-            COURSE RANKINGS
-          </Link>
           <Link href="/journeys" className={styles.navLink} onClick={() => setOpen(false)}>
             JOURNEYS
+          </Link>
+          <Link href="/courses" className={styles.navLink} onClick={() => setOpen(false)}>
+            COURSE RANKINGS
           </Link>
           <Link href="/how-we-rate" className={styles.navLink} onClick={() => setOpen(false)}>
             HOW WE RATE
@@ -66,19 +68,21 @@ export default function SiteHeader() {
           </a>
         </nav>
 
-        {/* Desktop: keep CTA wrapper in DOM if you want, but hide it on mobile via CSS */}
+        {/* Desktop: right-side CTA */}
         <div className={styles.cta}>
-          <a
-            href="https://instagram.com/golftripindex"
-            aria-label="Instagram"
-            className={styles.icon}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M7 2h10a5 5 0 015 5v10a5 5 0 01-5 5H7a5 5 0 01-5-5V7a5 5 0 015-5zm10 2H7a3 3 0 00-3 3v10a3 3 0 003 3h10a3 3 0 003-3V7a3 3 0 00-3-3zm-5 3a5 5 0 110 10 5 5 0 010-10zm0 2a3 3 0 100 6 3 3 0 000-6zm5.2-.9a1.1 1.1 0 110 2.2 1.1 1.1 0 010-2.2z" />
-            </svg>
-          </a>
+          {session ? (
+            <button
+              onClick={() => signOut({ callbackUrl: "/" })}
+              className={styles.ctaLink}
+              style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
+            >
+              Sign out
+            </button>
+          ) : (
+            <Link href="/register" className={styles.ctaLink}>
+              Sign in
+            </Link>
+          )}
         </div>
       </div>
     </header>

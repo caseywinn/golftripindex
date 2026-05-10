@@ -1,0 +1,165 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px var(--pad);
+  background: var(--bg);
+}
+
+.card {
+  background: #fff;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  padding: 40px 36px;
+  width: 100%;
+  max-width: 420px;
+}
+
+.logo {
+  display: block;
+  height: 28px;
+  margin: 0 auto 28px;
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text);
+  text-align: center;
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: var(--muted);
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.label {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  gap: 6px;
+}
+
+.input {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #d0d4da;
+  background: #fff;
+  font-size: 15px;
+  font-family: var(--font-ui);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.input:focus {
+  border-color: #0b0f1a;
+}
+
+.button {
+  margin-top: 4px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  background: #0b0f1a;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font-ui);
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.button:hover {
+  opacity: 0.85;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.error {
+  font-size: 13px;
+  color: #c0392b;
+  text-align: center;
+  padding: 10px 12px;
+  background: #fdf2f2;
+  border-radius: 8px;
+  border: 1px solid #f5c6c6;
+}
+
+.footer {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.footerLink {
+  color: var(--text);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.googleButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 18px;
+  border-radius: 999px;
+  border: 1px solid #d0d4da;
+  background: #fff;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font-ui);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.googleButton:hover {
+  background: #f5f6f8;
+}
+
+.googleIcon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+  color: #b0b7c3;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #e6e8ee;
+}

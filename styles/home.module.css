@@ -86,6 +86,68 @@
   background: rgba(255, 255, 255, 0.24);
 }
 
+.heroActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.heroForm {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  background: rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(6px);
+  overflow: hidden;
+}
+
+.heroFormInput {
+  height: 100%;
+  padding: 0 14px;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-size: 13px;
+  width: 180px;
+}
+
+.heroFormInput::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.heroFormButton {
+  height: 100%;
+  padding: 0 14px;
+  background: rgba(255, 255, 255, 0.18);
+  border: none;
+  border-left: 1px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.heroFormButton:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.heroFormButton:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.heroFormSuccess {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  letter-spacing: 0.02em;
+}
+
 /* FEATURED TRIP */
 .ftWrap {
   position: relative;
@@ -437,6 +499,10 @@
 
   .heroSub {
     font-size: 14px;
+  }
+
+  .heroFormInput {
+    width: 140px;
   }
 
   .ftWrap {

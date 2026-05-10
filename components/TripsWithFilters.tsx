@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import type { TripWithFirstCourse } from "@/lib/airtable";
 import {
   REGIONS,
@@ -13,10 +13,20 @@ import {
   filterTrips,
 } from "@/lib/filters";
 import TripsListClient from "@/components/TripsListClient";
+import styles from "@/styles/tripFilters.module.css";
 
 type FilterKey = "region" | "cost" | "duration" | "type" | "season" | "top100";
 
 const ALL_FILTER_KEYS: FilterKey[] = ["region", "cost", "duration", "type", "season", "top100"];
+
+const FILTER_DEFS: { key: FilterKey; label: string; items: { slug: string; label: string }[] }[] = [
+  { key: "region",   label: "Region",       items: REGIONS.map(r => ({ slug: r.slug, label: r.label })) },
+  { key: "cost",     label: "Budget",        items: COST_TIERS.map(c => ({ slug: c.slug, label: c.label })) },
+  { key: "duration", label: "Duration",      items: DURATION_RANGES.map(d => ({ slug: d.slug, label: `${d.label} (${d.description})` })) },
+  { key: "type",     label: "Stay Type",     items: TRIP_TYPES.map(t => ({ slug: t.slug, label: t.label })) },
+  { key: "season",   label: "Best Season",   items: SEASONS.map(s => ({ slug: s.slug, label: s.label })) },
+  { key: "top100",   label: "Top 100",       items: TOP_100_COUNTS.map(n => ({ slug: n.slug, label: `${n.label} courses` })) },
+];
 
 export default function TripsWithFilters({
   trips,
@@ -28,7 +38,9 @@ export default function TripsWithFilters({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [open, setOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [openKey, setOpenKey] = useState<FilterKey | null>(null);
+  const barRef = useRef<HTMLDivElement>(null);
 
   const activeFilters = useMemo<Partial<Record<FilterKey, string[]>>>(() => {
     const result: Partial<Record<FilterKey, string[]>> = {};
@@ -41,11 +53,9 @@ export default function TripsWithFilters({
 
   const filtered = useMemo(() => {
     let result = [...trips];
-
     for (const key of ALL_FILTER_KEYS) {
       const values = activeFilters[key];
       if (!values || values.length === 0) continue;
-
       if (key === "top100") {
         const nums = values.map(v => parseInt(v, 10)).filter(n => !isNaN(n));
         if (nums.length === 0) continue;
@@ -57,22 +67,16 @@ export default function TripsWithFilters({
         );
       }
     }
-
     return result.sort((a, b) => (a.currentRanking ?? 9999) - (b.currentRanking ?? 9999));
   }, [trips, activeFilters]);
 
   function toggle(key: FilterKey, value: string) {
     const current = activeFilters[key] ?? [];
-    const isActive = current.includes(value);
-    const next = isActive ? current.filter(v => v !== value) : [...current, value];
-
+    const next = current.includes(value)
+      ? current.filter(v => v !== value)
+      : [...current, value];
     const params = new URLSearchParams(searchParams.toString());
-    if (next.length === 0) {
-      params.delete(key);
-    } else {
-      params.set(key, next.join(","));
-    }
-
+    if (next.length === 0) params.delete(key); else params.set(key, next.join(","));
     const qs = params.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   }
@@ -86,14 +90,26 @@ export default function TripsWithFilters({
 
   const totalActive = ALL_FILTER_KEYS.reduce((n, k) => n + (activeFilters[k]?.length ?? 0), 0);
 
+  // Close desktop dropdown on outside click
+  useEffect(() => {
+    function onDown(e: MouseEvent) {
+      if (barRef.current && !barRef.current.contains(e.target as Node)) {
+        setOpenKey(null);
+      }
+    }
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, []);
+
+  // Build label for mobile summary
   function labelFor(key: FilterKey, val: string): string {
     switch (key) {
-      case "region": return REGIONS.find(r => r.slug === val)?.label ?? val;
-      case "cost": return COST_TIERS.find(c => c.slug === val)?.label ?? val;
+      case "region":   return REGIONS.find(r => r.slug === val)?.label ?? val;
+      case "cost":     return COST_TIERS.find(c => c.slug === val)?.label ?? val;
       case "duration": return DURATION_RANGES.find(d => d.slug === val)?.label ?? val;
-      case "type": return TRIP_TYPES.find(t => t.slug === val)?.label ?? val;
-      case "season": return SEASONS.find(s => s.slug === val)?.label ?? val;
-      case "top100": return `${val}+ Top 100`;
+      case "type":     return TRIP_TYPES.find(t => t.slug === val)?.label ?? val;
+      case "season":   return SEASONS.find(s => s.slug === val)?.label ?? val;
+      case "top100":   return `${val}+ Top 100`;
     }
   }
 
@@ -101,124 +117,147 @@ export default function TripsWithFilters({
     .flatMap(k => (activeFilters[k] ?? []).map(v => labelFor(k, v)))
     .join(" · ");
 
+  // How many filter groups are near the right edge (to flip their dropdown)
+  const FLIP_LAST_N = 2;
+
   return (
     <div style={{ marginBottom: 32 }}>
-      {/* Toggle row */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: open ? 20 : 16 }}>
-        <button
-          onClick={() => setOpen(o => !o)}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "8px 16px",
-            background: open ? "#0b0f1a" : "#fff",
-            color: open ? "#fff" : "#0b0f1a",
-            border: "1.5px solid #0b0f1a",
-            borderRadius: 6,
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: "pointer",
-            letterSpacing: "0.02em",
-            flexShrink: 0,
-          }}
-        >
-          <span>{open ? "Close Filters" : "Filter"}</span>
-          {!open && totalActive > 0 && (
-            <span style={{
-              background: "#0b0f1a",
-              color: "#fff",
-              borderRadius: 10,
-              padding: "1px 7px",
-              fontSize: 11,
-              fontWeight: 700,
-            }}>
-              {totalActive}
-            </span>
-          )}
-        </button>
 
-        {!open && totalActive > 0 && (
-          <span style={{ fontSize: 13, color: "#6b7280", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {summaryText}
-          </span>
-        )}
+      {/* ── DESKTOP: horizontal dropdown row ── */}
+      <div className={styles.desktopFilters} ref={barRef}>
+        {FILTER_DEFS.map(({ key, label, items }, idx) => {
+          const active = activeFilters[key] ?? [];
+          const isOpen = openKey === key;
+          const flipRight = idx >= FILTER_DEFS.length - FLIP_LAST_N;
 
-        {totalActive > 0 && (
+          let btnLabel = label;
+          if (active.length === 1) {
+            btnLabel = labelFor(key, active[0]);
+          } else if (active.length > 1) {
+            btnLabel = `${label} · ${active.length}`;
+          }
+
+          return (
+            <div key={key} className={styles.dropWrap}>
+              <button
+                className={[
+                  styles.dropBtn,
+                  active.length > 0 ? styles.dropBtnActive : "",
+                  isOpen && active.length === 0 ? styles.dropBtnOpen : "",
+                ].join(" ")}
+                onClick={() => setOpenKey(isOpen ? null : key)}
+                aria-expanded={isOpen}
+              >
+                {active.length > 0 && <span className={styles.activeDot} />}
+                {btnLabel}
+                <svg className={[styles.chevron, isOpen ? styles.chevronOpen : ""].join(" ")} viewBox="0 0 12 12">
+                  <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+
+              {isOpen && (
+                <div className={[styles.dropPanel, flipRight ? styles.dropPanelRight : ""].join(" ")}>
+                  {items.map(item => {
+                    const checked = active.includes(item.slug);
+                    return (
+                      <button
+                        key={item.slug}
+                        className={[styles.optionBtn, checked ? styles.optionBtnActive : ""].join(" ")}
+                        onClick={() => toggle(key, item.slug)}
+                      >
+                        <span className={[styles.checkbox, checked ? styles.checkboxChecked : ""].join(" ")}>
+                          {checked && (
+                            <svg className={styles.checkmark} viewBox="0 0 10 10">
+                              <polyline points="1.5,5 4,7.5 8.5,2.5" />
+                            </svg>
+                          )}
+                        </span>
+                        {item.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+      </div>
+
+      {/* ── MOBILE: single toggle button + expanded panel ── */}
+      <div className={styles.mobileFilters}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: mobileOpen ? 20 : 16 }}>
           <button
-            onClick={clearAll}
+            onClick={() => setMobileOpen(o => !o)}
             style={{
-              background: "none",
-              border: "none",
-              color: "#6b7280",
-              fontSize: 13,
-              cursor: "pointer",
-              padding: "4px 0",
-              textDecoration: "underline",
-              flexShrink: 0,
-              marginLeft: "auto",
+              display: "flex", alignItems: "center", gap: 8,
+              padding: "8px 16px",
+              background: mobileOpen ? "#0b0f1a" : "#fff",
+              color: mobileOpen ? "#fff" : "#0b0f1a",
+              border: "1.5px solid #0b0f1a",
+              borderRadius: 6, fontSize: 13, fontWeight: 600,
+              cursor: "pointer", letterSpacing: "0.02em", flexShrink: 0,
             }}
           >
-            Clear all
+            <span>{mobileOpen ? "Close Filters" : "Filter"}</span>
+            {!mobileOpen && totalActive > 0 && (
+              <span style={{
+                background: "#0b0f1a", color: "#fff", borderRadius: 10,
+                padding: "1px 7px", fontSize: 11, fontWeight: 700,
+              }}>
+                {totalActive}
+              </span>
+            )}
           </button>
+
+          {!mobileOpen && totalActive > 0 && (
+            <span style={{ fontSize: 13, color: "#6b7280", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {summaryText}
+            </span>
+          )}
+
+          {totalActive > 0 && (
+            <button
+              onClick={clearAll}
+              style={{
+                background: "none", border: "none", color: "#6b7280",
+                fontSize: 13, cursor: "pointer", padding: "4px 0",
+                textDecoration: "underline", flexShrink: 0, marginLeft: "auto",
+              }}
+            >
+              Clear all
+            </button>
+          )}
+        </div>
+
+        {mobileOpen && (
+          <div style={{
+            background: "#fff", border: "1px solid #e5e7eb",
+            borderRadius: 8, padding: "20px 24px", marginBottom: 24,
+            display: "flex", flexDirection: "column", gap: 20,
+          }}>
+            {FILTER_DEFS.map(({ key, label, items }) => (
+              <FilterGroup
+                key={key}
+                label={label}
+                items={items}
+                activeValues={activeFilters[key] ?? []}
+                onToggle={v => toggle(key, v)}
+              />
+            ))}
+          </div>
         )}
       </div>
 
-      {/* Filter panel */}
-      {open && (
-        <div style={{
-          background: "#fff",
-          border: "1px solid #e5e7eb",
-          borderRadius: 8,
-          padding: "20px 24px",
-          marginBottom: 24,
-          display: "flex",
-          flexDirection: "column",
-          gap: 20,
-        }}>
-          <FilterGroup
-            label="Region"
-            items={REGIONS.map(r => ({ slug: r.slug, label: r.label }))}
-            activeValues={activeFilters.region ?? []}
-            onToggle={v => toggle("region", v)}
-          />
-          <FilterGroup
-            label="Budget"
-            items={COST_TIERS.map(c => ({ slug: c.slug, label: c.label }))}
-            activeValues={activeFilters.cost ?? []}
-            onToggle={v => toggle("cost", v)}
-          />
-          <FilterGroup
-            label="Duration"
-            items={DURATION_RANGES.map(d => ({ slug: d.slug, label: `${d.label} (${d.description})` }))}
-            activeValues={activeFilters.duration ?? []}
-            onToggle={v => toggle("duration", v)}
-          />
-          <FilterGroup
-            label="Stay Type"
-            items={TRIP_TYPES.map(t => ({ slug: t.slug, label: t.label }))}
-            activeValues={activeFilters.type ?? []}
-            onToggle={v => toggle("type", v)}
-          />
-          <FilterGroup
-            label="Best Season"
-            items={SEASONS.map(s => ({ slug: s.slug, label: s.label }))}
-            activeValues={activeFilters.season ?? []}
-            onToggle={v => toggle("season", v)}
-          />
-          <FilterGroup
-            label="Top 100 Courses"
-            items={TOP_100_COUNTS.map(n => ({ slug: n.slug, label: `${n.label} courses` }))}
-            activeValues={activeFilters.top100 ?? []}
-            onToggle={v => toggle("top100", v)}
-          />
-        </div>
-      )}
-
-      {/* Result count when filters are active */}
+      {/* ── Result count + clear ── */}
       {totalActive > 0 && (
-        <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 16 }}>
-          {filtered.length} trip{filtered.length !== 1 ? "s" : ""} match
+        <div className={styles.metaRow}>
+          <span className={styles.resultCount}>
+            {filtered.length} trip{filtered.length !== 1 ? "s" : ""} match
+          </span>
+          <button className={styles.clearBtn} onClick={clearAll}>
+            Clear all
+          </button>
         </div>
       )}
 
@@ -253,12 +292,8 @@ function FilterGroup({
   return (
     <div>
       <div style={{
-        fontSize: 11,
-        fontWeight: 700,
-        letterSpacing: "0.08em",
-        color: "#6b7280",
-        textTransform: "uppercase",
-        marginBottom: 8,
+        fontSize: 11, fontWeight: 700, letterSpacing: "0.08em",
+        color: "#6b7280", textTransform: "uppercase", marginBottom: 8,
       }}>
         {label}
       </div>
@@ -270,13 +305,11 @@ function FilterGroup({
               key={slug}
               onClick={() => onToggle(slug)}
               style={{
-                padding: "5px 12px",
-                borderRadius: 20,
+                padding: "5px 12px", borderRadius: 20,
                 border: `1.5px solid ${isActive ? "#0b0f1a" : "#d1d5db"}`,
                 background: isActive ? "#0b0f1a" : "#fff",
                 color: isActive ? "#fff" : "#374151",
-                fontSize: 13,
-                cursor: "pointer",
+                fontSize: 13, cursor: "pointer",
                 fontWeight: isActive ? 600 : 400,
               }}
             >

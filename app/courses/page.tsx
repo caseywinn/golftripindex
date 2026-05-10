@@ -2,12 +2,13 @@ import Link from "next/link";
 import styles from "../../styles/courseRankings.module.css";
 import { getPublishedCourses } from "../../lib/airtable";
 import type { Metadata } from "next";
-import { SITE_URL } from "../../lib/seo";
+import { SITE_URL, SITE_NAME } from "../../lib/seo";
+import { JsonLd } from "@/components/JsonLd";
 
 export const metadata: Metadata = {
-  title: "Course Rankings | GolfTripIndex",
+  title: "Course Rankings",
   description:
-    "A conslidated ranking of the top 100 golf courses in the United States.",
+    "A consolidated ranking of the top 100 golf courses in the United States, combining Golf Digest, Golf.com, and Golfweek into one objective view.",
   alternates: { canonical: `${SITE_URL}/courses` },
 };
 
@@ -29,6 +30,15 @@ function fmtRank(n?: number | null) {
 }
 
 export default async function CourseRankingsPage() {
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
+      { "@type": "ListItem", position: 2, name: "Course Rankings", item: `${SITE_URL}/courses` },
+    ],
+  };
+
   const courses = (await getPublishedCourses()) as Course[];
 
   // Sort by consolidated ranking (NR last), then name
@@ -41,12 +51,13 @@ export default async function CourseRankingsPage() {
 
   return (
     <main className={styles.page}>
+      <JsonLd data={breadcrumbSchema} />
       {/* Banner */}
       <section className={styles.banner}>
         <div className={styles.bannerMedia} aria-hidden="true" />
 
         <div className={styles.bannerPanel}>
-          <div className={styles.bannerTitle}>Golf Course Rankings</div>
+          <h1 className={styles.bannerTitle}>Golf Course Rankings</h1>
           <div className={styles.bannerSub}>
             GolfTripIndex course rankings are calculated as an average of the major golf publications, providing a single, objective view that reflects the broader consensus rather than one editorial perspective.
           </div>
@@ -59,9 +70,9 @@ export default async function CourseRankingsPage() {
         </div>
       </section>
 
-    {/* Trip tiles */}
+    {/* Course table */}
       <section className={styles.listWrap}>
-        <div className={`${styles.tableWrap} whiteRoundedBox`}>
+<div className={`${styles.tableWrap} whiteRoundedBox`}>
             <table className={styles.table}>
                 <thead>
                     <tr>

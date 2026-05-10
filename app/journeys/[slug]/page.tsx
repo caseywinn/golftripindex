@@ -4,6 +4,7 @@ import { getPublishedJourneyBySlug, getPublishedJourneys } from "@/lib/airtable"
 import { formatDuration, formatCostTier } from "@/lib/formatters";
 import { JsonLd } from "@/components/JsonLd";
 import { SITE_URL, SITE_NAME } from "@/lib/seo";
+import EmailSignup from "@/components/EmailSignup";
 
 export const revalidate = 86400;
 import JourneyMap from "@/components/JourneyMap";
@@ -130,7 +131,7 @@ export default async function JourneyDetailPage({
     "@type": "BreadcrumbList",
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
-      { "@type": "ListItem", position: 2, name: "Trips", item: `${SITE_URL}/trips` },
+      { "@type": "ListItem", position: 2, name: "Journeys", item: `${SITE_URL}/journeys` },
       { "@type": "ListItem", position: 3, name: journey.name, item: `${SITE_URL}/journeys/${journey.slug}` },
     ],
   };
@@ -338,6 +339,11 @@ export default async function JourneyDetailPage({
         )}
       </div>
 
+      <EmailSignup
+        heading="New routes, when they're rated."
+        subtext="Get new journeys before you start planning."
+        buttonText="Sign up"
+      />
     </main>
   );
 }
