@@ -6,6 +6,8 @@ import type { Metadata } from "next";
 import { SITE_URL } from "../lib/seo";
 import EmailSignup from "@/components/EmailSignup";
 import HeroEmailForm from "@/components/HeroEmailForm";
+import ShareButton from "@/components/ShareButton";
+import SaveButton from "@/components/SaveButton";
 
 export const revalidate = 604800; // regenerate once per week so the featured trip rotates automatically
 
@@ -63,21 +65,27 @@ export default async function HomePage() {
       {featured && (
         <div className={styles.ftWrap}>
           <div className={styles.ftCard}>
-            <Link
-              href={`/trips/${featured.slug}`}
-              className={styles.ftImage}
-              style={{ backgroundImage: `url(/images/trips/${featured.slug}.jpg)` }}
-              aria-label={featured.name}
-            >
-              {featured.currentRanking && (
-                <div className={styles.ftRankBadge}>
-                  #{featured.currentRanking} Ranked
-                </div>
-              )}
-            </Link>
+            <div className={styles.ftImageWrap}>
+              <Link
+                href={`/trips/${featured.slug}`}
+                className={styles.ftImage}
+                style={{ backgroundImage: `url(/images/trips/${featured.slug}.jpg)` }}
+                aria-label={featured.name}
+              >
+                {featured.currentRanking && (
+                  <div className={styles.ftRankBadge}>
+                    #{featured.currentRanking}
+                  </div>
+                )}
+              </Link>
+              <ShareButton itemType="trip" itemId={featured.slug} itemName={featured.name} variant="dark" corner small />
+            </div>
 
             <div className={styles.ftBody}>
-              <p className={styles.ftEyebrow}>Trip of the Week</p>
+              <div className={styles.ftEyebrowRow}>
+                <p className={styles.ftEyebrow}>Trip of the Week</p>
+                <SaveButton itemType="trip" itemId={featured.slug} />
+              </div>
 
               <h2 className={styles.ftName}>
                 <Link href={`/trips/${featured.slug}`} className={styles.ftNameLink}>
@@ -87,12 +95,6 @@ export default async function HomePage() {
                   )}
                 </Link>
               </h2>
-
-              {featured.state && (
-                <div className={styles.ftMeta}>
-                  <span className={styles.ftStateBadge}>{featured.state}</span>
-                </div>
-              )}
 
               <div className={styles.ftScoreRow}>
                 <div className={styles.ftScore}>
@@ -159,6 +161,7 @@ export default async function HomePage() {
                       />
                     </Link>
                   ) : null}
+                  {n.slug && <ShareButton itemType="article" itemId={n.slug} itemName={n.name} variant="dark" corner small />}
                 </div>
 
                 <div className={styles.newsBody}>

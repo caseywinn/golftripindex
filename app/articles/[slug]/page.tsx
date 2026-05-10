@@ -11,6 +11,7 @@ import { getPublishedArticles } from "@/lib/airtable";
 import { JsonLd } from "@/components/JsonLd";
 import { SITE_URL, SITE_NAME } from "@/lib/seo";
 import EmailSignup from "@/components/EmailSignup";
+import ShareButton from "@/components/ShareButton";
 
 export const revalidate = 3600;
 
@@ -180,6 +181,7 @@ export default async function ArticlePage({
             className={styles.heroImage}
             sizes="(max-width: 900px) 100vw, 60vw"
           />
+          <ShareButton itemType="article" itemId={article.slug} itemName={article.name} variant="dark" corner />
         </div>
 
         <div className={styles.heroPanel}>

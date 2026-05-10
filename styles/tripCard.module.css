@@ -44,6 +44,10 @@
   position: relative;
 }
 
+.saveFooter {
+  display: none;
+}
+
 .titleRow {
   display: flex;
   justify-content: space-between;
@@ -277,6 +281,16 @@
     font-size: 28px;
     top: 12px;
     left: 12px;
+  }
+
+  .saveFooter {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 12px;
+  }
+
+  .titleRowActions {
+    display: none;
   }
   .body {
     padding: 14px 16px 10px;

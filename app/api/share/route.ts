@@ -54,13 +54,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Too many shares. Try again later." }, { status: 429 });
     }
 
-    const href = `${SITE_URL}/${itemType === "trip" ? "trips" : "journeys"}/${itemId}`;
-    const label = itemType === "trip" ? "Golf Trip" : "Golf Journey";
+    const href = itemType === "trip"
+      ? `${SITE_URL}/trips/${itemId}`
+      : itemType === "journey"
+      ? `${SITE_URL}/journeys/${itemId}`
+      : `${SITE_URL}/articles/${itemId}`;
+    const label = itemType === "trip" ? "Golf Trip" : itemType === "journey" ? "Golf Journey" : "Article";
     const from = (senderName ?? "").trim() || "Someone";
     const subject = `${from} is sharing a ${label.toLowerCase()}: ${itemName}`;
 
     // Fetch rich data for the template
-    let imageUrl = `${SITE_URL}/images/${itemType === "trip" ? "trips" : "journeys"}/${itemId}.jpg`;
+    const imageFolder = itemType === "trip" ? "trips" : itemType === "journey" ? "journeys" : "articles";
+    let imageUrl = `${SITE_URL}/images/${imageFolder}/${itemId}.jpg`;
     let description = "";
     let metaPills: string[] = [];
     let rankingLine = "";

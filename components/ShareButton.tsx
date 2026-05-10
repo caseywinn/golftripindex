@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import styles from "@/styles/shareButton.module.css";
 
 type Props = {
-  itemType: "trip" | "journey";
+  itemType: "trip" | "journey" | "article";
   itemId: string;
   itemName: string;
   variant?: "dark" | "light";
@@ -78,14 +79,17 @@ export default function ShareButton({ itemType, itemId, itemName, variant = "dar
         Share
       </button>
 
-      {open && (
+      {open && createPortal(
         <div
           className={styles.popover}
           style={popoverStyle}
           role="dialog"
           aria-label="Share via email"
         >
-          <p className={styles.popoverTitle}>Share via Email</p>
+          <div className={styles.popoverHeader}>
+            <p className={styles.popoverTitle}>Share via Email</p>
+            <button className={styles.closeBtn} onClick={() => setOpen(false)} aria-label="Close">✕</button>
+          </div>
 
           {status === "sent" ? (
             <p className={`${styles.feedback} ${styles.success}`}>Sent! They&apos;ll get it shortly.</p>
@@ -134,7 +138,8 @@ export default function ShareButton({ itemType, itemId, itemName, variant = "dar
               )}
             </>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

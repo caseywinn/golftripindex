@@ -181,6 +181,10 @@ export default function TripCard(props: TripCardProps) {
             </div>
           </div>
         </div>
+
+        <div className={styles.saveFooter}>
+          <SaveButton itemType="trip" itemId={slug} />
+        </div>
       </div>
     </article>
   );
