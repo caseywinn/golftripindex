@@ -7,7 +7,9 @@ import { getPgPool } from "@/lib/db";
 
 const RATE_LIMIT = 10; // max shares per IP per hour
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+function getResend() {
+  return new Resend(process.env.RESEND_API_KEY);
+}
 const FROM = process.env.SHARE_FROM_EMAIL || "onboarding@resend.dev";
 
 function isValidEmail(e: string) {
@@ -201,7 +203,7 @@ export async function POST(req: NextRequest) {
     ];
     const text = textParts.join("\n");
 
-    await resend.emails.send({
+    await getResend().emails.send({
       from: FROM,
       to: toEmail,
       subject,
