@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { Suspense, useState, FormEvent } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -12,7 +12,7 @@ function useSafeCallbackUrl() {
   return raw.startsWith("/") && !raw.startsWith("//") ? raw : "/";
 }
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const callbackUrl = useSafeCallbackUrl();
   const [error, setError] = useState("");
@@ -103,5 +103,13 @@ export default function LoginPage() {
         </p>
       </div>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }
