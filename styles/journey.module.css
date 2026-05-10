@@ -68,6 +68,10 @@
   margin: 0;
 }
 
+.heroSave {
+  margin-top: 14px;
+}
+
 .heroMeta {
   display: flex;
   flex-direction: column;
@@ -661,10 +665,18 @@
 }
 
 .journeyListImageWrap {
+  position: relative;
   width: 100%;
   height: 220px;
   background: #0b0f1a;
   overflow: hidden;
+}
+
+.journeyListSaveCorner {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1;
 }
 
 .journeyListImageLink {
@@ -720,10 +732,17 @@
 }
 
 .journeyListPills {
-  margin-top: 12px;
+  margin-top: 8px;
+  margin-bottom: 2px;
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
+}
+
+.journeyListCardFooter {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .journeyListPill {

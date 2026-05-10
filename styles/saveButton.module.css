@@ -1,0 +1,96 @@
+.wrap {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  border-radius: 4px;
+  border: 1.5px solid #d1d5db;
+  background: transparent;
+  color: #9aa3b2;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  text-decoration: none;
+  line-height: 1;
+  white-space: nowrap;
+  transition: border-color 0.12s, color 0.12s, background 0.12s;
+  font-family: inherit;
+}
+
+.btn:hover {
+  border-color: #9aa3b2;
+  color: #374151;
+}
+
+.btnWishlistActive {
+  border-color: #0b0f1a;
+  background: #0b0f1a;
+  color: #fff;
+}
+
+.btnWishlistActive:hover {
+  border-color: #2d3340;
+  background: #2d3340;
+  color: #fff;
+}
+
+.btnPlayedBase {
+  /* no extra static styles needed */
+}
+
+.btnPlayedActive {
+  border-color: #15803d;
+  background: #15803d;
+  color: #fff;
+}
+
+.btnPlayedActive:hover {
+  border-color: #166534;
+  background: #166534;
+  color: #fff;
+}
+
+/* Dark background variant (over photos) */
+.dark {
+  background: rgba(0, 0, 0, 0.52);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.dark:hover {
+  background: rgba(0, 0, 0, 0.7);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #fff;
+}
+
+.dark.btnWishlistActive {
+  background: #fff;
+  border-color: #fff;
+  color: #0b0f1a;
+}
+
+.dark.btnWishlistActive:hover {
+  background: #e5e7eb;
+  border-color: #e5e7eb;
+  color: #0b0f1a;
+}
+
+.dark.btnPlayedActive {
+  background: #15803d;
+  border-color: #15803d;
+  color: #fff;
+}
+
+.dark.btnPlayedActive:hover {
+  background: #166534;
+  border-color: #166534;
+  color: #fff;
+}

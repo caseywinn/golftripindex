@@ -12,6 +12,8 @@ import {
 import { JsonLd } from "@/components/JsonLd";
 import { SITE_URL, SITE_NAME } from "@/lib/seo";
 import EmailSignup from "@/components/EmailSignup";
+import SaveButton from "@/components/SaveButton";
+import ShareButton from "@/components/ShareButton";
 
 export const revalidate = 86400;
 
@@ -160,8 +162,9 @@ export default async function TripDetailsPage({
         <div
           className={styles.bannerMedia}
           style={{ backgroundImage: `url("${heroUrl}")` }}
-          aria-hidden="true"
-        />
+        >
+          <ShareButton itemType="trip" itemId={slug} itemName={trip.name} variant="dark" corner />
+        </div>
 
         <div className={styles.bannerPanel}>
           <div className={styles.bannerInner}>
@@ -175,6 +178,10 @@ export default async function TripDetailsPage({
                   {trip.subheader.split("\n").filter(Boolean)[0]}
                 </p>
               ) : null}
+
+              <div className={styles.bannerSave}>
+                <SaveButton itemType="trip" itemId={slug} variant="dark" />
+              </div>
             </div>
 
             <div className={styles.bannerRule} aria-hidden="true" />
@@ -190,17 +197,15 @@ export default async function TripDetailsPage({
                   </span>
                 </div>
 
+
                 <div className={`${styles.bannerMetaRow} ${styles.metaTooltipWrapper}`}>
-                  <span className={styles.bannerMetaKey}>
-                    <u>Driving</u>:*
-                  </span>
+                  <span className={styles.bannerMetaKey}>Driving:</span>
                   <span className={styles.bannerMetaVal}>
                     {formatDriving(trip.driving)}
+                    <i className={styles.metaTooltipIcon} aria-label="More info">i</i>
                   </span>
-
                   <span className={styles.metaTooltip}>
-                    Miles driven between courses after arrival.<br />
-                    Does not include travel to/from an airport.
+                    Driving between courses and lodging during the trip. Does not include travel to or from an airport.
                   </span>
                 </div>
 
@@ -274,11 +279,11 @@ export default async function TripDetailsPage({
                   key={`${c.course.id}-${c.tripCourseRank}`}
                   className={`${styles.courseCard} whiteRoundedBox`}
                 >
-                  <div
-                    className={styles.courseImage}
-                    style={{ backgroundImage: `url("${img}")` }}
-                    aria-hidden="true"
-                  >
+                  <div className={styles.courseImage} aria-hidden="true">
+                    <div
+                      className={styles.courseImageBg}
+                      style={{ backgroundImage: `url("${img}")` }}
+                    />
                     {c.course.consolidatedRanking ? (
                       <div className={styles.courseRankOverlay}>
                         #{c.course.consolidatedRanking}
@@ -348,11 +353,11 @@ export default async function TripDetailsPage({
                   key={`${c.course.id}-${c.tripCourseRank}`}
                   className={`${styles.courseCard} whiteRoundedBox`}
                 >
-                  <div
-                    className={styles.courseImage}
-                    style={{ backgroundImage: `url("${img}")` }}
-                    aria-hidden="true"
-                  >
+                  <div className={styles.courseImage} aria-hidden="true">
+                    <div
+                      className={styles.courseImageBg}
+                      style={{ backgroundImage: `url("${img}")` }}
+                    />
                     {c.course.consolidatedRanking ? (
                       <div className={styles.courseRankOverlay}>
                         #{c.course.consolidatedRanking}

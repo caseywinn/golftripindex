@@ -95,7 +95,6 @@
   background-size: cover;
   background-position: center;
   min-height: 300px;
-  transform: none;
 }
 
 /* Subtle readability overlay on image side */
@@ -155,6 +154,10 @@
   line-height: 1.6;
 }
 
+.bannerSave {
+  margin-top: 14px;
+}
+
 .bannerRule {
   margin-top: 18px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.22);
@@ -196,22 +199,55 @@
   cursor: help;
 }
 
+.metaTooltipIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  font-style: normal;
+  line-height: 1;
+  margin-left: 5px;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
 .metaTooltip {
   visibility: hidden;
   opacity: 0;
+  pointer-events: none;
   position: absolute;
-  bottom: 125%;
+  bottom: calc(100% + 10px);
   left: 50%;
   transform: translateX(-50%);
-  background: #0488db;
-  color: #fff;
-  padding: 6px 8px;
-  border-radius: 4px;
+  background: #0b0f1a;
+  color: #e8edf5;
+  padding: 9px 13px;
+  border-radius: 8px;
   font-size: 12px;
-  text-align: center;
-  white-space: nowrap;
-  transition: opacity 0.2s ease;
-  z-index: 10;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: normal;
+  width: 220px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  transition: opacity 0.15s ease;
+  z-index: 50;
+}
+
+.metaTooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #0b0f1a;
 }
 
 .metaTooltipWrapper:hover .metaTooltip {
@@ -353,10 +389,21 @@
 
 .courseImage {
   height: 180px;
+  background-color: #e9edf3;
+  position: relative;
+  overflow: hidden;
+}
+
+.courseImageBg {
+  position: absolute;
+  inset: 0;
   background-size: cover;
   background-position: center;
-  background-color: #e9edf3;
-  position: relative; /* required for overlay */
+  transition: transform 0.3s ease;
+}
+
+.courseCard:hover .courseImageBg {
+  transform: scale(1.03);
 }
 
 /* Overall rank overlay */

@@ -5,6 +5,8 @@ import { formatDuration, formatCostTier } from "@/lib/formatters";
 import { JsonLd } from "@/components/JsonLd";
 import { SITE_URL, SITE_NAME } from "@/lib/seo";
 import EmailSignup from "@/components/EmailSignup";
+import SaveButton from "@/components/SaveButton";
+import ShareButton from "@/components/ShareButton";
 
 export const revalidate = 86400;
 import JourneyMap from "@/components/JourneyMap";
@@ -155,14 +157,18 @@ export default async function JourneyDetailPage({
         <div
           className={styles.heroMedia}
           style={{ backgroundImage: `url("${heroUrl}")` }}
-          aria-hidden="true"
-        />
+        >
+          <ShareButton itemType="journey" itemId={slug} itemName={journey.name} variant="dark" corner />
+        </div>
         <div className={styles.heroPanel}>
           <div className={styles.heroBadge}>Golf Journey</div>
           <h1 className={styles.heroTitle}>{journey.name}</h1>
           {journey.description && (
             <p className={styles.heroDesc}>{journey.description}</p>
           )}
+          <div className={styles.heroSave}>
+            <SaveButton itemType="journey" itemId={slug} variant="dark" />
+          </div>
           <div className={styles.heroMeta}>
             <div className={styles.heroMetaRow}>
               <span className={styles.heroMetaKey}>Duration</span>

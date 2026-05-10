@@ -2,12 +2,19 @@
 
 import { useState, FormEvent } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import styles from "../../styles/auth.module.css";
 
+function useSafeCallbackUrl() {
+  const searchParams = useSearchParams();
+  const raw = searchParams.get("callbackUrl") ?? "/";
+  return raw.startsWith("/") && !raw.startsWith("//") ? raw : "/";
+}
+
 export default function LoginPage() {
   const router = useRouter();
+  const callbackUrl = useSafeCallbackUrl();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -31,7 +38,7 @@ export default function LoginPage() {
     if (result?.error) {
       setError("Invalid email or password.");
     } else {
-      router.push("/");
+      router.push(callbackUrl);
       router.refresh();
     }
   }
@@ -45,7 +52,7 @@ export default function LoginPage() {
         <button
           type="button"
           className={styles.googleButton}
-          onClick={() => signIn("google", { callbackUrl: "/" })}
+          onClick={() => signIn("google", { callbackUrl })}
         >
           <svg className={styles.googleIcon} viewBox="0 0 24 24" aria-hidden="true">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -90,7 +97,7 @@ export default function LoginPage() {
 
         <p className={styles.footer}>
           No account?{" "}
-          <Link href="/register" className={styles.footerLink}>
+          <Link href={`/register?callbackUrl=${encodeURIComponent(callbackUrl)}`} className={styles.footerLink}>
             Create one
           </Link>
         </p>

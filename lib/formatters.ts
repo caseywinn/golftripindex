@@ -40,5 +40,5 @@ export function formatDuration(minDays: number, maxDays: number) {
 
 export function formatDriving(miles?: string) {
   if (!miles) return "—";
-  return `${miles} miles`;
+  return miles;
 }

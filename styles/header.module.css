@@ -63,6 +63,11 @@
 .ctaLink {
   font-size: 14px;
   font-weight: 300;
+  font-family: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  -webkit-appearance: none;
+  appearance: none;
   color: #0488db;
   text-decoration: none;
   white-space: nowrap;
@@ -71,6 +76,18 @@
 .ctaLink:hover {
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+.ctaGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ctaDivider {
+  color: #d1d5db;
+  font-size: 13px;
+  user-select: none;
 }
 
 .icon {

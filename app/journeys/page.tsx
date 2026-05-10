@@ -3,6 +3,8 @@ import { getPublishedJourneys } from "../../lib/airtable";
 import { formatDuration, formatCostTier } from "../../lib/formatters";
 import styles from "../../styles/journey.module.css";
 import tripsStyles from "../../styles/trips.module.css";
+import SaveButton from "@/components/SaveButton";
+import ShareButton from "@/components/ShareButton";
 import type { Metadata } from "next";
 import { SITE_URL } from "../../lib/seo";
 
@@ -59,6 +61,7 @@ export default async function JourneysPage() {
                           loading="lazy"
                         />
                       </Link>
+                      <ShareButton itemType="journey" itemId={j.slug} itemName={j.name} variant="dark" corner small />
                     </div>
                     <div className={styles.journeyListBody}>
                       <div className={styles.journeyListName}>
@@ -66,9 +69,6 @@ export default async function JourneysPage() {
                           {j.name}
                         </Link>
                       </div>
-                      {j.description && (
-                        <div className={styles.journeyListTeaser}>{j.description}</div>
-                      )}
                       <div className={styles.journeyListPills}>
                         <span className={styles.journeyListPill}>
                           {formatDuration(j.durationMinDays, j.durationMaxDays)}
@@ -78,6 +78,12 @@ export default async function JourneysPage() {
                             {formatCostTier(j.costTier)}
                           </span>
                         )}
+                      </div>
+                      {j.description && (
+                        <div className={styles.journeyListTeaser}>{j.description}</div>
+                      )}
+                      <div className={styles.journeyListCardFooter}>
+                        <SaveButton itemType="journey" itemId={j.slug} />
                       </div>
                     </div>
                   </article>

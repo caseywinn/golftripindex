@@ -1,5 +1,7 @@
 import Link from "next/link";
 import styles from "../styles/tripCard.module.css";
+import SaveButton from "./SaveButton";
+import ShareButton from "./ShareButton";
 
 type TripCardProps = {
   /** Used for scroll anchoring (e.g., id="trip-21") */
@@ -16,7 +18,7 @@ type TripCardProps = {
 
   durationMinDays?: number | null;
   durationMaxDays?: number | null;
-  driving?: number | null;
+  driving?: string | null;
   stayType?: string | null;
   leadTime?: string | null;
   costTier?: number | null;
@@ -59,9 +61,9 @@ function daysRange(min?: number | null, max?: number | null) {
   return "—";
 }
 
-function miles(n?: number | null) {
-  if (n === null || n === undefined || Number.isNaN(Number(n))) return "—";
-  return `${Math.round(Number(n))} miles`;
+function miles(n?: string | null) {
+  if (!n) return "—";
+  return n;
 }
 
 export default function TripCard(props: TripCardProps) {
@@ -91,59 +93,56 @@ export default function TripCard(props: TripCardProps) {
 
   return (
     <article id={id} className={`${styles.tile} whiteRoundedBox`}>
-      {/* Thumbnail is a link */}
-      <Link
-        href={href}
-        className={styles.mediaLink}
-        aria-label={`View trip: ${name}`}
-      >
-        <div
-          className={styles.media}
-          style={{ backgroundImage: `url(${thumb})` }}
-          aria-hidden="true"
+      {/* Thumbnail is a link, share button sits outside the link to avoid navigation */}
+      <div className={styles.mediaWrap}>
+        <Link
+          href={href}
+          className={styles.mediaLink}
+          aria-label={`View trip: ${name}`}
         >
-          <div className={styles.rank}>#{currentRanking}</div>
-
-          <div className={styles.cornerDots} aria-hidden="true">
-            <span />
-            <span />
-            <span />
-            <span />
+          <div className={styles.media} aria-hidden="true">
+            <div
+              className={styles.mediaImage}
+              style={{ backgroundImage: `url(${thumb})` }}
+            />
+            <div className={styles.rank}>#{currentRanking}</div>
           </div>
-        </div>
-      </Link>
+        </Link>
+        <ShareButton itemType="trip" itemId={slug} itemName={name} variant="dark" corner small />
+      </div>
 
       <div className={styles.body}>
         <div className={styles.top}>
-          {/* Title is a link */}
-          <div className={styles.title}>
-            <Link href={href} className={styles.titleLink}>
-              {name}
-              {secondaryName ? (
-                <span className={styles.secondary}> + {secondaryName}</span>
-              ) : null}
-            </Link>
+          {/* Title row: name left, save buttons right */}
+          <div className={styles.titleRow}>
+            <div className={styles.title}>
+              <Link href={href} className={styles.titleLink}>
+                {name}
+                {secondaryName ? (
+                  <span className={styles.secondary}> + {secondaryName}</span>
+                ) : null}
+              </Link>
+            </div>
+            <div className={styles.titleRowActions}>
+              <SaveButton itemType="trip" itemId={slug} />
+            </div>
           </div>
 
-          <div className={styles.meta}>
-            <div>
-              <span className={styles.metaLabel}>Duration:</span>{" "}
-              {daysRange(durationMinDays, durationMaxDays)}
-            </div>
-            <div>
-              <span className={styles.metaLabel}>Driving:</span> {miles(driving)}
-            </div>
-            <div>
-              <span className={styles.metaLabel}>Stay Type:</span>{" "}
-              {stayType ?? "—"}
-            </div>
-            <div>
-              <span className={styles.metaLabel}>Lead Time:</span>{" "}
-              {leadTime ?? "—"}
-            </div>
-            <div>
-              <span className={styles.metaLabel}>Cost:</span> {dollars(costTier)}
-            </div>
+          <div className={styles.pills}>
+            {daysRange(durationMinDays, durationMaxDays) && (
+              <span className={styles.pill}>{daysRange(durationMinDays, durationMaxDays)}</span>
+            )}
+            {dollars(costTier) && (
+              <span className={styles.pill}>{dollars(costTier)}</span>
+            )}
+            {miles(driving) !== "—" && (
+              <span className={`${styles.pill} ${styles.pillTooltipWrapper}`}>
+                Driving: {miles(driving)}
+                <span className={styles.metaTooltip}>
+                  Driving between courses and lodging during the trip. Does not include travel to or from an airport.
+                </span>
+              </span>
+            )}
           </div>
 
           {overview ? <p className={styles.overview}>{overview}</p> : null}
@@ -158,6 +157,7 @@ export default function TripCard(props: TripCardProps) {
           </div>
 
           <div className={styles.scores}>
+
             <div className={styles.score}>
               <div className={styles.scoreNum}>{intScore(golfRating)}</div>
               <div className={styles.scoreLabel}>Golf</div>

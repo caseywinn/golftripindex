@@ -71,13 +71,19 @@ export default function SiteHeader() {
         {/* Desktop: right-side CTA */}
         <div className={styles.cta}>
           {session ? (
-            <button
-              onClick={() => signOut({ callbackUrl: "/" })}
-              className={styles.ctaLink}
-              style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
-            >
-              Sign out
-            </button>
+            <div className={styles.ctaGroup}>
+              <Link href="/bag" className={styles.ctaLink}>
+                My Bag
+              </Link>
+              <span className={styles.ctaDivider} aria-hidden="true">|</span>
+              <button
+                onClick={() => signOut({ callbackUrl: "/" })}
+                className={styles.ctaLink}
+                style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
+              >
+                Sign out
+              </button>
+            </div>
           ) : (
             <Link href="/register" className={styles.ctaLink}>
               Sign in

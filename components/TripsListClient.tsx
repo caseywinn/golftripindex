@@ -18,7 +18,7 @@ type Trip = {
   durationMinDays?: number | null;
   durationMaxDays?: number | null;
 
-  driving?: any;
+  driving?: string | null;
   stayType?: any;
   leadTime?: any;
   costTier?: any;

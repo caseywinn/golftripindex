@@ -1,0 +1,159 @@
+.wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+/* When placed as a top-right corner overlay inside a position:relative parent */
+.wrapCorner {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+}
+
+/* The icon trigger button */
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(0, 0, 0, 0.52);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+  border-radius: 8px;
+  padding: 7px 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.trigger:hover {
+  background: rgba(0, 0, 0, 0.68);
+}
+
+.triggerIcon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+/* Small variant */
+.triggerSmall {
+  font-size: 11px;
+  padding: 4px 9px;
+  gap: 4px;
+}
+
+.triggerSmall .triggerIcon {
+  width: 12px;
+  height: 12px;
+}
+
+/* Light variant (used outside of hero images) */
+.triggerLight {
+  background: transparent;
+  border: 1px solid #d1d9e6;
+  color: #0b0f1a;
+}
+
+.triggerLight:hover {
+  background: #f4f6f9;
+}
+
+/* Popover — position is set via inline style (fixed, calculated from trigger rect) */
+.popover {
+  position: fixed;
+  z-index: 200;
+  background: #ffffff;
+  border: 1px solid #e9edf3;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.14);
+  padding: 16px;
+  width: 280px;
+}
+
+.popoverTitle {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #9aa3b2;
+  margin: 0 0 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #444c5c;
+}
+
+.input {
+  font-size: 13px;
+  font-family: inherit;
+  color: #0b0f1a;
+  background: #f8fafc;
+  border: 1px solid #d1d9e6;
+  border-radius: 8px;
+  padding: 8px 10px;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.input:focus {
+  border-color: #0488db;
+}
+
+.sendBtn {
+  width: 100%;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #0488db;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 0;
+  cursor: pointer;
+  margin-top: 4px;
+  transition: background 0.15s;
+}
+
+.sendBtn:hover:not(:disabled) {
+  background: #036db5;
+}
+
+.sendBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.feedback {
+  margin-top: 10px;
+  font-size: 12px;
+  text-align: center;
+}
+
+.success {
+  color: #15803d;
+}
+
+.error {
+  color: #dc2626;
+}
