@@ -669,36 +669,7 @@ export default function DesignTripPage() {
 
             <hr className={dt.sectionDivider} />
 
-            {/* ── PLAN THIS TRIP ──────────────────────────────────── */}
-            <section id="plan" className={dt.section}>
-              <div className={dt.planSection}>
-                <div>
-                  <div className={dt.planLabel}>GolfTripOS</div>
-                  <h2 className={dt.planTitle}>Plan your Bandon trip without the spreadsheet.</h2>
-                  <p className={dt.planText}>
-                    GolfTripOS builds your full Bandon Dunes trip plan — tee time strategy, lodging selection, budget breakdown, and a prebooking checklist — based on your group size, budget, and target dates. Takes about 3 minutes.
-                  </p>
-                </div>
-                <div>
-                  <div className={dt.planForm}>
-                    <input
-                      type="email"
-                      placeholder="Your email"
-                      className={dt.planInput}
-                    />
-                    <input
-                      type="text"
-                      placeholder="Group size (e.g. 8 players)"
-                      className={dt.planInput}
-                    />
-                    <button type="button" className={dt.planBtn}>
-                      Start planning
-                    </button>
-                    <div className={dt.planDisclaimer}>No account required. Free to start.</div>
-                  </div>
-                </div>
-              </div>
-            </section>
+            {/* ── PLAN THIS TRIP — hidden ─────────────────────────── */}
 
           </div>{/* end mainContent */}
         </div>{/* end bodyLayout */}

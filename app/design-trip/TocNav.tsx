@@ -15,7 +15,6 @@ const TOC = [
   { id: "pack",        label: "Pack List" },
   { id: "itinerary",   label: "Itinerary" },
   { id: "stay",        label: "Stay & Eat" },
-  { id: "plan",        label: "Plan This Trip" },
 ];
 
 export default function TocNav() {

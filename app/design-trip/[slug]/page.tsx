@@ -17,6 +17,8 @@ import EmailSignup from "@/components/EmailSignup";
 import SaveButton from "@/components/SaveButton";
 import ShareButton from "@/components/ShareButton";
 import { ProseMarkdown, LodgingMarkdown, PackMarkdown } from "../TripMarkdown";
+import JumpToSection from "../JumpToSection";
+import CostTable from "../CostTable";
 import { getPublishedTripFull, getPublishedTrips } from "@/lib/airtable";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -110,26 +112,6 @@ function parseLines(raw: string | undefined): string[] {
   return raw.split("\n").filter((line) => line.trim().length > 0);
 }
 
-function parsePriceRange(s: string): { min: number; max: number } | null {
-  const cleaned = s.replace(/[$,\s]/g, "");
-  const range = cleaned.match(/^(\d+)-(\d+)$/);
-  if (range) return { min: +range[1], max: +range[2] };
-  const single = cleaned.match(/^(\d+)$/);
-  if (single) { const n = +single[1]; return { min: n, max: n }; }
-  return null;
-}
-
-function sumPriceRanges(values: string[]): string {
-  let totalMin = 0, totalMax = 0, hasAny = false;
-  for (const v of values) {
-    const parsed = parsePriceRange(v);
-    if (parsed) { totalMin += parsed.min; totalMax += parsed.max; hasAny = true; }
-  }
-  if (!hasAny) return "";
-  const fmt = (n: number) => "$" + n.toLocaleString();
-  return totalMin === totalMax ? fmt(totalMin) : `${fmt(totalMin)}–${fmt(totalMax)}`;
-}
-
 function safeInt(n: number | undefined) {
   if (typeof n !== "number") return 0;
   return Math.floor(n);
@@ -200,6 +182,21 @@ export default async function DesignTripSlugPage({
   const costPeakHeader = peakLabel ? `Peak (${peakLabel})` : "Peak season";
 
   const showWhenToGo = peakLabel || shoulderLabel || offPeakLabel;
+
+  const jumpSections = [
+    ...(verdictText ? [{ id: "verdict", label: "Our take" }] : []),
+    ...(carouselCourses.length > 0 ? [{ id: "courses", label: "Courses included" }] : []),
+    ...(trip.fullDescription ? [{ id: "experience", label: "The trip experience" }] : []),
+    ...((trip.sideTrips.length > 0 || trip.wantMore) ? [{ id: "side-trips", label: "Side trips & bonus golf" }] : []),
+    ...((fitYes.length > 0 || fitNo.length > 0) ? [{ id: "fit", label: "Is this trip right for you?" }] : []),
+    ...(showWhenToGo ? [{ id: "when", label: "When to go" }] : []),
+    ...(trip.costRows.length > 0 ? [{ id: "cost", label: "Budget" }] : []),
+    ...(teeTimeRules.length > 0 ? [{ id: "tee-times", label: "Tee times" }] : []),
+    ...(mistakes.length > 0 ? [{ id: "mistakes", label: "Common mistakes" }] : []),
+    ...((trip.packBring || trip.packLeave) ? [{ id: "pack", label: "What to pack" }] : []),
+    ...((trip.itinerary.min.length > 0 || trip.itinerary.max.length > 0) ? [{ id: "itinerary", label: "Sample itinerary" }] : []),
+    ...((trip.lodging || trip.dining) ? [{ id: "stay", label: "Where to stay & eat" }] : []),
+  ];
 
   const breadcrumbSchema = {
     "@context": "https://schema.org",
@@ -330,6 +327,8 @@ export default async function DesignTripSlugPage({
 
           {/* MAIN CONTENT */}
           <div className={dt.mainContent}>
+
+            <JumpToSection sections={jumpSections} />
 
             {/* ── VERDICT ────────────────────────────────────────── */}
             {verdictText && (
@@ -503,50 +502,7 @@ export default async function DesignTripSlugPage({
                   <div className={dt.sectionLabel}>Budget</div>
                   <h2 className={dt.sectionTitle}>What a {trip.name} trip costs</h2>
 
-                  {(() => {
-                    const nonOptional = trip.costRows.filter((r) => !r.optional);
-                    const totalPeak = sumPriceRanges(nonOptional.map((r) => r.peak));
-                    const totalShoulder = sumPriceRanges(nonOptional.map((r) => r.shoulder));
-                    const totalOffSeason = sumPriceRanges(nonOptional.map((r) => r.offSeason));
-                    return (
-                      <table className={dt.costTable}>
-                        <thead>
-                          <tr>
-                            <th>Item</th>
-                            <th>Peak</th>
-                            <th>Shoulder</th>
-                            <th>Off-Season</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {trip.costRows.map((row) => (
-                            <tr key={row.id}>
-                              <td>
-                                {row.line}
-                                {row.optional && (
-                                  <span className={dt.costOptional}>(optional)</span>
-                                )}
-                              </td>
-                              <td>{row.peak}</td>
-                              <td>{row.shoulder}</td>
-                              <td>{row.offSeason}</td>
-                            </tr>
-                          ))}
-                          {(totalPeak || totalShoulder || totalOffSeason) && (
-                            <tr className={dt.costTableTotal}>
-                              <td>Total (est.)</td>
-                              <td>{totalPeak}</td>
-                              <td>{totalShoulder}</td>
-                              <td>{totalOffSeason}</td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    );
-                  })()}
-                  {trip.costNote && (
-                    <p className={dt.costNote}>{trip.costNote}</p>
-                  )}
+                  <CostTable rows={trip.costRows} costNote={trip.costNote} />
                 </section>
 
                 <hr className={dt.sectionDivider} />
@@ -661,36 +617,7 @@ export default async function DesignTripSlugPage({
               </>
             )}
 
-            {/* ── PLAN THIS TRIP ──────────────────────────────────── */}
-            <section id="plan" className={dt.section}>
-              <div className={dt.planSection}>
-                <div>
-                  <div className={dt.planLabel}>GolfTripOS</div>
-                  <h2 className={dt.planTitle}>Plan your {trip.name} trip without the spreadsheet.</h2>
-                  <p className={dt.planText}>
-                    GolfTripOS builds your full trip plan — tee time strategy, lodging selection, budget breakdown, and a prebooking checklist — based on your group size, budget, and target dates. Takes about 3 minutes.
-                  </p>
-                </div>
-                <div>
-                  <div className={dt.planForm}>
-                    <input
-                      type="email"
-                      placeholder="Your email"
-                      className={dt.planInput}
-                    />
-                    <input
-                      type="text"
-                      placeholder="Group size (e.g. 8 players)"
-                      className={dt.planInput}
-                    />
-                    <button type="button" className={dt.planBtn}>
-                      Start planning
-                    </button>
-                    <div className={dt.planDisclaimer}>No account required. Free to start.</div>
-                  </div>
-                </div>
-              </div>
-            </section>
+            {/* ── PLAN THIS TRIP — hidden ─────────────────────────── */}
 
           </div>{/* end mainContent */}
         </div>{/* end bodyLayout */}

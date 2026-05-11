@@ -45,17 +45,25 @@ export default function CompareWidget({
     router.push(`/compare/${currentSlug}-vs-${selected}`);
   }
 
+  function handleSelect(e: React.ChangeEvent<HTMLSelectElement>) {
+    const slug = e.target.value;
+    setSelected(slug);
+    if (slug && window.innerWidth < 1024) {
+      router.push(`/compare/${currentSlug}-vs-${slug}`);
+    }
+  }
+
   return (
-    <div className={styles.compareBar} style={{ bottom: bottomOffset }}>
+    <div className={styles.compareBar} data-compare-bar style={{ bottom: bottomOffset }}>
       <div className={styles.compareBarInner}>
         <span className={styles.compareBarName}>{tripName}</span>
         <div className={styles.compareBarRight}>
           <select
             value={selected}
-            onChange={e => setSelected(e.target.value)}
+            onChange={handleSelect}
             className={styles.compareSelect}
           >
-            <option value="" disabled>Compare with…</option>
+            <option value="" disabled>Compare…</option>
             {trips.map(t => (
               <option key={t.slug} value={t.slug}>{t.name}</option>
             ))}

@@ -247,11 +247,15 @@
 }
 
 .courseCarouselOuter {
-  position: relative;
   border: 1px solid #eef1f6;
   border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.courseCarouselImgOuter {
+  position: relative;
+  overflow: hidden;
 }
 
 .courseCarouselViewport {
@@ -290,11 +294,25 @@
 
 .courseCarouselFooter {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
+  flex-direction: column;
+  gap: 10px;
   padding: 14px 20px 16px;
   background: #fff;
+}
+
+.courseCarouselNameRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.courseCarouselCounter {
+  font-size: 11.5px;
+  color: #9aa3b2;
+  font-weight: 500;
+  white-space: nowrap;
+  display: none;
 }
 
 .courseCarouselName {
@@ -337,7 +355,7 @@
 
 .courseCarouselArrow {
   position: absolute;
-  top: calc(380px / 2);
+  top: 50%;
   transform: translateY(-50%);
   width: 38px;
   height: 38px;
@@ -491,13 +509,22 @@
   margin-top: 3px;
 }
 
-/* ── Side Trip Carousel (2-up) ────────────────────────── */
+/* ── Side Trip Carousel (2-up desktop, 1-up mobile) ──────── */
 .stCarousel {
   /* wrapper */
 }
 
 .stCarouselOuter {
+  border: 1px solid #eef1f6;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  background: #fff;
+}
+
+.stCarouselImgOuter {
   position: relative;
+  overflow: hidden;
 }
 
 .stCarouselViewport {
@@ -508,16 +535,13 @@
   overflow-x: scroll;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
-  position: relative;
+  scroll-snap-type: x mandatory;
 }
 .stCarouselViewport::-webkit-scrollbar { display: none; }
 
 .stCarouselSlide {
-  border: 1px solid #eef1f6;
-  border-radius: 10px;
+  scroll-snap-align: start;
   overflow: hidden;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-  background: #fff;
 }
 
 .stCarouselImg {
@@ -525,20 +549,6 @@
   background-size: cover;
   background-position: center;
   background-color: #e9edf3;
-  position: relative;
-}
-
-.stCarouselRank {
-  position: absolute;
-  bottom: 12px;
-  left: 14px;
-  font-size: 40px;
-  font-weight: 800;
-  color: #fff;
-  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.7);
-  letter-spacing: -0.04em;
-  line-height: 1;
-  pointer-events: none;
 }
 
 .stCarouselGolfRank {
@@ -550,19 +560,22 @@
   margin-bottom: 5px;
 }
 
-.stCarousel .courseCarouselArrow {
-  top: calc(220px / 2);
-}
-
 .stCarouselFooter {
   padding: 14px 16px 16px;
+}
+
+.stCarouselNameRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
 }
 
 .stCarouselName {
   font-size: 14px;
   font-weight: 700;
   color: #0b0f1a;
-  margin-bottom: 6px;
 }
 
 .stCarouselText {
@@ -1315,5 +1328,182 @@
   }
   .planTitle {
     font-size: 21px;
+  }
+}
+
+/* ── Jump to Section (mobile nav) ─────────────────────────── */
+
+.jumpNav {
+  display: none;
+}
+
+.jumpNavBtn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 16px;
+  background: #fff;
+  border: 1px solid #e5eaf2;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #0b0f1a;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.jumpNavChevron {
+  font-size: 10px;
+  color: #9aa3b2;
+}
+
+.jumpModalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.jumpModal {
+  background: #fff;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 400px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+
+.jumpModalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5eaf2;
+  flex-shrink: 0;
+}
+
+.jumpModalTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0b0f1a;
+}
+
+.jumpModalClose {
+  background: none;
+  border: none;
+  font-size: 14px;
+  color: #9aa3b2;
+  cursor: pointer;
+  padding: 2px 4px;
+  line-height: 1;
+}
+
+.jumpModalLinks {
+  overflow-y: auto;
+}
+
+.jumpNavLink {
+  display: block;
+  padding: 13px 20px;
+  font-size: 14px;
+  color: #374151;
+  text-decoration: none;
+  border-bottom: 1px solid #f0f3f8;
+}
+
+.jumpNavLink:last-child {
+  border-bottom: none;
+}
+
+.jumpNavLink:active {
+  background: #f7f9fc;
+}
+
+@media (max-width: 1024px) {
+  .jumpNav {
+    display: block;
+    margin-bottom: 28px;
+  }
+}
+
+/* ── Cost table: desktop/mobile variants ───────────────────── */
+
+.costTableDesktop { display: table; }
+.costTableMobile  { display: none; }
+
+.costColToggle {
+  display: none;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.costColToggleBtn {
+  flex: 1;
+  padding: 7px 10px;
+  border-radius: 6px;
+  border: 1px solid #e5eaf2;
+  background: #fff;
+  color: #6b7280;
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s, background 0.12s;
+}
+
+.costColToggleBtnActive {
+  background: #0b0f1a;
+  border-color: #0b0f1a;
+  color: #fff;
+}
+
+@media (max-width: 640px) {
+  .costTableDesktop { display: none; }
+  .costTableMobile  { display: table; }
+  .costColToggle    { display: flex; }
+}
+
+/* ── Carousel mobile fixes ─────────────────────────────────── */
+
+@media (max-width: 640px) {
+  /* Hide tab nav strips; use counter + arrows instead */
+  .courseNavStrip { display: none; }
+
+  /* Aspect-ratio images instead of fixed height */
+  .courseCarouselImg {
+    height: auto;
+    aspect-ratio: 16 / 9;
+  }
+  .stCarouselImg {
+    height: auto;
+    aspect-ratio: 16 / 9;
+  }
+
+  /* Show counter */
+  .courseCarouselCounter { display: block; }
+
+  /* Side trips: 1-up */
+  .stCarouselViewport {
+    grid-auto-columns: 100%;
+    gap: 0;
+  }
+}
+
+/* ── Stay & eat: stack tag below name on mobile ────────────── */
+
+@media (max-width: 640px) {
+  .stayCardHead {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
   }
 }

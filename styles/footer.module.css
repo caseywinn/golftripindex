@@ -96,6 +96,10 @@
 
 /* Responsive */
 @media (max-width: 800px) {
+  .nav {
+    display: none;
+  }
+
   .inner {
     height: auto;
     padding: 20px 18px;

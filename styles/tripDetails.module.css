@@ -54,7 +54,7 @@
 }
 
 .compareBtn {
-  padding: 5px 12px;
+  padding: 5px 8px;
   background: transparent;
   color: rgba(255, 255, 255, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -752,5 +752,11 @@
 
   .courseGrid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1024px) {
+  .compareBtn {
+    display: none;
   }
 }

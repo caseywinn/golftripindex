@@ -15,6 +15,8 @@ export default function SideTripCarousel({ items }: { items: SideTrip[] }) {
   const [index, setIndex] = useState(0);
   const viewportRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const touchStartX = useRef(0);
+  const current = items[index];
 
   useEffect(() => {
     const card = cardRefs.current[index];
@@ -28,6 +30,7 @@ export default function SideTripCarousel({ items }: { items: SideTrip[] }) {
 
   return (
     <div className={dt.stCarousel}>
+      {/* Tab nav — desktop only */}
       <div className={dt.courseNavStrip}>
         {items.map((item, i) => (
           <button
@@ -41,54 +44,68 @@ export default function SideTripCarousel({ items }: { items: SideTrip[] }) {
       </div>
 
       <div className={dt.stCarouselOuter}>
-        <div className={dt.stCarouselViewport} ref={viewportRef}>
-          {items.map((item, i) => (
-            <div
-              key={item.id}
-              className={dt.stCarouselSlide}
-              ref={(el) => { cardRefs.current[i] = el; }}
-            >
+        {/* Image-only area — arrows positioned relative to this */}
+        <div
+          className={dt.stCarouselImgOuter}
+          onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
+          onTouchEnd={(e) => {
+            const delta = touchStartX.current - e.changedTouches[0].clientX;
+            if (delta > 50) next();
+            else if (delta < -50) prev();
+          }}
+        >
+          <div className={dt.stCarouselViewport} ref={viewportRef}>
+            {items.map((item, i) => (
               <div
-                className={dt.stCarouselImg}
-                style={{
-                  backgroundImage: item.isGolf
-                    ? `url("/images/courses/${item.slug}.jpg")`
-                    : `url("/images/side-trips/${item.slug}.jpg")`,
-                }}
+                key={item.id}
+                className={dt.stCarouselSlide}
+                ref={(el) => { cardRefs.current[i] = el; }}
               >
-                {item.isGolf && item.consolidatedRanking && (
-                  <span className={dt.stCarouselRank}>#{item.consolidatedRanking}</span>
-                )}
+                <div
+                  className={dt.stCarouselImg}
+                  style={{
+                    backgroundImage: item.isGolf
+                      ? `url("/images/courses/${item.slug}.jpg")`
+                      : `url("/images/side-trips/${item.slug}.jpg")`,
+                  }}
+                />
               </div>
-              <div className={dt.stCarouselFooter}>
-                <div className={dt.stCarouselName}>{item.name}</div>
-                {item.isGolf && item.consolidatedRanking && (
-                  <div className={dt.stCarouselGolfRank}>
-                    Ranked #{item.consolidatedRanking} overall
-                  </div>
-                )}
-                <div className={dt.stCarouselText}>{item.text}</div>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
+
+          <button
+            className={`${dt.courseCarouselArrow} ${dt.courseCarouselArrowLeft}`}
+            onClick={prev}
+            disabled={index === 0}
+            aria-label="Previous"
+          >
+            &#8592;
+          </button>
+          <button
+            className={`${dt.courseCarouselArrow} ${dt.courseCarouselArrowRight}`}
+            onClick={next}
+            disabled={index === items.length - 1}
+            aria-label="Next"
+          >
+            &#8594;
+          </button>
         </div>
 
-        <button
-          className={`${dt.courseCarouselArrow} ${dt.courseCarouselArrowLeft}`}
-          onClick={prev}
-          disabled={index === 0}
-          aria-label="Previous"
-        >
-          &#8592;
-        </button>
-        <button
-          className={`${dt.courseCarouselArrow} ${dt.courseCarouselArrowRight}`}
-          onClick={next}
-          disabled={index === items.length - 1}
-          aria-label="Next"
-        >
-          &#8594;
-        </button>
+        {/* Footer — shows active item */}
+        <div className={dt.stCarouselFooter}>
+          <div className={dt.stCarouselNameRow}>
+            <div className={dt.stCarouselName}>{current.name}</div>
+            <div className={dt.courseCarouselCounter}>
+              {index + 1} of {items.length}
+            </div>
+          </div>
+          {current.isGolf && current.consolidatedRanking && (
+            <div className={dt.stCarouselGolfRank}>
+              Ranked #{current.consolidatedRanking} overall
+            </div>
+          )}
+          <div className={dt.stCarouselText}>{current.text}</div>
+        </div>
       </div>
     </div>
   );

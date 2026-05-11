@@ -83,6 +83,34 @@ export default function CaddieWidget() {
   const [messages, setMessages] = useState<WidgetMsg[]>([]);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const inFlightRef = useRef(false);
+  const [compareBarHeight, setCompareBarHeight] = useState(0);
+
+  useEffect(() => {
+    let ro: ResizeObserver | null = null;
+
+    function attach(el: Element) {
+      ro?.disconnect();
+      ro = new ResizeObserver(() => setCompareBarHeight((el as HTMLElement).offsetHeight));
+      ro.observe(el);
+      setCompareBarHeight((el as HTMLElement).offsetHeight);
+    }
+
+    function check() {
+      const el = document.querySelector("[data-compare-bar]");
+      if (el) {
+        attach(el);
+      } else {
+        ro?.disconnect();
+        ro = null;
+        setCompareBarHeight(0);
+      }
+    }
+
+    const mo = new MutationObserver(check);
+    mo.observe(document.body, { childList: true, subtree: true });
+    check();
+    return () => { mo.disconnect(); ro?.disconnect(); };
+  }, []);
 
   // Detect trip or journey context from current URL
   const contextInfo = useMemo<{ contextSlug?: string; contextType?: ContextType }>(() => {
@@ -221,7 +249,7 @@ export default function CaddieWidget() {
         style={{
           position: "fixed",
           right: 18,
-          bottom: 18,
+          bottom: 18 + compareBarHeight,
           zIndex: 9999,
           borderRadius: 999,
           border: "1px solid #ddd",
@@ -249,7 +277,7 @@ export default function CaddieWidget() {
           style={{
             position: "fixed",
             right: 18,
-            bottom: 72,
+            bottom: 72 + compareBarHeight,
             width: 360,
             maxWidth: "calc(100vw - 36px)",
             height: 520,
