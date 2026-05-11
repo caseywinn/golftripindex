@@ -21,7 +21,7 @@
 .mainContent {
   flex: 1;
   min-width: 0;
-  padding-bottom: 80px;
+  padding-bottom: 32px;
 }
 
 /* ── TOC Rail ──────────────────────────────────────────────── */
@@ -1355,11 +1355,7 @@
   display: none;
 }
 
-.jumpNavBtn {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+.jumpNavSelect {
   width: 100%;
   padding: 11px 16px;
   background: #fff;
@@ -1370,6 +1366,7 @@
   color: #0b0f1a;
   font-family: inherit;
   cursor: pointer;
+  appearance: auto;
 }
 
 .askCaddieBtn {
@@ -1447,86 +1444,6 @@
   flex-shrink: 0;
 }
 
-.jumpNavChevron {
-  font-size: 10px;
-  color: #9aa3b2;
-}
-
-.jumpModalBackdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  z-index: 50;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-}
-
-.jumpModal {
-  background: #fff;
-  border-radius: 16px 16px 0 0;
-  width: 100%;
-  max-height: 80vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.15);
-}
-
-.jumpModalHandle {
-  width: 36px;
-  height: 4px;
-  background: #d1d5db;
-  border-radius: 2px;
-  margin: 12px auto 4px;
-  flex-shrink: 0;
-}
-
-.jumpModalHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 20px 14px;
-  border-bottom: 1px solid #e5eaf2;
-  flex-shrink: 0;
-}
-
-.jumpModalTitle {
-  font-size: 14px;
-  font-weight: 700;
-  color: #0b0f1a;
-}
-
-.jumpModalClose {
-  background: none;
-  border: none;
-  font-size: 14px;
-  color: #9aa3b2;
-  cursor: pointer;
-  padding: 2px 4px;
-  line-height: 1;
-}
-
-.jumpModalLinks {
-  overflow-y: auto;
-}
-
-.jumpNavLink {
-  display: block;
-  padding: 13px 20px;
-  font-size: 14px;
-  color: #374151;
-  text-decoration: none;
-  border-bottom: 1px solid #f0f3f8;
-}
-
-.jumpNavLink:last-child {
-  border-bottom: none;
-}
-
-.jumpNavLink:active {
-  background: #f7f9fc;
-}
 
 @media (max-width: 1024px) {
   .jumpNav {
