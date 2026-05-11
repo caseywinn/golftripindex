@@ -1,0 +1,1319 @@
+/* ============================================================
+   DESIGN TRIP — Trip Detail Redesign Styles
+   /design-trip page only. Not linked from production.
+   ============================================================ */
+
+/* ── Body / Layout ─────────────────────────────────────────── */
+
+.body {
+  background: var(--bg);
+}
+
+.bodyLayout {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 44px 28px 0;
+  display: flex;
+  gap: 60px;
+  align-items: flex-start;
+}
+
+.mainContent {
+  flex: 1;
+  min-width: 0;
+  padding-bottom: 80px;
+}
+
+/* ── TOC Rail ──────────────────────────────────────────────── */
+
+.tocRail {
+  width: 172px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 88px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.tocRail::-webkit-scrollbar {
+  display: none;
+}
+
+.tocLabel {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: #9aa3b2;
+  margin-bottom: 10px;
+  padding-left: 12px;
+}
+
+.tocList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.tocItem {
+  display: block;
+  font-size: 12.5px;
+  color: #6b7280;
+  text-decoration: none;
+  padding: 5px 8px 5px 12px;
+  border-left: 2px solid #e5eaf2;
+  line-height: 1.45;
+  border-radius: 0 4px 4px 0;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+}
+
+.tocItem:hover {
+  color: #0488db;
+  background: #f0f7ff;
+}
+
+.tocItemActive {
+  color: #0488db !important;
+  border-left-color: #0488db !important;
+  font-weight: 600;
+  background: #f0f7ff;
+}
+
+@media (max-width: 1024px) {
+  .bodyLayout {
+    gap: 0;
+    padding-top: 40px;
+  }
+  .tocRail {
+    display: none;
+  }
+}
+
+/* ── Section base ──────────────────────────────────────────── */
+
+.section {
+  scroll-margin-top: 80px;
+  padding-bottom: 36px;
+}
+
+.sectionLabel {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: #9aa3b2;
+  margin-bottom: 6px;
+}
+
+.sectionTitle {
+  font-size: 23px;
+  font-weight: 750;
+  color: #0b0f1a;
+  margin: 0 0 22px;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.sectionDivider {
+  border: none;
+  border-top: 1px solid #e5eaf2;
+  margin: 0 0 36px;
+}
+
+/* ── Prose ─────────────────────────────────────────────────── */
+
+.prose {
+  font-size: 15px;
+  line-height: 1.85;
+  color: #2f3642;
+}
+
+.prose p {
+  margin: 0 0 22px;
+}
+
+/* ── Pull quote ────────────────────────────────────────────── */
+
+.pullQuote {
+  margin: 32px 0 36px;
+  padding: 18px 26px 18px 28px;
+  border-left: 3px solid #16f28b;
+  background: #f5f8fb;
+  border-radius: 0 8px 8px 0;
+}
+
+.pullQuoteText {
+  font-size: 17px;
+  font-style: italic;
+  font-weight: 500;
+  color: #1c2b3a;
+  line-height: 1.65;
+  margin: 0;
+}
+
+/* react-markdown wraps blockquote content in a <p> */
+.pullQuote p {
+  font-size: 17px;
+  font-style: italic;
+  font-weight: 500;
+  color: #1c2b3a;
+  line-height: 1.65;
+  margin: 0;
+}
+
+/* ── Inline links ──────────────────────────────────────────── */
+
+.proseLink {
+  color: #0b6fcb;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.proseLink:hover {
+  color: #094fa0;
+}
+
+.stayLink {
+  color: #0b6fcb;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.stayLink:hover {
+  color: #094fa0;
+}
+
+.packLink {
+  color: #0b6fcb;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.packLink:hover {
+  color: #094fa0;
+}
+
+/* ── Verdict box ───────────────────────────────────────────── */
+
+.verdictText {
+  font-size: 15px;
+  line-height: 1.85;
+  color: #2f3642;
+  margin: 0;
+}
+
+/* ── Course grid (2+3 layout) ───────────────────────────────── */
+
+/* ── Course Carousel ──────────────────────────────────── */
+.courseCarousel {
+  /* wrapper */
+}
+
+.courseNavStrip {
+  display: flex;
+  overflow-x: auto;
+  border-bottom: 1px solid #e5eaf2;
+  margin-bottom: 16px;
+  scrollbar-width: none;
+}
+.courseNavStrip::-webkit-scrollbar { display: none; }
+
+.courseNavTab {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  padding: 8px 18px 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s;
+}
+.courseNavTab:hover { color: #0b0f1a; }
+
+.courseNavTabActive {
+  color: #0b0f1a;
+  font-weight: 700;
+  border-bottom-color: #0488db;
+}
+
+.courseCarouselOuter {
+  position: relative;
+  border: 1px solid #eef1f6;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.courseCarouselViewport {
+  overflow: hidden;
+}
+
+.courseCarouselTrack {
+  display: flex;
+  transition: transform 0.35s ease;
+}
+
+.courseCarouselSlide {
+  min-width: 100%;
+  flex-shrink: 0;
+}
+
+.courseCarouselImg {
+  height: 380px;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+
+.courseCarouselRank {
+  position: absolute;
+  bottom: 14px;
+  left: 16px;
+  font-size: 52px;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.7);
+  letter-spacing: -0.04em;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.courseCarouselFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 14px 20px 16px;
+  background: #fff;
+}
+
+.courseCarouselName {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0b0f1a;
+  flex-shrink: 0;
+}
+
+.courseCarouselRanks {
+  display: flex;
+  gap: 24px;
+}
+
+.courseCarouselRankCell {
+  text-align: center;
+}
+
+.courseCarouselRankNum {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0b0f1a;
+  line-height: 1;
+}
+
+.courseCarouselRankNumOverall {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0488db;
+  line-height: 1;
+}
+
+.courseCarouselRankLabel {
+  font-size: 9px;
+  color: #9aa3b2;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+.courseCarouselArrow {
+  position: absolute;
+  top: calc(380px / 2);
+  transform: translateY(-50%);
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  border: none;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.22);
+  cursor: pointer;
+  font-size: 17px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  transition: opacity 0.15s, background 0.15s;
+}
+.courseCarouselArrow:hover { background: #fff; }
+.courseCarouselArrow:disabled { opacity: 0.25; cursor: default; }
+
+.courseCarouselArrowLeft { left: 12px; }
+.courseCarouselArrowRight { right: 12px; }
+
+/* ── Course Grid (legacy) ─────────────────────────────── */
+.courseGridLayout {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.courseFeaturedRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.courseStandardRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.courseCard {
+  background: #fff;
+  border: 1px solid #eef1f6;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px #0000000d;
+  transition: box-shadow 0.15s;
+}
+
+.courseCard:hover {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.09);
+}
+
+.courseCardImg {
+  position: relative;
+  overflow: hidden;
+  background-color: #e9edf3;
+}
+
+.courseCardImgFeatured { height: 250px; }
+.courseCardImgStandard { height: 170px; }
+
+.courseCardImgBg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  transition: transform 0.3s ease;
+}
+
+.courseCard:hover .courseCardImgBg {
+  transform: scale(1.03);
+}
+
+.courseCardRankOverlay {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  font-size: 34px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.65);
+  letter-spacing: -0.03em;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.courseCardMustBadge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #fff;
+  background: #ef4444;
+  border-radius: 4px;
+  padding: 3px 8px;
+}
+
+.courseCardFooter {
+  padding: 11px 14px 13px;
+}
+
+.courseCardName {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0b0f1a;
+  margin-bottom: 9px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.courseCardRanks {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.courseCardRankCell {
+  text-align: center;
+}
+
+.courseCardRankNum {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0b0f1a;
+  line-height: 1;
+}
+
+.courseCardRankNumOverall {
+  font-size: 13px;
+  font-weight: 800;
+  color: #0488db;
+  line-height: 1;
+}
+
+.courseCardRankNr {
+  font-size: 12px;
+  font-weight: 600;
+  color: #c0c8d4;
+  line-height: 1;
+}
+
+.courseCardRankLabel {
+  font-size: 8.5px;
+  color: #9aa3b2;
+  letter-spacing: 0.02em;
+  margin-top: 3px;
+}
+
+/* ── Side Trip Carousel (2-up) ────────────────────────── */
+.stCarousel {
+  /* wrapper */
+}
+
+.stCarouselOuter {
+  position: relative;
+}
+
+.stCarouselViewport {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: calc(50% - 6px);
+  gap: 12px;
+  overflow-x: scroll;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+}
+.stCarouselViewport::-webkit-scrollbar { display: none; }
+
+.stCarouselSlide {
+  border: 1px solid #eef1f6;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  background: #fff;
+}
+
+.stCarouselImg {
+  height: 220px;
+  background-size: cover;
+  background-position: center;
+  background-color: #e9edf3;
+  position: relative;
+}
+
+.stCarouselRank {
+  position: absolute;
+  bottom: 12px;
+  left: 14px;
+  font-size: 40px;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.7);
+  letter-spacing: -0.04em;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.stCarouselGolfRank {
+  font-size: 11px;
+  font-weight: 700;
+  color: #0488db;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 5px;
+}
+
+.stCarousel .courseCarouselArrow {
+  top: calc(220px / 2);
+}
+
+.stCarouselFooter {
+  padding: 14px 16px 16px;
+}
+
+.stCarouselName {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0b0f1a;
+  margin-bottom: 6px;
+}
+
+.stCarouselText {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #4b5563;
+}
+
+/* Course category summary box */
+.courseSummary {
+  padding: 14px 16px;
+  margin-bottom: 0;
+}
+
+.courseSummaryTitle {
+  font-size: 13px;
+  font-weight: 750;
+  color: #0488db;
+  letter-spacing: 0.02em;
+  margin-bottom: 12px;
+}
+
+.courseSummaryRows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.courseSummaryRow {
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  gap: 8px;
+  align-items: start;
+}
+
+.courseSummaryKey {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.courseSummaryVal {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #2f3642;
+}
+
+/* ── Is this trip right for you? ──────────────────────────── */
+
+.fitGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.fitCard {
+  padding: 18px 20px 22px;
+  border-radius: 10px;
+}
+
+.fitCardYes {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+.fitCardNo {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+.fitCardTitle {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin: 0 0 14px;
+}
+
+.fitCardTitleYes { color: #15803d; }
+.fitCardTitleNo  { color: #b91c1c; }
+
+.fitList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fitItem {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #374151;
+}
+
+.fitIcon {
+  flex-shrink: 0;
+  font-size: 13px;
+  margin-top: 1px;
+}
+
+@media (max-width: 600px) {
+  .fitGrid { grid-template-columns: 1fr; }
+}
+
+/* ── Cost table ────────────────────────────────────────────── */
+
+.costTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  margin-bottom: 16px;
+}
+
+.costTable th {
+  text-align: left;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #9aa3b2;
+  padding: 0 16px 12px 0;
+  border-bottom: 1.5px solid #e5eaf2;
+}
+
+.costTable th:not(:first-child) {
+  text-align: right;
+  padding-right: 0;
+}
+
+.costTable td {
+  padding: 10px 16px 10px 0;
+  color: #374151;
+  border-bottom: 1px solid #f0f3f8;
+  vertical-align: middle;
+}
+
+.costTable td:not(:first-child) {
+  text-align: right;
+  font-weight: 600;
+  color: #0b0f1a;
+  white-space: nowrap;
+  padding-right: 0;
+}
+
+.costOptional {
+  font-size: 11px;
+  font-weight: 400;
+  color: #9aa3b2;
+  margin-left: 4px;
+}
+
+.costTableTotal td {
+  border-bottom: none;
+  border-top: 2px solid #0b0f1a;
+  padding-top: 14px;
+  font-size: 14.5px;
+  font-weight: 800;
+  color: #0b0f1a;
+}
+
+.costTableTotal td:not(:first-child) {
+  color: #0488db;
+}
+
+.costNote {
+  font-size: 12px;
+  color: #9aa3b2;
+  line-height: 1.65;
+}
+
+/* ── When to go — season cards ─────────────────────────────── */
+
+.seasonGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.seasonCard {
+  padding: 18px 18px 22px;
+  border-radius: 10px;
+  border: 1px solid #e5eaf2;
+  background: #fff;
+}
+
+.seasonCardPeak     { border-color: #fde68a; background: #fffbeb; }
+.seasonCardShoulder { border-color: #bbf7d0; background: #f0fdf4; }
+.seasonCardOff      { border-color: #e0e7ef; background: #f7f9fc; }
+
+.seasonTagline {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+
+.seasonTaglinePeak     { color: #d97706; }
+.seasonTaglineShoulder { color: #15803d; }
+.seasonTaglineOff      { color: #6b7280; }
+
+.seasonName {
+  font-size: 15px;
+  font-weight: 750;
+  color: #0b0f1a;
+  margin-bottom: 4px;
+}
+
+.seasonMonths {
+  font-size: 11.5px;
+  color: #6b7280;
+  margin-bottom: 14px;
+}
+
+.seasonPoints {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.seasonPoint {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #374151;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.seasonDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+
+.seasonDotPeak     { background: #d97706; }
+.seasonDotShoulder { background: #16a34a; }
+.seasonDotOff      { background: #9aa3b2; }
+
+.seasonVerdict {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0,0,0,0.06);
+  font-size: 12px;
+  font-weight: 650;
+  color: #0b0f1a;
+  line-height: 1.5;
+}
+
+@media (max-width: 700px) {
+  .seasonGrid { grid-template-columns: 1fr; }
+}
+
+/* ── How tee times work — numbered list ────────────────────── */
+
+.numberedList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.numberedItem {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 14px;
+  align-items: start;
+}
+
+.numberedBadge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #0b0f1a;
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.numberedHead {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0b0f1a;
+  margin-bottom: 3px;
+}
+
+.numberedText {
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: #4b5563;
+}
+
+/* ── Common mistakes ───────────────────────────────────────── */
+
+.mistakeList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mistakeItem {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 10px;
+  align-items: start;
+  padding: 14px 16px;
+  background: #fff8f0;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+}
+
+.mistakeIconBadge {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #f59e0b;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  font-style: normal;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+  line-height: 1;
+}
+
+.mistakeHead {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0b0f1a;
+  margin-bottom: 3px;
+}
+
+.mistakeText {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #6b7280;
+}
+
+/* ── Pack list ─────────────────────────────────────────────── */
+
+.packColumns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 40px;
+}
+
+.packGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.packGroupLabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #9aa3b2;
+  margin-bottom: 2px;
+}
+
+.packItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: #2f3642;
+}
+
+.packItemHead {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0b0f1a;
+  margin-bottom: 2px;
+}
+
+.packItemBody {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #6b7280;
+}
+
+.packCheck {
+  width: 15px;
+  height: 15px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 3px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  background: #fff;
+}
+
+.packLeaveCheck {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 9px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+  line-height: 1;
+}
+
+.packItemLeave {
+  color: #9aa3b2;
+  text-decoration: line-through;
+}
+
+@media (max-width: 600px) {
+  .packColumns { grid-template-columns: 1fr; }
+}
+
+/* ── Itinerary toggle ──────────────────────────────────────── */
+
+.itineraryToggle {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 24px;
+}
+
+.itineraryToggleBtn {
+  padding: 6px 18px;
+  border-radius: 20px;
+  border: 1px solid #e5eaf2;
+  background: #fff;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s, background 0.12s;
+}
+
+.itineraryToggleBtn:hover {
+  border-color: #0488db;
+  color: #0488db;
+}
+
+.itineraryToggleBtnActive {
+  background: #0b0f1a;
+  border-color: #0b0f1a;
+  color: #fff;
+}
+
+.itineraryToggleBtnActive:hover {
+  border-color: #0b0f1a;
+  color: #fff;
+}
+
+/* ── Itinerary — timeline ──────────────────────────────────── */
+
+.itineraryList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.itineraryItem {
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  gap: 0 16px;
+  position: relative;
+}
+
+.itineraryItem:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 29px;
+  top: 28px;
+  bottom: 0;
+  width: 2px;
+  background: #e5eaf2;
+}
+
+.itineraryDot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 6px;
+  gap: 4px;
+}
+
+.itineraryDotCircle {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #0488db;
+  border: 2px solid #f5f8f9;
+  box-shadow: 0 0 0 2px #0488db;
+  z-index: 1;
+  flex-shrink: 0;
+}
+
+.itineraryDayLabel {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #9aa3b2;
+  text-transform: uppercase;
+}
+
+.itineraryContent {
+  padding: 2px 0 28px;
+}
+
+.itinerarySchedule {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0b0f1a;
+  margin-bottom: 3px;
+}
+
+.itineraryNote {
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.55;
+}
+
+.itineraryFootnote {
+  margin-top: 20px;
+  padding: 12px 14px;
+  background: #f7f9fc;
+  border-radius: 7px;
+  font-size: 12.5px;
+  color: #6b7280;
+  line-height: 1.65;
+}
+
+/* ── Where to stay & eat ───────────────────────────────────── */
+
+.staySubhead {
+  font-size: 14px;
+  font-weight: 750;
+  color: #0b0f1a;
+  margin: 0 0 14px;
+  letter-spacing: -0.01em;
+}
+
+.stayList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 36px;
+}
+
+.stayCard {
+  padding: 16px 18px;
+  background: #fff;
+  border: 1px solid #eef1f6;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px #0000000d;
+}
+
+.stayCardHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.stayCardName {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0b0f1a;
+}
+
+.stayCardTag {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #9aa3b2;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.stayCardText {
+  font-size: 13px;
+  line-height: 1.65;
+  color: #4b5563;
+}
+
+/* ── Want More block (inside Side Trips section) ───────────── */
+
+.wantMoreBlock {
+  margin-top: 28px;
+  padding-top: 28px;
+  border-top: 1px solid #e5eaf2;
+}
+
+/* ── Side trips ────────────────────────────────────────────── */
+
+.sideTripList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sideTripCard {
+  padding: 14px 16px;
+  background: #f7f9fc;
+  border-radius: 8px;
+  border: 1px solid #e5eaf2;
+}
+
+.sideTripName {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0b0f1a;
+  margin-bottom: 3px;
+}
+
+.sideTripText {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #4b5563;
+}
+
+/* ── Plan this trip — CTA ──────────────────────────────────── */
+
+.planSection {
+  background: #0b0f1a;
+  border-radius: 14px;
+  padding: 42px 46px;
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 44px;
+  align-items: center;
+}
+
+.planLabel {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #16f28b;
+  margin-bottom: 8px;
+}
+
+.planTitle {
+  font-size: 26px;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1.15;
+  margin: 0 0 12px;
+  letter-spacing: -0.025em;
+}
+
+.planText {
+  font-size: 14px;
+  line-height: 1.75;
+  color: rgba(255, 255, 255, 0.68);
+  margin: 0;
+}
+
+.planForm {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.planInput {
+  padding: 11px 14px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.07);
+  color: #ffffff;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.planInput::placeholder {
+  color: rgba(255, 255, 255, 0.32);
+}
+
+.planInput:focus {
+  border-color: rgba(22, 242, 139, 0.5);
+}
+
+.planBtn {
+  padding: 12px 18px;
+  background: #16f28b;
+  color: #0b0f1a;
+  border: none;
+  border-radius: 7px;
+  font-size: 14px;
+  font-weight: 750;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s;
+  letter-spacing: 0.01em;
+}
+
+.planBtn:hover {
+  background: #12db7d;
+}
+
+.planDisclaimer {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.3);
+  text-align: center;
+  line-height: 1.5;
+}
+
+@media (max-width: 820px) {
+  .planSection {
+    grid-template-columns: 1fr;
+    padding: 30px 28px;
+    gap: 28px;
+  }
+}
+
+@media (max-width: 480px) {
+  .planSection {
+    padding: 24px 20px;
+  }
+  .planTitle {
+    font-size: 21px;
+  }
+}

@@ -11,6 +11,7 @@ export type GolfTrip = {
   subheader?: string;
 
   overview?: string;
+  verdict?: string;
   fullDescription?: string;
   wantMore?: string;
   sampleItinerary?: string;
@@ -18,6 +19,15 @@ export type GolfTrip = {
   foodAndLodgingOverview?: string;
   seoDescription?: string;
   dataDump?: string;
+
+  fitYes?: string;
+  fitNo?: string;
+  teeTimeRules?: string;
+  commonMistakes?: string;
+  packBring?: string;
+  packLeave?: string;
+  lodging?: string;
+  dining?: string;
 
   durationMinDays: number;
   durationMaxDays: number;
@@ -38,10 +48,50 @@ export type GolfTrip = {
   state?: string;
   region?: string;
   seasons?: string[];
+  peakMonths?: string[];
+  peakNotes?: string;
+  peakSeasonName?: string;
+  peakVerdict?: string;
+  shoulderMonths?: string[];
+  shoulderNotes?: string;
+  shoulderSeasonName?: string;
+  shoulderVerdict?: string;
+  offSeasonName?: string;
+  offSeasonNotes?: string;
+  offSeasonVerdict?: string;
+  costNote?: string;
   top100Count?: number;
 
   thumbnailImageUrl?: string;
   heroImageUrl?: string;
+};
+
+export type TripCostRow = {
+  id: string;
+  line: string;
+  shoulder: string;
+  peak: string;
+  offSeason: string;
+  optional: boolean;
+  sortOrder?: number;
+};
+
+export type TripSideTrip = {
+  id: string;
+  slug: string;
+  name: string;
+  text: string;
+  isGolf: boolean;
+  consolidatedRanking?: number | null;
+  sortOrder?: number;
+};
+
+export type TripItineraryDay = {
+  id: string;
+  day: string;
+  schedule: string;
+  note: string;
+  sortOrder?: number;
 };
 
 export type GolfCourse = {
@@ -76,6 +126,15 @@ export type TripWithCourses = GolfTrip & {
     roundsPlanned?: number;
     notes?: string;
   }>;
+};
+
+export type TripFull = TripWithCourses & {
+  costRows: TripCostRow[];
+  sideTrips: TripSideTrip[];
+  itinerary: {
+    min: TripItineraryDay[];
+    max: TripItineraryDay[];
+  };
 };
 
 export type Article = {

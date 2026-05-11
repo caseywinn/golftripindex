@@ -4,6 +4,10 @@ import type {
   GolfTrip,
   TripCourse,
   TripWithCourses,
+  TripFull,
+  TripCostRow,
+  TripSideTrip,
+  TripItineraryDay,
   LongTrip,
   JourneyStop,
   JourneyStopCourse,
@@ -33,6 +37,9 @@ const TRIPS_TABLE = "GolfTrips";
 const COURSES_TABLE = "GolfCourses";
 const TRIP_COURSES_TABLE = "TripCourses";
 const ARTICLES_TABLE = "Articles";
+const COST_ROWS_TABLE = "tblUFRi02u1Y52YXq";
+const SIDE_TRIPS_TABLE = "tblvOkUIeTSCuqNzt";
+const ITINERARY_TABLE = "tbl5BReb1P5Fy6XhQ";
 
 // Helpers
 function asString(v: unknown): string | undefined {
@@ -84,11 +91,20 @@ function mapTrip(r: Airtable.Record<Airtable.FieldSet>): GolfTrip {
     secondaryName: asString(f["Secondary Name"]),
     subheader: asString(f["Subheader"]),
     overview: asString(f["Overview"]),
+    verdict: asString(f["Verdict"]),
     fullDescription: asString(f["Full Description"]),
     wantMore: asString(f["Want More"]),
     sampleItinerary: asString(f["Sample Itinerary"]),
     sampleItineraryNotes: asString(f["Sample Itinerary Notes"]),
     foodAndLodgingOverview: asString(f["Food and Lodging Overview"]),
+    fitYes: asString(f["Fit Yes"]),
+    fitNo: asString(f["Fit No"]),
+    teeTimeRules: asString(f["Tee Time Rules"]),
+    commonMistakes: asString(f["Common Mistakes"]),
+    packBring: asString(f["Pack Bring"]),
+    packLeave: asString(f["Pack Leave"]),
+    lodging: asString(f["Lodging"]),
+    dining: asString(f["Dining"]),
     durationMinDays: f["Duration Min Days"] as number,
     durationMaxDays: f["Duration Max Days"] as number,
     driving: asString(f["Driving"]),
@@ -110,6 +126,22 @@ function mapTrip(r: Airtable.Record<Airtable.FieldSet>): GolfTrip {
     seasons: Array.isArray(f["Best Seasons"])
       ? (f["Best Seasons"] as string[])
       : undefined,
+    peakMonths: Array.isArray(f["Peak Months"])
+      ? (f["Peak Months"] as string[])
+      : undefined,
+    peakNotes: asString(f["Peak Notes"]),
+    peakSeasonName: asString(f["Peak Season Name"]),
+    peakVerdict: asString(f["Peak Verdict"]),
+    shoulderMonths: Array.isArray(f["Shoulder Months"])
+      ? (f["Shoulder Months"] as string[])
+      : undefined,
+    shoulderNotes: asString(f["Shoulder Notes"]),
+    shoulderSeasonName: asString(f["Shoulder Season Name"]),
+    shoulderVerdict: asString(f["Shoulder Verdict"]),
+    offSeasonName: asString(f["Off-Season Name"]),
+    offSeasonNotes: asString(f["Off-Season Notes"]),
+    offSeasonVerdict: asString(f["Off-Season Verdict"]),
+    costNote: asString(f["Cost Note"]),
     top100Count: asNumber(f["Number of Top 100 Courses"]),
 
     thumbnailImageUrl: asString(f["Thumbnail Image URL"]),
@@ -399,6 +431,119 @@ export async function getTop100CoursesForTripSlug(slug: string): Promise<{
     top100Count: top100Courses.length,
     top100Courses,
     excludedNoRankingCount,
+  };
+}
+
+// --- Full trip (with linked records) ---
+
+function mapCostRow(r: Airtable.Record<Airtable.FieldSet>): TripCostRow {
+  const f = r.fields;
+  return {
+    id: r.id,
+    line: asString(f["Line"]) ?? "",
+    shoulder: asString(f["Shoulder"]) ?? "",
+    peak: asString(f["Peak"]) ?? "",
+    offSeason: asString(f["Off-Season"]) ?? "",
+    optional: Boolean(f["Optional"]),
+    sortOrder: asNumber(f["Sort Order"]),
+  };
+}
+
+function mapItineraryDay(r: Airtable.Record<Airtable.FieldSet>): TripItineraryDay {
+  const f = r.fields;
+  return {
+    id: r.id,
+    day: asString(f["Day"]) ?? "",
+    schedule: asString(f["Schedule"]) ?? "",
+    note: asString(f["Note"]) ?? "",
+    sortOrder: asNumber(f["Sort Order"]),
+  };
+}
+
+export async function getPublishedTripFull(slug: string): Promise<TripFull | null> {
+  const tripWithCourses = await getPublishedTripBySlug(slug);
+  if (!tripWithCourses) return null;
+
+  const base = getBase();
+  const tripId = tripWithCourses.id;
+
+  // Read linked record IDs directly from the trip record (same approach as TripCourses).
+  // FIND("id", ARRAYJOIN({Golf Trip})) fails because ARRAYJOIN returns display names, not IDs.
+  const rawTrip = await base(TRIPS_TABLE).find(tripId);
+  const costRowIds = (rawTrip.fields["TripCostRows"] as string[] | undefined) ?? [];
+  const sideTripsIds = (rawTrip.fields["TripSideTrips"] as string[] | undefined) ?? [];
+  const itineraryIds = (rawTrip.fields["TripItinerary"] as string[] | undefined) ?? [];
+
+  const makeIdFormula = (ids: string[]) =>
+    `OR(${ids.map((id) => `RECORD_ID()="${id}"`).join(",")})`;
+
+  const [costRowRecords, sideTripsRecords, itineraryRecords] = await Promise.all([
+    costRowIds.length === 0
+      ? Promise.resolve([] as Airtable.Record<Airtable.FieldSet>[])
+      : base(COST_ROWS_TABLE)
+          .select({ filterByFormula: makeIdFormula(costRowIds), sort: [{ field: "Sort Order", direction: "asc" }], maxRecords: 50 })
+          .all(),
+    sideTripsIds.length === 0
+      ? Promise.resolve([] as Airtable.Record<Airtable.FieldSet>[])
+      : base(SIDE_TRIPS_TABLE)
+          .select({ filterByFormula: makeIdFormula(sideTripsIds), sort: [{ field: "Sort Order", direction: "asc" }], maxRecords: 50 })
+          .all(),
+    itineraryIds.length === 0
+      ? Promise.resolve([] as Airtable.Record<Airtable.FieldSet>[])
+      : base(ITINERARY_TABLE)
+          .select({ filterByFormula: makeIdFormula(itineraryIds), sort: [{ field: "Sort Order", direction: "asc" }], maxRecords: 100 })
+          .all(),
+  ]);
+
+  // Resolve consolidated rankings for golf side trips
+  const courseRankMap = new Map<string, number | null>();
+  const golfCourseIds = sideTripsRecords
+    .flatMap((r) => (r.fields["Golf Course"] as string[] | undefined) ?? [])
+    .filter(Boolean);
+
+  if (golfCourseIds.length) {
+    const rankFormula = `OR(${golfCourseIds.map((id) => `RECORD_ID()="${id}"`).join(",")})`;
+    const courseRecords = await base(COURSES_TABLE)
+      .select({ filterByFormula: rankFormula, maxRecords: 50 })
+      .all();
+    for (const r of courseRecords) {
+      courseRankMap.set(r.id, asNumber(r.fields["Consolidated Ranking"]) ?? null);
+    }
+  }
+
+  const costRows = costRowRecords.map(mapCostRow);
+
+  const sideTrips: TripSideTrip[] = sideTripsRecords.map((r) => {
+    const f = r.fields;
+    const linkedCourseIds = (f["Golf Course"] as string[] | undefined) ?? [];
+    const courseId = linkedCourseIds[0] ?? null;
+    const isGolf = courseId !== null;
+    return {
+      id: r.id,
+      slug: asString(f["Slug"]) ?? r.id,
+      name: asString(f["Name"]) ?? "",
+      text: asString(f["Text"]) ?? "",
+      isGolf,
+      consolidatedRanking: isGolf ? (courseRankMap.get(courseId!) ?? null) : null,
+      sortOrder: asNumber(f["Sort Order"]),
+    };
+  });
+
+  const minItinerary = itineraryRecords
+    .filter((r) => r.fields["Length"] === "min")
+    .map(mapItineraryDay)
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+
+  const maxItinerary = itineraryRecords
+    .filter((r) => r.fields["Length"] === "max")
+    .map(mapItineraryDay)
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+
+  return {
+    ...tripWithCourses,
+    costRows,
+    sideTrips,
+    itinerary: { min: minItinerary, max: maxItinerary },
   };
 }
 
