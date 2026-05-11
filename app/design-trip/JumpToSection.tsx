@@ -7,20 +7,11 @@ export type JumpSection = { id: string; label: string };
 export default function JumpToSection({ sections }: { sections: JumpSection[] }) {
   const [open, setOpen] = useState(false);
 
-  function openCaddie() {
-    window.dispatchEvent(new CustomEvent("open-caddie"));
-  }
-
   return (
     <div className={dt.jumpNav}>
       <button className={dt.jumpNavBtn} onClick={() => setOpen(true)}>
         Jump to section
         <span className={dt.jumpNavChevron}>▼</span>
-      </button>
-
-      <button className={dt.askCaddieBtn} onClick={openCaddie}>
-        Ask Caddie
-        <span className={dt.askCaddieIcon}>✦</span>
       </button>
 
       {open && (
@@ -29,6 +20,7 @@ export default function JumpToSection({ sections }: { sections: JumpSection[] })
             className={dt.jumpModal}
             onClick={(e) => e.stopPropagation()}
           >
+            <div className={dt.jumpModalHandle} />
             <div className={dt.jumpModalHeader}>
               <span className={dt.jumpModalTitle}>Jump to section</span>
               <button className={dt.jumpModalClose} onClick={() => setOpen(false)}>✕</button>

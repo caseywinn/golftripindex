@@ -759,4 +759,9 @@
   .compareBtn {
     display: none;
   }
+
+  .compareSelect {
+    width: auto;
+    max-width: none;
+  }
 }

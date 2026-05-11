@@ -18,6 +18,7 @@ import SaveButton from "@/components/SaveButton";
 import ShareButton from "@/components/ShareButton";
 import { ProseMarkdown, LodgingMarkdown, PackMarkdown } from "../TripMarkdown";
 import JumpToSection from "../JumpToSection";
+import AskCaddieInline from "../AskCaddieInline";
 import CostTable from "../CostTable";
 import { getPublishedTripFull, getPublishedTrips } from "@/lib/airtable";
 
@@ -336,6 +337,7 @@ export default async function DesignTripSlugPage({
                 <section id="verdict" className={dt.section}>
                   <div className={dt.sectionLabel}>Our take</div>
                   <p className={dt.verdictText}>{verdictText}</p>
+                  <AskCaddieInline />
                 </section>
 
                 <hr className={dt.sectionDivider} />
@@ -612,8 +614,6 @@ export default async function DesignTripSlugPage({
                   {trip.lodging && <LodgingMarkdown content={trip.lodging} label="Lodging" />}
                   {trip.dining && <LodgingMarkdown content={trip.dining} label="Dining" />}
                 </section>
-
-                <hr className={dt.sectionDivider} />
               </>
             )}
 

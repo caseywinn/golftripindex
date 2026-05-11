@@ -100,30 +100,45 @@ export default function CaddieWidget() {
   }, []);
 
   useEffect(() => {
+    let el: HTMLElement | null = null;
     let ro: ResizeObserver | null = null;
 
-    function attach(el: Element) {
+    function measure() {
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      setCompareBarHeight(window.innerHeight - rect.top);
+    }
+
+    function attach(found: Element) {
+      el = found as HTMLElement;
       ro?.disconnect();
-      ro = new ResizeObserver(() => setCompareBarHeight((el as HTMLElement).offsetHeight));
+      ro = new ResizeObserver(measure);
       ro.observe(el);
-      setCompareBarHeight((el as HTMLElement).offsetHeight);
+      window.addEventListener("scroll", measure, { passive: true });
+      measure();
+    }
+
+    function detach() {
+      ro?.disconnect();
+      ro = null;
+      el = null;
+      window.removeEventListener("scroll", measure);
+      setCompareBarHeight(0);
     }
 
     function check() {
-      const el = document.querySelector("[data-compare-bar]");
-      if (el) {
-        attach(el);
+      const found = document.querySelector("[data-compare-bar]");
+      if (found) {
+        attach(found);
       } else {
-        ro?.disconnect();
-        ro = null;
-        setCompareBarHeight(0);
+        detach();
       }
     }
 
     const mo = new MutationObserver(check);
     mo.observe(document.body, { childList: true, subtree: true });
     check();
-    return () => { mo.disconnect(); ro?.disconnect(); };
+    return () => { mo.disconnect(); detach(); };
   }, []);
 
   // Detect trip or journey context from current URL

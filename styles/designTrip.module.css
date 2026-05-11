@@ -1360,7 +1360,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  flex: 1;
+  width: 100%;
   padding: 11px 16px;
   background: #fff;
   border: 1px solid #e5eaf2;
@@ -1394,6 +1394,59 @@
   color: #4caf72;
 }
 
+.askCaddieInline {
+  display: none;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-top: 20px;
+  padding: 14px 16px;
+  background: #f6fbf7;
+  border: 1px solid #c3dfc9;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+
+@media (max-width: 1024px) {
+  .askCaddieInline {
+    display: flex;
+  }
+}
+
+.askCaddieAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.askCaddieInlineText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.askCaddieInlineLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0b0f1a;
+}
+
+.askCaddieInlineSub {
+  font-size: 12px;
+  color: #4caf72;
+  font-weight: 500;
+}
+
+.askCaddieInlineArrow {
+  font-size: 16px;
+  color: #9aa3b2;
+  flex-shrink: 0;
+}
+
 .jumpNavChevron {
   font-size: 10px;
   color: #9aa3b2;
@@ -1405,28 +1458,35 @@
   background: rgba(0, 0, 0, 0.45);
   z-index: 50;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
-  padding: 24px;
 }
 
 .jumpModal {
   background: #fff;
-  border-radius: 14px;
+  border-radius: 16px 16px 0 0;
   width: 100%;
-  max-width: 400px;
   max-height: 80vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.15);
+}
+
+.jumpModalHandle {
+  width: 36px;
+  height: 4px;
+  background: #d1d5db;
+  border-radius: 2px;
+  margin: 12px auto 4px;
+  flex-shrink: 0;
 }
 
 .jumpModalHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
+  padding: 8px 20px 14px;
   border-bottom: 1px solid #e5eaf2;
   flex-shrink: 0;
 }
@@ -1470,8 +1530,7 @@
 
 @media (max-width: 1024px) {
   .jumpNav {
-    display: flex;
-    gap: 8px;
+    display: block;
     margin-bottom: 28px;
   }
 }
