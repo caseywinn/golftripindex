@@ -19,14 +19,16 @@ export default function ShareButton({ itemType, itemId, itemName, variant = "dar
   const [senderName, setSenderName] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error" | "ratelimit">("idle");
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
   const [popoverStyle, setPopoverStyle] = useState<React.CSSProperties>({});
 
   useEffect(() => {
     if (!open) return;
     function onClickOutside(e: MouseEvent) {
-      if (triggerRef.current && !triggerRef.current.closest("[data-share-wrap]")?.contains(e.target as Node)) {
-        setOpen(false);
-      }
+      const target = e.target as Node;
+      const inWrap = triggerRef.current?.closest("[data-share-wrap]")?.contains(target);
+      const inPopover = popoverRef.current?.contains(target);
+      if (!inWrap && !inPopover) setOpen(false);
     }
     document.addEventListener("mousedown", onClickOutside);
     return () => document.removeEventListener("mousedown", onClickOutside);
@@ -81,10 +83,12 @@ export default function ShareButton({ itemType, itemId, itemName, variant = "dar
 
       {open && createPortal(
         <div
+          ref={popoverRef}
           className={styles.popover}
           style={popoverStyle}
           role="dialog"
           aria-label="Share via email"
+          onMouseDown={(e) => e.stopPropagation()}
         >
           <div className={styles.popoverHeader}>
             <p className={styles.popoverTitle}>Share via Email</p>

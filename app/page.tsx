@@ -14,7 +14,7 @@ export const revalidate = 604800; // regenerate once per week so the featured tr
 export const metadata: Metadata = {
   title: "Golf Trip Index | Ranking USA's Best Golf Trips",
   description: "An overall ranking of the best golf trips in America.",
-  alternates: { canonical: SITE_URL },
+  alternates: { canonical: `${SITE_URL}/` },
 };
 
 function intScore(n?: number | null) {

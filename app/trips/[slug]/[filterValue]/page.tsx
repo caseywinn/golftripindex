@@ -78,7 +78,7 @@ export default async function TripFilterPage({
       <section className={styles.banner}>
         <div className={styles.bannerMedia} aria-hidden="true" />
         <div className={styles.bannerPanel}>
-          <div className={styles.bannerTitle}>{meta.heading}</div>
+          <h1 className={styles.bannerTitle}>{meta.heading}</h1>
           <div className={styles.bannerSub}>{meta.description}</div>
         </div>
       </section>
