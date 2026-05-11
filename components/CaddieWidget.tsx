@@ -84,6 +84,20 @@ export default function CaddieWidget() {
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const inFlightRef = useRef(false);
   const [compareBarHeight, setCompareBarHeight] = useState(0);
+  const [windowWidth, setWindowWidth] = useState(1200);
+
+  useEffect(() => {
+    setWindowWidth(window.innerWidth);
+    const update = () => setWindowWidth(window.innerWidth);
+    window.addEventListener("resize", update, { passive: true });
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  useEffect(() => {
+    const handler = () => setOpen(true);
+    window.addEventListener("open-caddie", handler);
+    return () => window.removeEventListener("open-caddie", handler);
+  }, []);
 
   useEffect(() => {
     let ro: ResizeObserver | null = null;
@@ -243,38 +257,53 @@ export default function CaddieWidget() {
 
   return (
     <>
-      {/* Floating launcher */}
-      <button
-        onClick={() => setOpen((v) => !v)}
-        style={{
-          position: "fixed",
-          right: 18,
-          bottom: 18 + compareBarHeight,
-          zIndex: 9999,
-          borderRadius: 999,
-          border: "1px solid #ddd",
-          background: "white",
-          padding: "8px 17px 8px 12px",
-          fontWeight: 800,
-          fontSize: 13,
-          cursor: "pointer",
-          boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-        }}
-        aria-label="Open GTI Caddie"
-      >
-        <span style={{ display: "flex", alignItems: "center", gap: 8, overflow: "visible" }}>
-          <img src="/gti-avatar-thumb.png" alt="" aria-hidden="true" style={{
-            width: 36, height: 36, borderRadius: "50%",
-            flexShrink: 0, marginLeft: -4, marginTop: -4, marginBottom: -4,
-          }} />
-          GTI Caddie
-        </span>
-      </button>
+      {/* Floating launcher — hidden on mobile/tablet, shown on desktop */}
+      {windowWidth >= 1024 && (
+        <button
+          onClick={() => setOpen((v) => !v)}
+          style={{
+            position: "fixed",
+            right: 18,
+            bottom: 18 + compareBarHeight,
+            zIndex: 9999,
+            borderRadius: 999,
+            border: "1px solid #ddd",
+            background: "white",
+            padding: "8px 17px 8px 12px",
+            fontWeight: 800,
+            fontSize: 13,
+            cursor: "pointer",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+          }}
+          aria-label="Open GTI Caddie"
+        >
+          <span style={{ display: "flex", alignItems: "center", gap: 8, overflow: "visible" }}>
+            <img src="/gti-avatar-thumb.png" alt="" aria-hidden="true" style={{
+              width: 36, height: 36, borderRadius: "50%",
+              flexShrink: 0, marginLeft: -4, marginTop: -4, marginBottom: -4,
+            }} />
+            GTI Caddie
+          </span>
+        </button>
+      )}
 
       {/* Panel */}
       {open && (
         <div
-          style={{
+          style={windowWidth < 640 ? {
+            position: "fixed",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            zIndex: 9999,
+            background: "white",
+            border: "none",
+            borderRadius: 0,
+            overflow: "hidden",
+            boxShadow: "none",
+            display: "flex",
+            flexDirection: "column",
+          } : {
             position: "fixed",
             right: 18,
             bottom: 72 + compareBarHeight,

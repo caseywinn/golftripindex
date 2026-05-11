@@ -18,6 +18,7 @@ export default function SideTripCarousel({ items }: { items: SideTrip[] }) {
   const touchStartX = useRef(0);
   const current = items[index];
 
+  // Desktop only: scroll grid to active card
   useEffect(() => {
     const card = cardRefs.current[index];
     if (card && viewportRef.current) {
@@ -27,6 +28,29 @@ export default function SideTripCarousel({ items }: { items: SideTrip[] }) {
 
   const prev = () => setIndex((i) => Math.max(0, i - 1));
   const next = () => setIndex((i) => Math.min(items.length - 1, i + 1));
+
+  function imgUrl(item: SideTrip) {
+    return item.isGolf
+      ? `url("/images/courses/${item.slug}.jpg")`
+      : `url("/images/side-trips/${item.slug}.jpg")`;
+  }
+
+  function Footer({ counter }: { counter: boolean }) {
+    return (
+      <div className={dt.stCarouselFooter}>
+        <div className={dt.stCarouselNameRow}>
+          <div className={dt.stCarouselName}>{current.name}</div>
+          {counter && (
+            <div className={dt.courseCarouselCounter}>{index + 1} of {items.length}</div>
+          )}
+        </div>
+        {current.isGolf && current.consolidatedRanking && (
+          <div className={dt.stCarouselGolfRank}>Ranked #{current.consolidatedRanking} overall</div>
+        )}
+        <div className={dt.stCarouselText}>{current.text}</div>
+      </div>
+    );
+  }
 
   return (
     <div className={dt.stCarousel}>
@@ -43,8 +67,38 @@ export default function SideTripCarousel({ items }: { items: SideTrip[] }) {
         ))}
       </div>
 
-      <div className={dt.stCarouselOuter}>
-        {/* Image-only area — arrows positioned relative to this */}
+      {/* ── DESKTOP carousel: scroll-based 2-up grid ── */}
+      <div className={`${dt.stCarouselOuter} ${dt.stCarouselDesktop}`}>
+        <div className={dt.stCarouselImgOuter}>
+          <div className={dt.stCarouselViewport} ref={viewportRef}>
+            {items.map((item, i) => (
+              <div
+                key={item.id}
+                className={dt.stCarouselSlide}
+                ref={(el) => { cardRefs.current[i] = el; }}
+              >
+                <div className={dt.stCarouselImg} style={{ backgroundImage: imgUrl(item) }} />
+              </div>
+            ))}
+          </div>
+          <button
+            className={`${dt.courseCarouselArrow} ${dt.courseCarouselArrowLeft}`}
+            onClick={prev}
+            disabled={index === 0}
+            aria-label="Previous"
+          >&#8592;</button>
+          <button
+            className={`${dt.courseCarouselArrow} ${dt.courseCarouselArrowRight}`}
+            onClick={next}
+            disabled={index === items.length - 1}
+            aria-label="Next"
+          >&#8594;</button>
+        </div>
+        <Footer counter={false} />
+      </div>
+
+      {/* ── MOBILE carousel: translateX-based, matches CourseCarousel ── */}
+      <div className={`${dt.stCarouselOuter} ${dt.stCarouselMobile}`}>
         <div
           className={dt.stCarouselImgOuter}
           onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
@@ -54,58 +108,32 @@ export default function SideTripCarousel({ items }: { items: SideTrip[] }) {
             else if (delta < -50) prev();
           }}
         >
-          <div className={dt.stCarouselViewport} ref={viewportRef}>
-            {items.map((item, i) => (
-              <div
-                key={item.id}
-                className={dt.stCarouselSlide}
-                ref={(el) => { cardRefs.current[i] = el; }}
-              >
-                <div
-                  className={dt.stCarouselImg}
-                  style={{
-                    backgroundImage: item.isGolf
-                      ? `url("/images/courses/${item.slug}.jpg")`
-                      : `url("/images/side-trips/${item.slug}.jpg")`,
-                  }}
-                />
-              </div>
-            ))}
+          <div className={dt.stCarouselMobileViewport}>
+            <div
+              className={dt.stCarouselMobileTrack}
+              style={{ transform: `translateX(-${index * 100}%)` }}
+            >
+              {items.map((item) => (
+                <div key={item.id} className={dt.stCarouselMobileSlide}>
+                  <div className={dt.stCarouselImg} style={{ backgroundImage: imgUrl(item) }} />
+                </div>
+              ))}
+            </div>
           </div>
-
           <button
             className={`${dt.courseCarouselArrow} ${dt.courseCarouselArrowLeft}`}
             onClick={prev}
             disabled={index === 0}
             aria-label="Previous"
-          >
-            &#8592;
-          </button>
+          >&#8592;</button>
           <button
             className={`${dt.courseCarouselArrow} ${dt.courseCarouselArrowRight}`}
             onClick={next}
             disabled={index === items.length - 1}
             aria-label="Next"
-          >
-            &#8594;
-          </button>
+          >&#8594;</button>
         </div>
-
-        {/* Footer — shows active item */}
-        <div className={dt.stCarouselFooter}>
-          <div className={dt.stCarouselNameRow}>
-            <div className={dt.stCarouselName}>{current.name}</div>
-            <div className={dt.courseCarouselCounter}>
-              {index + 1} of {items.length}
-            </div>
-          </div>
-          {current.isGolf && current.consolidatedRanking && (
-            <div className={dt.stCarouselGolfRank}>
-              Ranked #{current.consolidatedRanking} overall
-            </div>
-          )}
-          <div className={dt.stCarouselText}>{current.text}</div>
-        </div>
+        <Footer counter={true} />
       </div>
     </div>
   );

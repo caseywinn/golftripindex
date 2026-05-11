@@ -17,7 +17,7 @@ export default function ItineraryToggle({
   maxItinerary: ItineraryDay[];
   footnote: string;
 }) {
-  const [active, setActive] = useState<"min" | "max">("min");
+  const [active, setActive] = useState<"min" | "max">("max");
   const days = active === "min" ? minItinerary : maxItinerary;
 
   return (
