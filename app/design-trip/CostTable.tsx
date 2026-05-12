@@ -12,7 +12,7 @@ const COL_LABELS: Record<Col, string> = {
 };
 
 function parsePriceRange(s: string): { min: number; max: number } | null {
-  const cleaned = s.replace(/[$,\s]/g, "");
+  const cleaned = s.replace(/[$,\s]/g, "").replace(/[–—]/g, "-");
   const range = cleaned.match(/^(\d+)-(\d+)$/);
   if (range) return { min: +range[1], max: +range[2] };
   const single = cleaned.match(/^(\d+)$/);

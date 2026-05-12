@@ -74,7 +74,7 @@ export default function SideTripCarousel({ items }: { items: SideTrip[] }) {
             {items.map((item, i) => (
               <div
                 key={item.id}
-                className={dt.stCarouselSlide}
+                className={`${dt.stCarouselSlide} ${i !== index ? dt.stCarouselSlideInactive : ""}`}
                 ref={(el) => { cardRefs.current[i] = el; }}
               >
                 <div className={dt.stCarouselImg} style={{ backgroundImage: imgUrl(item) }} />
@@ -113,8 +113,8 @@ export default function SideTripCarousel({ items }: { items: SideTrip[] }) {
               className={dt.stCarouselMobileTrack}
               style={{ transform: `translateX(-${index * 100}%)` }}
             >
-              {items.map((item) => (
-                <div key={item.id} className={dt.stCarouselMobileSlide}>
+              {items.map((item, i) => (
+                <div key={item.id} className={`${dt.stCarouselMobileSlide} ${i !== index ? dt.stCarouselSlideInactive : ""}`}>
                   <div className={dt.stCarouselImg} style={{ backgroundImage: imgUrl(item) }} />
                 </div>
               ))}

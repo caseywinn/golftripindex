@@ -588,7 +588,7 @@ export async function getLatestPublishedArticles(limit = 3) {
 
   const records = await base(ARTICLES_TABLE)
     .select({
-      filterByFormula: `{Status}="published"`,
+      filterByFormula: `AND({Status}="published", NOT(IS_AFTER({Published On}, TODAY())))`,
       sort: [{ field: "Published On", direction: "desc" }],
       maxRecords: Math.max(1, Math.min(limit, 12)),
     })
@@ -808,7 +808,7 @@ export async function getPublishedArticles(): Promise<Array<{ slug: string; name
   const base = getBase();
   const records = await base(ARTICLES_TABLE)
     .select({
-      filterByFormula: `{Status}="published"`,
+      filterByFormula: `AND({Status}="published", NOT(IS_AFTER({Published On}, TODAY())))`,
       fields: ["Slug", "Name", "Published On"],
       sort: [{ field: "Published On", direction: "desc" }],
       maxRecords: 500,

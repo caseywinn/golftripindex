@@ -542,6 +542,12 @@
 .stCarouselSlide {
   scroll-snap-align: start;
   overflow: hidden;
+  transition: filter 0.35s, opacity 0.35s;
+}
+
+.stCarouselSlideInactive {
+  filter: grayscale(0.8);
+  opacity: 0.5;
 }
 
 .stCarouselImg {
@@ -600,6 +606,7 @@
 .stCarouselMobileSlide {
   flex-shrink: 0;
   width: 100%;
+  transition: filter 0.35s, opacity 0.35s;
 }
 
 /* Course category summary box */
