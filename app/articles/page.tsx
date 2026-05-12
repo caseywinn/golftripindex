@@ -11,15 +11,50 @@ import { JsonLd } from "@/components/JsonLd";
 
 export const revalidate = 3600;
 
-export const metadata: Metadata = {
-  title: "Articles | Golf Trip Index",
-  description: "News and stories about the best golf trips in America.",
-  alternates: { canonical: `${SITE_URL}/articles` },
-};
+const PAGE_SIZE = 9;
 
-export default async function ArticlesPage() {
+function pageUrl(n: number) {
+  return n === 1 ? "/articles" : `/articles?page=${n}`;
+}
+
+function getPageNumbers(current: number, total: number): (number | "…")[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  if (current <= 4) return [1, 2, 3, 4, 5, "…", total];
+  if (current >= total - 3) return [1, "…", total - 4, total - 3, total - 2, total - 1, total];
+  return [1, "…", current - 1, current, current + 1, "…", total];
+}
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}): Promise<Metadata> {
+  const { page } = await searchParams;
+  const pageNum = Math.max(1, parseInt(page ?? "1", 10));
+  const canonical = pageNum === 1 ? `${SITE_URL}/articles` : `${SITE_URL}/articles?page=${pageNum}`;
+  return {
+    title: pageNum === 1 ? "Articles | Golf Trip Index" : `Articles — Page ${pageNum} | Golf Trip Index`,
+    description: "News and stories about the best golf trips in America.",
+    alternates: { canonical },
+  };
+}
+
+export default async function ArticlesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const { page } = await searchParams;
   const articles = await getArticlesForIndex();
-  const [featured, ...rest] = articles;
+
+  const featured = articles[0];
+  const remaining = articles.slice(1);
+  const totalPages = Math.max(1, Math.ceil(remaining.length / PAGE_SIZE));
+  const currentPage = Math.min(Math.max(1, parseInt(page ?? "1", 10)), totalPages);
+
+  const gridStart = (currentPage - 1) * PAGE_SIZE;
+  const gridArticles = remaining.slice(gridStart, gridStart + PAGE_SIZE);
+  const pages = getPageNumbers(currentPage, totalPages);
 
   const breadcrumbSchema = {
     "@context": "https://schema.org",
@@ -34,7 +69,8 @@ export default async function ArticlesPage() {
     <main className={styles.page}>
       <JsonLd data={breadcrumbSchema} />
 
-      {featured && (
+      {/* Featured hero — page 1 only */}
+      {currentPage === 1 && featured && (
         <div className={styles.featuredWrap}>
           <div className={styles.featuredCard}>
             <div className={styles.featuredImageWrap}>
@@ -83,11 +119,14 @@ export default async function ArticlesPage() {
         </div>
       )}
 
-      {rest.length > 0 && (
+      {/* Grid */}
+      {gridArticles.length > 0 && (
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>More articles</h2>
+          <h2 className={styles.sectionTitle}>
+            {currentPage === 1 ? "More articles" : "Articles"}
+          </h2>
           <div className={styles.cardRow}>
-            {rest.map((article) => {
+            {gridArticles.map((article) => {
               const href = `/articles/${article.slug}`;
               return (
                 <article key={article.id} className={styles.card}>
@@ -135,6 +174,42 @@ export default async function ArticlesPage() {
               );
             })}
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <nav className={styles.pagination} aria-label="Article pages">
+              {currentPage > 1 ? (
+                <Link href={pageUrl(currentPage - 1)} className={styles.pageArrow} aria-label="Previous page">
+                  ←
+                </Link>
+              ) : (
+                <span className={`${styles.pageArrow} ${styles.pageArrowDisabled}`} aria-hidden="true">←</span>
+              )}
+
+              {pages.map((p, i) =>
+                p === "…" ? (
+                  <span key={`ellipsis-${i}`} className={styles.pageEllipsis}>…</span>
+                ) : (
+                  <Link
+                    key={p}
+                    href={pageUrl(p)}
+                    className={`${styles.pageNum} ${p === currentPage ? styles.pageNumActive : ""}`}
+                    aria-current={p === currentPage ? "page" : undefined}
+                  >
+                    {p}
+                  </Link>
+                )
+              )}
+
+              {currentPage < totalPages ? (
+                <Link href={pageUrl(currentPage + 1)} className={styles.pageArrow} aria-label="Next page">
+                  →
+                </Link>
+              ) : (
+                <span className={`${styles.pageArrow} ${styles.pageArrowDisabled}`} aria-hidden="true">→</span>
+              )}
+            </nav>
+          )}
         </section>
       )}
 

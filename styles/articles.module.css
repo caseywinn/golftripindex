@@ -246,6 +246,79 @@
   opacity: 0.75;
 }
 
+/* PAGINATION */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 48px;
+}
+
+.pageArrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  font-size: 15px;
+  color: #0b0f1a;
+  text-decoration: none;
+  transition: background 0.12s;
+}
+
+.pageArrow:hover {
+  background: #f0f2f7;
+}
+
+.pageArrowDisabled {
+  color: #c8cdd8;
+  pointer-events: none;
+}
+
+.pageNum {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 6px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #4c5568;
+  text-decoration: none;
+  transition: background 0.12s;
+}
+
+.pageNum:hover {
+  background: #f0f2f7;
+  color: #0b0f1a;
+}
+
+.pageNumActive {
+  background: #0488db;
+  color: #fff;
+  font-weight: 600;
+}
+
+.pageNumActive:hover {
+  background: #0376c5;
+  color: #fff;
+}
+
+.pageEllipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  font-size: 13px;
+  color: #9ba3b0;
+  user-select: none;
+}
+
 /* RESPONSIVE */
 @media (max-width: 900px) {
   .featuredCard {
