@@ -7,7 +7,7 @@ export function renderInlineRich(
 ): React.ReactNode[] {
   const nodes: React.ReactNode[] = [];
   const re =
-    /(\*\*(.+?)\*\*)|(\[(.+?)\]\(((?:https?:\/\/|\/)[^)\s]+)\))/g;
+    /(\*\*(.+?)\*\*)|(\[([^\]]+)\]\s*\(([^)\s]+)\))/g;
 
   let lastIndex = 0;
   let match: RegExpExecArray | null;
@@ -21,16 +21,20 @@ export function renderInlineRich(
       );
     }
 
-    // **bold**
+    // **bold** (inner content may itself contain a link)
     if (match[1]) {
-      nodes.push(<strong key={`b-${start}`}>{match[2] ?? ""}</strong>);
+      nodes.push(
+        <strong key={`b-${start}`}>
+          {renderInlineRich(match[2] ?? "", opts)}
+        </strong>
+      );
     }
-    // [label](url)
+    // [label](url) (label may itself contain bold)
     else if (match[3]) {
-      const label = match[4] ?? "";
-      const url = match[5] ?? ""; // ✅ full URL now
-
-      const isExternal = url.startsWith("http");
+      const labelNodes = renderInlineRich(match[4] ?? "", opts);
+      const rawUrl = match[5] ?? "";
+      const isExternal = rawUrl.startsWith("http");
+      const url = isExternal || rawUrl.startsWith("/") ? rawUrl : `/${rawUrl}`;
 
       nodes.push(
         isExternal ? (
@@ -41,7 +45,7 @@ export function renderInlineRich(
             rel="noopener noreferrer"
             className={opts?.linkClassName}
           >
-            {label}
+            {labelNodes}
           </a>
         ) : (
           <Link
@@ -49,7 +53,7 @@ export function renderInlineRich(
             href={url}
             className={opts?.linkClassName}
           >
-            {label}
+            {labelNodes}
           </Link>
         )
       );

@@ -369,7 +369,8 @@
   padding: 10px 14px;
   border: 1px solid #e6e8ee;
   border-radius: 999px;
-  display: none;
+  display: inline-flex;
+  align-items: center;
 }
 
 .viewAll:hover {

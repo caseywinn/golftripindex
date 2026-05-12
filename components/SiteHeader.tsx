@@ -46,6 +46,9 @@ export default function SiteHeader() {
           <Link href="/courses" className={styles.navLink} onClick={() => setOpen(false)}>
             COURSE RANKINGS
           </Link>
+          <Link href="/articles" className={styles.navLink} onClick={() => setOpen(false)}>
+            ARTICLES
+          </Link>
           <Link href="/how-we-rate" className={styles.navLink} onClick={() => setOpen(false)}>
             HOW WE RATE
           </Link>

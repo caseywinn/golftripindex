@@ -188,7 +188,9 @@ export default async function ArticlePage({
           <h1 className={styles.title}>{article.name}</h1>
 
           {article.teaser ? (
-            <p className={styles.teaser}>{article.teaser}</p>
+            <p className={styles.teaser}>
+              {renderInlineRich(article.teaser, { linkClassName: styles.teaserLink })}
+            </p>
           ) : null}
 
           <div className={styles.meta}>

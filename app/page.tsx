@@ -134,7 +134,7 @@ export default async function HomePage() {
       {/* ── ARTICLES ── */}
       <section className={styles.section} id="home-content">
         <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Latest News</h2>
+          <h2 className={styles.sectionTitle}>Latest Articles</h2>
           <Link href="/articles" className={styles.viewAll}>
             View All
           </Link>

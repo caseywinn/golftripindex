@@ -10,6 +10,7 @@ export default function SiteFooter() {
         <Link href="/trips" className={styles.navLink}>Trip Rankings</Link>
         <Link href="/journeys" className={styles.navLink}>Journeys</Link>
         <Link href="/courses" className={styles.navLink}>Course Rankings</Link>
+        <Link href="/articles" className={styles.navLink}>Articles</Link>
         <Link href="/how-we-rate" className={styles.navLink}>How We Rate</Link>
       </div>
 

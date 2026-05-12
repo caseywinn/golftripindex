@@ -583,6 +583,18 @@ function mapArticles(r: Airtable.Record<Airtable.FieldSet>) {
   };
 }
 
+export async function getArticlesForIndex() {
+  const base = getBase();
+  const records = await base(ARTICLES_TABLE)
+    .select({
+      filterByFormula: `AND({Status}="published", NOT(IS_AFTER({Published On}, TODAY())))`,
+      sort: [{ field: "Published On", direction: "desc" }],
+      maxRecords: 200,
+    })
+    .all();
+  return records.map(mapArticles);
+}
+
 export async function getLatestPublishedArticles(limit = 3) {
   const base = getBase();
 

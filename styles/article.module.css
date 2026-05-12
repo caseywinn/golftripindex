@@ -48,6 +48,17 @@
   max-width: 56ch;
 }
 
+.teaserLink {
+  color: #fff;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  opacity: 0.9;
+}
+
+.teaserLink:hover {
+  opacity: 1;
+}
+
 .meta {
   margin-top: 4px;
   font-size: 13px;
