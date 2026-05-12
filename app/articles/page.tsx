@@ -107,7 +107,7 @@ export default async function ArticlesPage({
                     <span className={styles.dot}>•</span>
                   )}
                   {featured.publishedOn && (
-                    <span>{formatPublishedDate(featured.publishedOn)}</span>
+                    <span className={styles.featuredDate}>{formatPublishedDate(featured.publishedOn)}</span>
                   )}
                 </div>
               )}
