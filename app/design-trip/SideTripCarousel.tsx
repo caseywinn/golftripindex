@@ -15,15 +15,21 @@ export default function SideTripCarousel({ items }: { items: SideTrip[] }) {
   const [index, setIndex] = useState(0);
   const viewportRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const touchStartX = useRef(0);
   const current = items[index];
 
-  // Desktop only: scroll grid to active card
+  // Scroll active card into view (desktop grid)
   useEffect(() => {
     const card = cardRefs.current[index];
     if (card && viewportRef.current) {
       viewportRef.current.scrollTo({ left: card.offsetLeft, behavior: "smooth" });
     }
+  }, [index]);
+
+  // Scroll active tab into view (nav strip)
+  useEffect(() => {
+    tabRefs.current[index]?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
   }, [index]);
 
   const prev = () => setIndex((i) => Math.max(0, i - 1));
@@ -59,6 +65,7 @@ export default function SideTripCarousel({ items }: { items: SideTrip[] }) {
         {items.map((item, i) => (
           <button
             key={item.id}
+            ref={(el) => { tabRefs.current[i] = el; }}
             className={`${dt.courseNavTab} ${i === index ? dt.courseNavTabActive : ""}`}
             onClick={() => setIndex(i)}
           >

@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import dt from "../../styles/designTrip.module.css";
 
 type Course = {
@@ -18,6 +18,11 @@ export default function CourseCarousel({ courses }: { courses: Course[] }) {
   const [index, setIndex] = useState(0);
   const current = courses[index];
   const touchStartX = useRef(0);
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  useEffect(() => {
+    tabRefs.current[index]?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+  }, [index]);
 
   const prev = () => setIndex((i) => Math.max(0, i - 1));
   const next = () => setIndex((i) => Math.min(courses.length - 1, i + 1));
@@ -29,6 +34,7 @@ export default function CourseCarousel({ courses }: { courses: Course[] }) {
         {courses.map((c, i) => (
           <button
             key={c.id}
+            ref={(el) => { tabRefs.current[i] = el; }}
             className={`${dt.courseNavTab} ${i === index ? dt.courseNavTabActive : ""}`}
             onClick={() => setIndex(i)}
           >

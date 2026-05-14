@@ -12,12 +12,14 @@ export default function ItineraryToggle({
   minItinerary,
   maxItinerary,
   footnote,
+  defaultTab,
 }: {
   minItinerary: ItineraryDay[];
   maxItinerary: ItineraryDay[];
   footnote: string;
+  defaultTab?: "min" | "max";
 }) {
-  const defaultActive = minItinerary.length === 4 ? "min" : maxItinerary.length === 4 ? "max" : "min";
+  const defaultActive = defaultTab ?? (minItinerary.length === 4 ? "min" : maxItinerary.length === 4 ? "max" : "min");
   const [active, setActive] = useState<"min" | "max">(defaultActive);
   const days = active === "min" ? minItinerary : maxItinerary;
 

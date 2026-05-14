@@ -1,7 +1,11 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import styles from "../../../styles/tripDetails.module.css";
-import { getPublishedTripBySlug, getPublishedTrips } from "../../../lib/airtable";
+import hero from "../../../styles/tripDetails.module.css";
+import dt from "../../../styles/designTrip.module.css";
+import TocNav from "../../design-trip/TocNav";
+import ItineraryToggle from "../../design-trip/ItineraryToggle";
+import CourseCarousel from "../../design-trip/CourseCarousel";
+import SideTripCarousel from "../../design-trip/SideTripCarousel";
 import CompareWidget from "../../../components/CompareWidget";
 import {
   formatStayType,
@@ -9,11 +13,44 @@ import {
   formatDuration,
   formatDriving,
 } from "../../../lib/formatters";
-import { JsonLd } from "@/components/JsonLd";
-import { SITE_URL, SITE_NAME } from "@/lib/seo";
 import EmailSignup from "@/components/EmailSignup";
 import SaveButton from "@/components/SaveButton";
 import ShareButton from "@/components/ShareButton";
+import { ProseMarkdown, LodgingMarkdown, PackMarkdown } from "../../design-trip/TripMarkdown";
+import JumpToSection from "../../design-trip/JumpToSection";
+import AskCaddieInline from "../../design-trip/AskCaddieInline";
+import CostTable from "../../design-trip/CostTable";
+import { getPublishedTripFull, getPublishedTrips } from "@/lib/airtable";
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+const MONTH_ABBR: Record<string, string> = {
+  January: "Jan", February: "Feb", March: "Mar", April: "Apr",
+  May: "May", June: "Jun", July: "Jul", August: "Aug",
+  September: "Sep", October: "Oct", November: "Nov", December: "Dec",
+};
+
+const MONTH_SEASON: Record<string, string> = {
+  December: "Winter", January: "Winter", February: "Winter",
+  March: "Spring", April: "Spring", May: "Spring",
+  June: "Summer", July: "Summer", August: "Summer", September: "Summer",
+  October: "Fall", November: "Fall",
+};
+
+function abbreviateMonths(months: string[] | undefined): string | undefined {
+  if (!months?.length) return undefined;
+  return months.map((m) => MONTH_ABBR[m] ?? m).join(", ");
+}
+
+function deriveSeasonName(months: string[]): string {
+  const order = ["Spring", "Summer", "Fall", "Winter"];
+  const found = order.filter((s) => months.some((m) => MONTH_SEASON[m] === s));
+  if (found.length === 0) return "";
+  if (found.length <= 2) return found.join(" & ");
+  return found.join(", ");
+}
+import { SITE_URL, SITE_NAME } from "@/lib/seo";
+import { JsonLd } from "@/components/JsonLd";
 
 export const revalidate = 86400;
 
@@ -28,7 +65,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const trip = await getPublishedTripBySlug(slug);
+  const trip = await getPublishedTripFull(slug);
   if (!trip) return {};
 
   const description =
@@ -54,22 +91,35 @@ export async function generateMetadata({
   };
 }
 
-function statusLabel(status: string) {
-  if (!status) return "";
-  if (status === "must_play") return "MUST";
-  if (status === "should_play") return "";
-  if (status === "want_more") return "";
-  return status.toUpperCase();
+function parseBulletRules(raw: string | undefined): { head: string; text: string }[] {
+  if (!raw) return [];
+  return raw
+    .split("\n")
+    .filter(Boolean)
+    .map((line) => {
+      const colonIdx = line.indexOf(":");
+      if (colonIdx === -1) return { head: "", text: line.trim() };
+      return {
+        head: line.slice(0, colonIdx).trim(),
+        text: line.slice(colonIdx + 1).trim(),
+      };
+    })
+    .filter((r) => r.text.length > 0);
 }
 
-function safeNum(n: number | undefined) {
-  if (typeof n !== "number") return 0;
-  return n;
+function parseLines(raw: string | undefined): string[] {
+  if (!raw) return [];
+  return raw.split("\n").filter((line) => line.trim().length > 0);
 }
 
 function safeInt(n: number | undefined) {
   if (typeof n !== "number") return 0;
   return Math.floor(n);
+}
+
+function safeNum(n: number | undefined) {
+  if (typeof n !== "number") return 0;
+  return n;
 }
 
 export default async function TripDetailsPage({
@@ -78,51 +128,75 @@ export default async function TripDetailsPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-
   const [trip, allTrips] = await Promise.all([
-    getPublishedTripBySlug(slug),
+    getPublishedTripFull(slug),
     getPublishedTrips(),
   ]);
   if (!trip) return notFound();
 
   const otherTrips = allTrips
-    .filter(t => t.slug !== slug)
+    .filter((t) => t.slug !== slug)
     .sort((a, b) => a.name.localeCompare(b.name))
-    .map(t => ({ slug: t.slug, name: t.name }));
+    .map((t) => ({ slug: t.slug, name: t.name }));
 
-  const heroUrl =
-    `/images/trips/${trip.slug}.jpg` ||
-    trip.heroImageUrl ||
-    trip.thumbnailImageUrl;
+  const heroUrl = `/images/trips/${trip.slug}.jpg`;
 
-  const courses = [...trip.courses].sort(
-    (a, b) => a.tripCourseRank - b.tripCourseRank
-  );
+  const carouselCourses = trip.courses
+    .filter((c) => c.status === "must_play" || c.status === "should_play")
+    .sort((a, b) => a.tripCourseRank - b.tripCourseRank)
+    .map((c) => ({
+      id: c.course.id,
+      slug: c.course.slug,
+      name: c.course.name,
+      status: c.status as "must_play" | "should_play",
+      consolidatedRanking: c.course.consolidatedRanking ?? null,
+      golfDigestRanking: c.course.golfDigestRanking ?? null,
+      golfDotComRanking: c.course.golfDotComRanking ?? null,
+      golfweekRanking: c.course.golfweekRanking ?? null,
+      tripCourseRank: c.tripCourseRank,
+    }));
 
-  const gridCoursesMustShould = courses.filter(
-    (c) => c.status !== "want_more"
-  );
+  const teeTimeRules = parseBulletRules(trip.teeTimeRules);
+  const mistakes = parseBulletRules(trip.commonMistakes);
+  const fitYes = parseLines(trip.fitYes);
+  const fitNo = parseLines(trip.fitNo);
 
-  const gridCoursesWantMore = courses.filter(
-    (c) => c.status === "want_more"
-  );
+  const verdictText = trip.verdict || trip.overview;
 
-  const mustPlay = courses
-    .filter((c) => c.status === "must_play")
-    .map((c) => c.course.name);
-  const shouldPlay = courses
-    .filter((c) => c.status === "should_play")
-    .map((c) => c.course.name);
-  const othersPlay = courses
-    .filter((c) => !c.status)
-    .map((c) => c.course.name);
-  const wantMore = courses
-    .filter((c) => c.status === "want_more")
-    .map((c) => c.course.name);
+  const peakLabel = abbreviateMonths(trip.peakMonths);
+  const peakBullets = parseLines(trip.peakNotes);
+  const peakSeasonName = trip.peakSeasonName || (trip.peakMonths?.length ? deriveSeasonName(trip.peakMonths) : undefined);
+  const shoulderLabel = abbreviateMonths(trip.shoulderMonths);
+  const shoulderBullets = parseLines(trip.shoulderNotes);
+  const shoulderSeasonName = trip.shoulderSeasonName || (trip.shoulderMonths?.length ? deriveSeasonName(trip.shoulderMonths) : undefined);
 
-  function joinNames(names: string[]) {
-    return names.length ? names.join(", ") : "-";
-  }
+  const allMonths = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const peakSet = new Set(trip.peakMonths ?? []);
+  const shoulderSet = new Set(trip.shoulderMonths ?? []);
+  const offPeakMonths = allMonths.filter((m) => !peakSet.has(m) && !shoulderSet.has(m));
+  const offPeakLabel = offPeakMonths.length < 12 ? abbreviateMonths(offPeakMonths) : undefined;
+  const offPeakSeasonName = trip.offSeasonName || (offPeakMonths.length > 0 && offPeakMonths.length < 12 ? deriveSeasonName(offPeakMonths) : undefined);
+  const offPeakBullets = parseLines(trip.offSeasonNotes);
+
+  const costShoulderHeader = peakLabel ? `Shoulder (${abbreviateMonths(trip.shoulderMonths) ?? "off-peak"})` : "Shoulder season";
+  const costPeakHeader = peakLabel ? `Peak (${peakLabel})` : "Peak season";
+
+  const showWhenToGo = peakLabel || shoulderLabel || offPeakLabel;
+
+  const jumpSections = [
+    ...(verdictText ? [{ id: "verdict", label: "Our take" }] : []),
+    ...(carouselCourses.length > 0 ? [{ id: "courses", label: "Courses included" }] : []),
+    ...(trip.fullDescription ? [{ id: "experience", label: "The trip experience" }] : []),
+    ...((trip.sideTrips.length > 0 || trip.wantMore) ? [{ id: "side-trips", label: "Side trips & bonus golf" }] : []),
+    ...((fitYes.length > 0 || fitNo.length > 0) ? [{ id: "fit", label: "Is this trip right for you?" }] : []),
+    ...(showWhenToGo ? [{ id: "when", label: "When to go" }] : []),
+    ...(trip.costRows.length > 0 ? [{ id: "cost", label: "Budget" }] : []),
+    ...(teeTimeRules.length > 0 ? [{ id: "tee-times", label: "Tee times" }] : []),
+    ...(mistakes.length > 0 ? [{ id: "mistakes", label: "Common mistakes" }] : []),
+    ...((trip.packBring || trip.packLeave) ? [{ id: "pack", label: "What to pack" }] : []),
+    ...((trip.itinerary.min.length > 0 || trip.itinerary.max.length > 0) ? [{ id: "itinerary", label: "Sample itinerary" }] : []),
+    ...((trip.lodging || trip.dining) ? [{ id: "stay", label: "Where to stay & eat" }] : []),
+  ];
 
   const breadcrumbSchema = {
     "@context": "https://schema.org",
@@ -138,7 +212,7 @@ export default async function TripDetailsPage({
     "@context": "https://schema.org",
     "@type": "TouristAttraction",
     name: `${trip.name} Golf Trip`,
-    description: trip.overview ?? trip.fullDescription ?? undefined,
+    description: trip.verdict ?? trip.overview ?? trip.fullDescription ?? undefined,
     url: `${SITE_URL}/trips/${trip.slug}`,
     ...(trip.overallRating
       ? {
@@ -154,108 +228,85 @@ export default async function TripDetailsPage({
   };
 
   return (
-    <main className={styles.page}>
+    <main>
       <JsonLd data={breadcrumbSchema} />
       <JsonLd data={tripSchema} />
-      {/* HERO */}
-      <section className={styles.banner}>
+
+      {/* ── HERO ──────────────────────────────────────────────── */}
+      <section className={hero.banner}>
         <div
-          className={styles.bannerMedia}
+          className={hero.bannerMedia}
           style={{ backgroundImage: `url("${heroUrl}")` }}
         >
           <ShareButton itemType="trip" itemId={slug} itemName={trip.name} variant="dark" corner />
         </div>
 
-        <div className={styles.bannerPanel}>
-          <div className={styles.bannerInner}>
-            {/* Title spans full width */}
-            <div className={styles.bannerHeader}>
-              <h1 className={styles.bannerTitle}>{trip.name}</h1>
-
-              {/* short deck line like screenshot (use first line of overview if available) */}
-              {trip.subheader ? (
-                <p className={styles.bannerDeck}>
-                  {trip.subheader.split("\n").filter(Boolean)[0]}
-                </p>
-              ) : null}
-
-              <div className={styles.bannerSave}>
+        <div className={hero.bannerPanel}>
+          <div className={hero.bannerInner}>
+            <div className={hero.bannerHeader}>
+              <h1 className={hero.bannerTitle}>{trip.name}</h1>
+              {trip.subheader && (
+                <p className={hero.bannerDeck}>{trip.subheader}</p>
+              )}
+              <div className={hero.bannerSave}>
                 <SaveButton itemType="trip" itemId={slug} variant="dark" />
               </div>
             </div>
 
-            <div className={styles.bannerRule} aria-hidden="true" />
+            <div className={hero.bannerRule} aria-hidden="true" />
 
-            {/* Two-column content area */}
-            <div className={styles.bannerBody}>
-              {/* LEFT: meta */}
-              <div className={styles.bannerMeta}>
-                <div className={styles.bannerMetaRow}>
-                  <span className={styles.bannerMetaKey}>Duration:</span>
-                  <span className={styles.bannerMetaVal}>
+            <div className={hero.bannerBody}>
+              <div className={hero.bannerMeta}>
+                <div className={hero.bannerMetaRow}>
+                  <span className={hero.bannerMetaKey}>Duration:</span>
+                  <span className={hero.bannerMetaVal}>
                     {formatDuration(trip.durationMinDays, trip.durationMaxDays)}
                   </span>
                 </div>
-
-
-                <div className={`${styles.bannerMetaRow} ${styles.metaTooltipWrapper}`}>
-                  <span className={styles.bannerMetaKey}>Driving:</span>
-                  <span className={styles.bannerMetaVal}>
+                <div className={`${hero.bannerMetaRow} ${hero.metaTooltipWrapper}`}>
+                  <span className={hero.bannerMetaKey}>Driving:</span>
+                  <span className={hero.bannerMetaVal}>
                     {formatDriving(trip.driving)}
-                    <i className={styles.metaTooltipIcon} aria-label="More info">i</i>
+                    <i className={hero.metaTooltipIcon} aria-label="More info">i</i>
                   </span>
-                  <span className={styles.metaTooltip}>
+                  <span className={hero.metaTooltip}>
                     Driving between courses and lodging during the trip. Does not include travel to or from an airport.
                   </span>
                 </div>
-
-                <div className={styles.bannerMetaRow}>
-                  <span className={styles.bannerMetaKey}>Stay Type:</span>
-                  <span className={styles.bannerMetaVal}>
-                    {formatStayType(trip.stayType)}
-                  </span>
+                <div className={hero.bannerMetaRow}>
+                  <span className={hero.bannerMetaKey}>Stay Type:</span>
+                  <span className={hero.bannerMetaVal}>{formatStayType(trip.stayType)}</span>
                 </div>
-
-                <div className={styles.bannerMetaRow}>
-                  <span className={styles.bannerMetaKey}>Lead Time:</span>
-                  <span className={styles.bannerMetaVal}>{trip.leadTime ?? "—"}</span>
+                <div className={hero.bannerMetaRow}>
+                  <span className={hero.bannerMetaKey}>Lead Time:</span>
+                  <span className={hero.bannerMetaVal}>{trip.leadTime ?? "—"}</span>
                 </div>
-
-                <div className={styles.bannerMetaRow}>
-                  <span className={styles.bannerMetaKey}>Cost:</span>
-                  <span className={styles.bannerMetaVal}>
-                    {formatCostTier(trip.costTier)}
-                  </span>
+                <div className={hero.bannerMetaRow}>
+                  <span className={hero.bannerMetaKey}>Cost:</span>
+                  <span className={hero.bannerMetaVal}>{formatCostTier(trip.costTier)}</span>
                 </div>
               </div>
 
-              {/* RIGHT: scores */}
-              <div className={styles.bannerScores}>
-                <div className={styles.bannerScoreRow}>
-                  <span className={styles.bannerScoreKey}>Golf:</span>
-                  <span className={styles.bannerScoreVal}>{safeInt(trip.golfRating)}</span>
+              <div className={hero.bannerScores}>
+                <div className={hero.bannerScoreRow}>
+                  <span className={hero.bannerScoreKey}>Golf:</span>
+                  <span className={hero.bannerScoreVal}>{safeInt(trip.golfRating)}</span>
                 </div>
-
-                <div className={styles.bannerScoreRow}>
-                  <span className={styles.bannerScoreKey}>Lodging:</span>
-                  <span className={styles.bannerScoreVal}>{safeInt(trip.lodgingRating)}</span>
+                <div className={hero.bannerScoreRow}>
+                  <span className={hero.bannerScoreKey}>Lodging:</span>
+                  <span className={hero.bannerScoreVal}>{safeInt(trip.lodgingRating)}</span>
                 </div>
-
-                <div className={styles.bannerScoreRow}>
-                  <span className={styles.bannerScoreKey}>Food:</span>
-                  <span className={styles.bannerScoreVal}>{safeInt(trip.foodRating)}</span>
+                <div className={hero.bannerScoreRow}>
+                  <span className={hero.bannerScoreKey}>Food:</span>
+                  <span className={hero.bannerScoreVal}>{safeInt(trip.foodRating)}</span>
                 </div>
-
-                <div className={styles.bannerScoreRow}>
-                  <span className={styles.bannerScoreKey}>Vibe:</span>
-                  <span className={styles.bannerScoreVal}>{safeInt(trip.vibeRating)}</span>
+                <div className={hero.bannerScoreRow}>
+                  <span className={hero.bannerScoreKey}>Vibe:</span>
+                  <span className={hero.bannerScoreVal}>{safeInt(trip.vibeRating)}</span>
                 </div>
-
-                <div className={styles.bannerScoreRowOverall}>
-                  <span className={styles.bannerScoreKey}>Overall:</span>
-                  <span className={styles.bannerOverallVal}>
-                    {safeNum(trip.overallRating).toFixed(2)}
-                  </span>
+                <div className={hero.bannerScoreRowOverall}>
+                  <span className={hero.bannerScoreKey}>Overall:</span>
+                  <span className={hero.bannerOverallVal}>{safeNum(trip.overallRating).toFixed(2)}</span>
                 </div>
               </div>
             </div>
@@ -263,249 +314,313 @@ export default async function TripDetailsPage({
         </div>
       </section>
 
-      {/* STICKY COMPARE BAR */}
       <CompareWidget tripName={trip.name} currentSlug={slug} trips={otherTrips} />
 
-      {/* BODY */}
-      <section className={styles.body}>
-        {/* Course grid */}
-        <div className={styles.carouselFrame}>
-          <div className={styles.courseGrid}>
-            {gridCoursesMustShould.map((c) => {
-              const img = `/images/courses/${c.course.slug.toLowerCase()}.jpg`;
+      {/* ── BODY LAYOUT: TOC rail + main content ──────────────── */}
+      <div className={dt.body}>
+        <div className={dt.bodyLayout}>
 
-              return (
-                <div
-                  key={`${c.course.id}-${c.tripCourseRank}`}
-                  className={`${styles.courseCard} whiteRoundedBox`}
-                >
-                  <div className={styles.courseImage} aria-hidden="true">
-                    <div
-                      className={styles.courseImageBg}
-                      style={{ backgroundImage: `url("${img}")` }}
-                    />
-                    {c.course.consolidatedRanking ? (
-                      <div className={styles.courseRankOverlay}>
-                        #{c.course.consolidatedRanking}
+          {/* LEFT RAIL TOC */}
+          <aside className={dt.tocRail}>
+            <TocNav />
+          </aside>
+
+          {/* MAIN CONTENT */}
+          <div className={dt.mainContent}>
+
+            <JumpToSection sections={jumpSections} />
+
+            {/* ── VERDICT ────────────────────────────────────────── */}
+            {verdictText && (
+              <>
+                <section id="verdict" className={dt.section}>
+                  <div className={dt.sectionLabel}>Our take</div>
+                  <p className={dt.verdictText}>{verdictText}</p>
+                  <AskCaddieInline />
+                </section>
+
+                <hr className={dt.sectionDivider} />
+              </>
+            )}
+
+            {/* ── COURSES ────────────────────────────────────────── */}
+            {carouselCourses.length > 0 && (
+              <>
+                <section id="courses" className={dt.section}>
+                  <div className={dt.sectionLabel}>What you play</div>
+                  <h2 className={dt.sectionTitle}>Courses included</h2>
+                  <CourseCarousel courses={carouselCourses} />
+                </section>
+
+                <hr className={dt.sectionDivider} />
+              </>
+            )}
+
+            {/* ── THE EXPERIENCE ──────────────────────────────────── */}
+            {trip.fullDescription && (
+              <>
+                <section id="experience" className={dt.section}>
+                  <div className={dt.sectionLabel}>Review</div>
+                  <h2 className={dt.sectionTitle}>The trip experience</h2>
+                  <ProseMarkdown content={trip.fullDescription} />
+                </section>
+
+                <hr className={dt.sectionDivider} />
+              </>
+            )}
+
+            {/* ── SIDE TRIPS ──────────────────────────────────────── */}
+            {(trip.sideTrips.length > 0 || trip.wantMore) && (
+              <>
+                <section id="side-trips" className={dt.section}>
+                  <div className={dt.sectionLabel}>While you&apos;re there</div>
+                  <h2 className={dt.sectionTitle}>Side trips &amp; bonus golf</h2>
+                  {trip.sideTrips.length > 0 && <SideTripCarousel items={trip.sideTrips} />}
+                  {trip.wantMore && (
+                    <div className={dt.wantMoreBlock}>
+                      <ProseMarkdown content={trip.wantMore} />
+                    </div>
+                  )}
+                </section>
+
+                <hr className={dt.sectionDivider} />
+              </>
+            )}
+
+            {/* ── IS THIS TRIP RIGHT FOR YOU? ─────────────────────── */}
+            {(fitYes.length > 0 || fitNo.length > 0) && (
+              <>
+                <section id="fit" className={dt.section}>
+                  <div className={dt.sectionLabel}>Fit</div>
+                  <h2 className={dt.sectionTitle}>Is this trip right for your group?</h2>
+                  <div className={dt.fitGrid}>
+                    {fitYes.length > 0 && (
+                      <div className={`${dt.fitCard} ${dt.fitCardYes}`}>
+                        <div className={`${dt.fitCardTitle} ${dt.fitCardTitleYes}`}>Book this trip if…</div>
+                        <ul className={dt.fitList}>
+                          {fitYes.map((item) => (
+                            <li key={item} className={dt.fitItem}>
+                              <span className={dt.fitIcon}>✓</span>
+                              {item}
+                            </li>
+                          ))}
+                        </ul>
                       </div>
-                    ) : null}
-                  </div>
-
-                  <div className={styles.courseHeader}>
-                    <div className={styles.courseName}>{c.course.name}</div>
-                    <div className={styles.courseStatus}>{statusLabel(c.status)}</div>
-                  </div>
-
-                  <div className={styles.courseRanks}>
-                    <div className={styles.rankCell}>
-                      <div className={styles.rankNum}>{c.course.golfDigestRanking ?? "NR"}</div>
-                      <div className={styles.rankLabel}>Golf Digest</div>
-                    </div>
-
-                    <div className={styles.rankCell}>
-                      <div className={styles.rankNum}>{c.course.golfDotComRanking ?? "NR"}</div>
-                      <div className={styles.rankLabel}>Golf.com</div>
-                    </div>
-
-                    <div className={styles.rankCell}>
-                      <div className={styles.rankNum}>{c.course.golfweekRanking ?? "NR"}</div>
-                      <div className={styles.rankLabel}>Golfweek</div>
-                    </div>
-
-                    <div className={styles.rankCell}>
-                      <div className={styles.rankNum}>{c.course.consolidatedRanking ?? "NR"}</div>
-                      <div className={styles.rankLabel}>Overall</div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className={styles.bodyInner}>
-          {/* Main full-width content */}
-          <div className={styles.mainCol}>
-            {trip.fullDescription ? (
-              <div className={styles.prose}>
-                {trip.fullDescription
-                  .split("\n")
-                  .filter(Boolean)
-                  .map((p, idx) => (
-                    <p key={idx}>{p}</p>
-                  ))}
-              </div>
-            ) : trip.overview ? (
-              <div className={styles.prose}>
-                <p>{trip.overview}</p>
-              </div>
-            ) : null}
-          </div>
-        </div>
-
-        <div className={styles.carouselFrame}>
-          <div className={styles.courseGrid}>
-            {gridCoursesWantMore.map((c) => {
-              const img = `/images/courses/${c.course.slug.toLowerCase()}.jpg`;
-
-              return (
-                <div
-                  key={`${c.course.id}-${c.tripCourseRank}`}
-                  className={`${styles.courseCard} whiteRoundedBox`}
-                >
-                  <div className={styles.courseImage} aria-hidden="true">
-                    <div
-                      className={styles.courseImageBg}
-                      style={{ backgroundImage: `url("${img}")` }}
-                    />
-                    {c.course.consolidatedRanking ? (
-                      <div className={styles.courseRankOverlay}>
-                        #{c.course.consolidatedRanking}
+                    )}
+                    {fitNo.length > 0 && (
+                      <div className={`${dt.fitCard} ${dt.fitCardNo}`}>
+                        <div className={`${dt.fitCardTitle} ${dt.fitCardTitleNo}`}>Skip this trip if…</div>
+                        <ul className={dt.fitList}>
+                          {fitNo.map((item) => (
+                            <li key={item} className={dt.fitItem}>
+                              <span className={dt.fitIcon}>✗</span>
+                              {item}
+                            </li>
+                          ))}
+                        </ul>
                       </div>
-                    ) : null}
+                    )}
                   </div>
+                </section>
 
-                  <div className={styles.courseHeader}>
-                    <div className={styles.courseName}>{c.course.name}</div>
-                    <div className={styles.courseStatus}>{statusLabel(c.status)}</div>
-                  </div>
+                <hr className={dt.sectionDivider} />
+              </>
+            )}
 
-                  <div className={styles.courseRanks}>
-                    <div className={styles.rankCell}>
-                      <div className={styles.rankNum}>{c.course.golfDigestRanking ?? "NR"}</div>
-                      <div className={styles.rankLabel}>Golf Digest</div>
-                    </div>
+            {/* ── WHEN TO GO ──────────────────────────────────────── */}
+            {showWhenToGo && (
+              <>
+                <section id="when" className={dt.section}>
+                  <div className={dt.sectionLabel}>Timing</div>
+                  <h2 className={dt.sectionTitle}>When to go</h2>
 
-                    <div className={styles.rankCell}>
-                      <div className={styles.rankNum}>{c.course.golfDotComRanking ?? "NR"}</div>
-                      <div className={styles.rankLabel}>Golf.com</div>
-                    </div>
-
-                    <div className={styles.rankCell}>
-                      <div className={styles.rankNum}>{c.course.golfweekRanking ?? "NR"}</div>
-                      <div className={styles.rankLabel}>Golfweek</div>
-                    </div>
-
-                    <div className={styles.rankCell}>
-                      <div className={styles.rankNum}>{c.course.consolidatedRanking ?? "NR"}</div>
-                      <div className={styles.rankLabel}>Overall</div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className={styles.bodyInner}>
-          {/* Main full-width content */}
-          <div className={styles.mainCol}>
-            {trip.wantMore ? (
-              <div className={styles.prose}>
-                {trip.wantMore
-                  .split("\n")
-                  .filter(Boolean)
-                  .map((p, idx) => (
-                    <p key={idx}>{p}</p>
-                  ))}
-              </div>
-            ) : trip.overview ? (
-              <div className={styles.prose}>
-                <p>{trip.overview}</p>
-              </div>
-            ) : null}
-          </div>
-
-          <div className={`${styles.categorySection} whiteRoundedBox`}>
-            <div className={styles.categoryTitle}>Courses included:</div>
-
-            <div className={styles.categoryRows}>
-              <div className={styles.categoryRow}>
-                <div className={styles.categoryLabel}>Must Play:</div>
-                <div className={styles.categoryValue}>{joinNames(mustPlay)}</div>
-              </div>
-
-              <div className={styles.categoryRow}>
-                <div className={styles.categoryLabel}>Should Play:</div>
-                <div className={styles.categoryValue}>
-                  {joinNames(shouldPlay)}
-                </div>
-              </div>
-
-              <div className={styles.categoryRow}>
-                <div className={styles.categoryLabel}>Others:</div>
-                <div className={styles.categoryValue}>
-                  {joinNames(othersPlay)}
-                </div>
-              </div>
-
-              <div className={styles.categoryRow}>
-                <div className={styles.categoryLabel}>Want More:</div>
-                <div className={styles.categoryValue}>{joinNames(wantMore)}</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Two-up detail section below */}
-          <div className={styles.detailGrid}>
-            <div className={`${styles.sideCard} whiteRoundedBox`}>
-              <div className={styles.sideTitle}>Sample Itinerary</div>
-
-              {trip.sampleItinerary ? (
-                <div className={styles.sideText}>
-                  {trip.sampleItinerary
-                    .split("\n")
-                    .filter(Boolean)
-                    .map((line, idx) => (
-                      <div key={idx} className={styles.sideLine}>
-                        {line}
+                  <div className={dt.seasonGrid}>
+                    {peakLabel && (
+                      <div className={`${dt.seasonCard} ${dt.seasonCardPeak}`}>
+                        <div className={`${dt.seasonTagline} ${dt.seasonTaglinePeak}`}>Peak</div>
+                        {peakSeasonName && <div className={dt.seasonName}>{peakSeasonName}</div>}
+                        <div className={dt.seasonMonths}>{peakLabel}</div>
+                        {peakBullets.length > 0 && (
+                          <ul className={dt.seasonPoints}>
+                            {peakBullets.map((pt) => (
+                              <li key={pt} className={dt.seasonPoint}>
+                                <span className={`${dt.seasonDot} ${dt.seasonDotPeak}`} />
+                                {pt}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        {trip.peakVerdict && <div className={dt.seasonVerdict}>{trip.peakVerdict}</div>}
                       </div>
-                    ))}
-                </div>
-              ) : (
-                <div className={styles.sideEmpty}>No itinerary provided.</div>
-              )}
+                    )}
+                    {shoulderLabel && (
+                      <div className={`${dt.seasonCard} ${dt.seasonCardShoulder}`}>
+                        <div className={`${dt.seasonTagline} ${dt.seasonTaglineShoulder}`}>Shoulder</div>
+                        {shoulderSeasonName && <div className={dt.seasonName}>{shoulderSeasonName}</div>}
+                        <div className={dt.seasonMonths}>{shoulderLabel}</div>
+                        {shoulderBullets.length > 0 && (
+                          <ul className={dt.seasonPoints}>
+                            {shoulderBullets.map((pt) => (
+                              <li key={pt} className={dt.seasonPoint}>
+                                <span className={`${dt.seasonDot} ${dt.seasonDotShoulder}`} />
+                                {pt}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        {trip.shoulderVerdict && <div className={dt.seasonVerdict}>{trip.shoulderVerdict}</div>}
+                      </div>
+                    )}
+                    {offPeakLabel && (
+                      <div className={`${dt.seasonCard} ${dt.seasonCardOff}`}>
+                        <div className={`${dt.seasonTagline} ${dt.seasonTaglineOff}`}>Off-Season</div>
+                        {offPeakSeasonName && <div className={dt.seasonName}>{offPeakSeasonName}</div>}
+                        <div className={dt.seasonMonths}>{offPeakLabel}</div>
+                        {offPeakBullets.length > 0 && (
+                          <ul className={dt.seasonPoints}>
+                            {offPeakBullets.map((pt) => (
+                              <li key={pt} className={dt.seasonPoint}>
+                                <span className={`${dt.seasonDot} ${dt.seasonDotOff}`} />
+                                {pt}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        {trip.offSeasonVerdict && <div className={dt.seasonVerdict}>{trip.offSeasonVerdict}</div>}
+                      </div>
+                    )}
+                  </div>
+                </section>
 
-              {trip.sampleItineraryNotes ? (
-                <div className={styles.sideNotes}>
-                  <div className={styles.sideNotesLabel}>Notes:</div>
-                  <div className={styles.sideNotesBody}>
-                    {trip.sampleItineraryNotes
-                      .split("\n")
-                      .filter(Boolean)
-                      .map((line, idx) => (
-                        <div key={idx} className={styles.sideLine}>
-                          {line}
+                <hr className={dt.sectionDivider} />
+              </>
+            )}
+
+            {/* ── COST ────────────────────────────────────────────── */}
+            {trip.costRows.length > 0 && (
+              <>
+                <section id="cost" className={dt.section}>
+                  <div className={dt.sectionLabel}>Budget</div>
+                  <h2 className={dt.sectionTitle}>What a {trip.name} trip costs</h2>
+
+                  <CostTable rows={trip.costRows} costNote={trip.costNote} />
+                </section>
+
+                <hr className={dt.sectionDivider} />
+              </>
+            )}
+
+            {/* ── TEE TIMES ───────────────────────────────────────── */}
+            {teeTimeRules.length > 0 && (
+              <>
+                <section id="tee-times" className={dt.section}>
+                  <div className={dt.sectionLabel}>Logistics</div>
+                  <h2 className={dt.sectionTitle}>How tee times and lodging actually work</h2>
+
+                  <ol className={dt.numberedList}>
+                    {teeTimeRules.map((rule, i) => (
+                      <li key={rule.head || i} className={dt.numberedItem}>
+                        <div className={dt.numberedBadge}>{i + 1}</div>
+                        <div>
+                          <div className={dt.numberedHead}>{rule.head}</div>
+                          <div className={dt.numberedText}>{rule.text}</div>
                         </div>
-                      ))}
-                  </div>
-                </div>
-              ) : null}
-            </div>
-
-            <div className={`${styles.sideCard} whiteRoundedBox`}>
-              <div className={styles.sideTitle}>Food &amp; Lodging</div>
-
-              {trip.foodAndLodgingOverview ? (
-                <div className={styles.sideText}>
-                  {trip.foodAndLodgingOverview
-                    .split("\n")
-                    .filter(Boolean)
-                    .map((p, idx) => (
-                      <p key={idx} className={styles.sidePara}>
-                        {p}
-                      </p>
+                      </li>
                     ))}
-                </div>
-              ) : (
-                <div className={styles.sideEmpty}>
-                  No food &amp; lodging overview provided.
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
+                  </ol>
+                </section>
+
+                <hr className={dt.sectionDivider} />
+              </>
+            )}
+
+            {/* ── COMMON MISTAKES ─────────────────────────────────── */}
+            {mistakes.length > 0 && (
+              <>
+                <section id="mistakes" className={dt.section}>
+                  <div className={dt.sectionLabel}>Watch out for</div>
+                  <h2 className={dt.sectionTitle}>Common mistakes</h2>
+
+                  <ul className={dt.mistakeList}>
+                    {mistakes.map((m, i) => (
+                      <li key={m.head || i} className={dt.mistakeItem}>
+                        <span className={dt.mistakeIconBadge}>!</span>
+                        <div>
+                          <div className={dt.mistakeHead}>{m.head}</div>
+                          <div className={dt.mistakeText}>{m.text}</div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+
+                <hr className={dt.sectionDivider} />
+              </>
+            )}
+
+            {/* ── PACK LIST ───────────────────────────────────────── */}
+            {(trip.packBring || trip.packLeave) && (
+              <>
+                <section id="pack" className={dt.section}>
+                  <div className={dt.sectionLabel}>Prep</div>
+                  <h2 className={dt.sectionTitle}>What to pack</h2>
+
+                  <div className={dt.packColumns}>
+                    {trip.packBring && (
+                      <div className={dt.packGroup}>
+                        <div className={dt.packGroupLabel}>Bring</div>
+                        <PackMarkdown content={trip.packBring} variant="bring" />
+                      </div>
+                    )}
+                    {trip.packLeave && (
+                      <div className={dt.packGroup}>
+                        <div className={dt.packGroupLabel}>Leave at home</div>
+                        <PackMarkdown content={trip.packLeave} variant="leave" />
+                      </div>
+                    )}
+                  </div>
+                </section>
+
+                <hr className={dt.sectionDivider} />
+              </>
+            )}
+
+            {/* ── ITINERARY ───────────────────────────────────────── */}
+            {(trip.itinerary.min.length > 0 || trip.itinerary.max.length > 0) && (
+              <>
+                <section id="itinerary" className={dt.section}>
+                  <div className={dt.sectionLabel}>Sample schedule</div>
+                  <h2 className={dt.sectionTitle}>Sample itinerary</h2>
+
+                  <ItineraryToggle
+                    minItinerary={trip.itinerary.min}
+                    maxItinerary={trip.itinerary.max}
+                    footnote={trip.sampleItineraryNotes ?? ""}
+                    defaultTab={trip.durationMinDays === 2 && trip.durationMaxDays === 3 ? "max" : undefined}
+                  />
+                </section>
+
+                <hr className={dt.sectionDivider} />
+              </>
+            )}
+
+            {/* ── STAY & EAT ──────────────────────────────────────── */}
+            {(trip.lodging || trip.dining) && (
+              <>
+                <section id="stay" className={dt.section}>
+                  <div className={dt.sectionLabel}>On property</div>
+                  <h2 className={dt.sectionTitle}>Where to stay &amp; eat</h2>
+
+                  {trip.lodging && <LodgingMarkdown content={trip.lodging} label="Lodging" />}
+                  {trip.dining && <LodgingMarkdown content={trip.dining} label="Dining" />}
+                </section>
+              </>
+            )}
+
+          </div>{/* end mainContent */}
+        </div>{/* end bodyLayout */}
+      </div>{/* end body */}
+
       <EmailSignup
         heading="Know before you book."
         subtext="Rankings and new trips, straight to you."

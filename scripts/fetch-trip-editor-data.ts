@@ -63,13 +63,14 @@ async function main() {
   const trip = tripRecords[0];
   const f = trip.fields as Record<string, unknown>;
   const tripId = trip.id as string;
+  const tripName = (f["Name"] as string).replace(/"/g, '\\"');
 
   // ── Linked records ────────────────────────────────────────────────────────
   const [costRows, sideTrips, itineraryRows, tripCourseRows] = await Promise.all([
-    get(TABLES.costRows,   `FIND("${tripId}", ARRAYJOIN({Golf Trip}))`),
-    get(TABLES.sideTrips,  `FIND("${tripId}", ARRAYJOIN({Golf Trip}))`),
-    get(TABLES.itinerary,  `FIND("${tripId}", ARRAYJOIN({Golf Trip}))`),
-    get(TABLES.tripCourses,`FIND("${tripId}", ARRAYJOIN({Golf Trip}))`),
+    get(TABLES.costRows,   `FIND("${tripName}", ARRAYJOIN({Golf Trip}))`),
+    get(TABLES.sideTrips,  `FIND("${tripName}", ARRAYJOIN({Golf Trip}))`),
+    get(TABLES.itinerary,  `FIND("${tripName}", ARRAYJOIN({Golf Trip}))`),
+    get(TABLES.tripCourses,`FIND("${tripName}", ARRAYJOIN({Golf Trip}))`),
   ]);
 
   const sortBy = (rows: any[], key: string) =>
