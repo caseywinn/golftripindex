@@ -19,8 +19,10 @@ export default function CourseCarousel({ courses }: { courses: Course[] }) {
   const current = courses[index];
   const touchStartX = useRef(0);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const hasMounted = useRef(false);
 
   useEffect(() => {
+    if (!hasMounted.current) { hasMounted.current = true; return; }
     tabRefs.current[index]?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
   }, [index]);
 

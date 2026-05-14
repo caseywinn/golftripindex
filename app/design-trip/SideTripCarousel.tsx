@@ -18,17 +18,15 @@ export default function SideTripCarousel({ items }: { items: SideTrip[] }) {
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const touchStartX = useRef(0);
   const current = items[index];
+  const hasMounted = useRef(false);
 
-  // Scroll active card into view (desktop grid)
+  // Scroll active card and tab into view — skip on initial mount
   useEffect(() => {
+    if (!hasMounted.current) { hasMounted.current = true; return; }
     const card = cardRefs.current[index];
     if (card && viewportRef.current) {
       viewportRef.current.scrollTo({ left: card.offsetLeft, behavior: "smooth" });
     }
-  }, [index]);
-
-  // Scroll active tab into view (nav strip)
-  useEffect(() => {
     tabRefs.current[index]?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
   }, [index]);
 
