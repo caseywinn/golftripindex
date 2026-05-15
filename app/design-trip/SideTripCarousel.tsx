@@ -18,11 +18,9 @@ export default function SideTripCarousel({ items }: { items: SideTrip[] }) {
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const touchStartX = useRef(0);
   const current = items[index];
-  const hasMounted = useRef(false);
-
-  // Scroll active card and tab into view — skip on initial mount
+  // Scroll active card and tab into view — index starts at 0 on mount, skip it
   useEffect(() => {
-    if (!hasMounted.current) { hasMounted.current = true; return; }
+    if (index === 0) return;
     const card = cardRefs.current[index];
     if (card && viewportRef.current) {
       viewportRef.current.scrollTo({ left: card.offsetLeft, behavior: "smooth" });
