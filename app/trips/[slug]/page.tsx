@@ -227,10 +227,70 @@ export default async function TripDetailsPage({
       : {}),
   };
 
+  const faqEntries: { question: string; answer: string }[] = [];
+
+  if (carouselCourses.length > 0) {
+    const courseNames = carouselCourses.map((c) => c.name).join(", ");
+    faqEntries.push({
+      question: `Which courses should I play at ${trip.name}?`,
+      answer: `The top-ranked courses at ${trip.name} are: ${courseNames}. These are rated must-play or should-play by the Golf Trip Index panel based on architecture, routing, and overall experience.`,
+    });
+  }
+
+  if (trip.peakMonths?.length) {
+    const peakStr = abbreviateMonths(trip.peakMonths);
+    const peakNoteStr = peakBullets.length > 0 ? ` ${peakBullets[0]}` : "";
+    faqEntries.push({
+      question: `When is the best time to visit ${trip.name}?`,
+      answer: `Peak season is ${peakStr}.${peakNoteStr}${trip.peakVerdict ? ` ${trip.peakVerdict}` : ""}`,
+    });
+  }
+
+  if (teeTimeRules.length > 0) {
+    const rulesText = teeTimeRules
+      .slice(0, 3)
+      .map((r) => (r.head ? `${r.head}: ${r.text}` : r.text))
+      .join(" ");
+    faqEntries.push({
+      question: `How do tee times and lodging work at ${trip.name}?`,
+      answer: rulesText,
+    });
+  }
+
+  if (trip.packBring) {
+    const packLines = parseLines(trip.packBring).slice(0, 4).join(", ");
+    faqEntries.push({
+      question: `What should I pack for a ${trip.name} golf trip?`,
+      answer: `Key items to bring: ${packLines}.${trip.packLeave ? ` Leave at home: ${parseLines(trip.packLeave).slice(0, 3).join(", ")}.` : ""}`,
+    });
+  }
+
+  if (mistakes.length > 0) {
+    const mistakeText = mistakes
+      .slice(0, 2)
+      .map((m) => (m.head ? `${m.head}: ${m.text}` : m.text))
+      .join(" ");
+    faqEntries.push({
+      question: `What are common mistakes on a ${trip.name} golf trip?`,
+      answer: mistakeText,
+    });
+  }
+
+  const faqSchema = faqEntries.length > 0 ? {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqEntries.map(({ question, answer }) => ({
+      "@type": "Question",
+      name: question,
+      acceptedAnswer: { "@type": "Answer", text: answer },
+    })),
+  } : null;
+
   return (
     <main>
       <JsonLd data={breadcrumbSchema} />
       <JsonLd data={tripSchema} />
+      {faqSchema && <JsonLd data={faqSchema} />}
 
       {/* ── HERO ──────────────────────────────────────────────── */}
       <section className={hero.banner}>

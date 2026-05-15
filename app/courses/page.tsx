@@ -49,9 +49,27 @@ export default async function CourseRankingsPage() {
     return (a.name || "").localeCompare(b.name || "");
   });
 
+  const itemListSchema = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: "Top 100 Golf Courses USA — Consolidated Rankings",
+    description: "A consolidated ranking of the top 100 golf courses in the United States, aggregating Golf Digest, Golf.com, and Golfweek into one objective view.",
+    url: `${SITE_URL}/courses`,
+    itemListElement: sorted
+      .filter((c) => c.consolidatedRanking != null)
+      .slice(0, 100)
+      .map((c, i) => ({
+        "@type": "ListItem",
+        position: c.consolidatedRanking ?? i + 1,
+        name: c.name,
+        url: `${SITE_URL}/courses`,
+      })),
+  };
+
   return (
     <main className={styles.page}>
       <JsonLd data={breadcrumbSchema} />
+      <JsonLd data={itemListSchema} />
       {/* Banner */}
       <section className={styles.banner}>
         <div className={styles.bannerMedia} aria-hidden="true" />

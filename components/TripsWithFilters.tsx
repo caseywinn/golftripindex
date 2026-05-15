@@ -2,7 +2,6 @@
 
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useState, useMemo, useEffect, useRef } from "react";
-import type { TripWithFirstCourse } from "@/lib/airtable";
 import {
   REGIONS,
   COST_TIERS,
@@ -12,6 +11,32 @@ import {
   TOP_100_COUNTS,
   filterTrips,
 } from "@/lib/filters";
+
+type TripListItem = {
+  id: string;
+  slug: string;
+  name: string;
+  secondaryName?: string | null;
+  currentRanking?: number | null;
+  previousRanking?: number | null;
+  durationMinDays?: number | null;
+  durationMaxDays?: number | null;
+  driving?: string | null;
+  stayType?: string | null;
+  leadTime?: string | null;
+  costTier?: 1 | 2 | 3 | 4 | 5;
+  overview?: string | null;
+  firstCourse?: { slug?: string | null } | null;
+  golfRating?: number | null;
+  lodgingRating?: number | null;
+  foodRating?: number | null;
+  vibeRating?: number | null;
+  overallRating?: number | null;
+  region?: string | undefined;
+  state?: string | undefined;
+  seasons?: string[] | undefined;
+  top100Count?: number | null;
+};
 import TripsListClient from "@/components/TripsListClient";
 import styles from "@/styles/tripFilters.module.css";
 
@@ -32,7 +57,7 @@ export default function TripsWithFilters({
   trips,
   pageSize = 20,
 }: {
-  trips: TripWithFirstCourse[];
+  trips: TripListItem[];
   pageSize?: number;
 }) {
   const router = useRouter();
@@ -63,7 +88,8 @@ export default function TripsWithFilters({
         result = result.filter(t => (t.top100Count ?? 0) >= min);
       } else {
         result = result.filter(trip =>
-          values.some(v => filterTrips([trip], key, v).length > 0)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          values.some(v => filterTrips([trip as any], key, v).length > 0)
         );
       }
     }

@@ -13,7 +13,7 @@ export const revalidate = 604800; // regenerate once per week so the featured tr
 
 export const metadata: Metadata = {
   title: "Golf Trip Index | Ranking USA's Best Golf Trips",
-  description: "An overall ranking of the best golf trips in America.",
+  description: "Golf Trip Index ranks America's best multi-day golf trips by course quality, lodging, food, and overall experience. Independent scores across 50+ destinations — from Bandon Dunes to Pinehurst.",
   alternates: { canonical: `${SITE_URL}/` },
 };
 
@@ -156,7 +156,7 @@ export default async function HomePage() {
                       <img
                         className={styles.newsImg}
                         src={img}
-                        alt=""
+                        alt={n.name}
                         loading="lazy"
                       />
                     </Link>

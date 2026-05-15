@@ -69,9 +69,28 @@ export default async function TripFilterPage({
   if (!meta) return notFound();
 
   const allTrips = await getPublishedTripsWithFirstCourse();
-  const filtered = filterTrips(allTrips, filterType, filterValue).sort(
+  const rawFiltered = filterTrips(allTrips, filterType, filterValue).sort(
     (a, b) => (a.currentRanking ?? 9999) - (b.currentRanking ?? 9999)
   );
+
+  // Strip large text fields not needed for the list view
+  const filtered = rawFiltered.map(({ id, slug, name, secondaryName, currentRanking, previousRanking,
+    durationMinDays, durationMaxDays, driving, stayType, leadTime, costTier, overview,
+    golfRating, lodgingRating, foodRating, vibeRating, overallRating,
+    region, state, seasons, top100Count, firstCourse }) => ({
+    id, slug, name, secondaryName, currentRanking, previousRanking,
+    durationMinDays, durationMaxDays, driving, stayType, leadTime, costTier, overview,
+    golfRating, lodgingRating, foodRating, vibeRating, overallRating,
+    region: region ?? undefined,
+    state: state ?? undefined,
+    seasons: seasons ?? undefined,
+    top100Count,
+    firstCourse: firstCourse ? { slug: firstCourse.slug } : undefined,
+  }));
+
+  const regionDef = filterType === "region"
+    ? REGIONS.find((r) => r.slug === filterValue)
+    : null;
 
   return (
     <main className={styles.page}>
@@ -86,9 +105,31 @@ export default async function TripFilterPage({
       <section className={styles.listWrap}>
         <div className={styles.listInner}>
           {filtered.length > 0 ? (
-            <Suspense fallback={null}>
-              <TripsListClient trips={filtered} pageSize={20} />
-            </Suspense>
+            <>
+              <h2 style={{ fontSize: 15, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", color: "#6b7280", marginBottom: 16 }}>
+                {filtered.length} Ranked {regionDef ? `${regionDef.label} ` : ""}Golf Trips
+              </h2>
+              <Suspense fallback={null}>
+                <TripsListClient trips={filtered} pageSize={20} />
+              </Suspense>
+              {regionDef && (
+                <div style={{ marginTop: 56, borderTop: "1px solid #e5e7eb", paddingTop: 40 }}>
+                  <h2 style={{ fontSize: 22, fontWeight: 700, color: "#0b0f1a", marginBottom: 12 }}>
+                    Planning a {regionDef.label} Golf Trip
+                  </h2>
+                  <p style={{ fontSize: 15, color: "#374151", lineHeight: 1.7, maxWidth: 680, marginBottom: 32 }}>
+                    The rankings above reflect Golf Trip Index&apos;s independent scoring across courses, lodging, food, and overall experience. Use the filters to narrow by budget, duration, or stay type.
+                  </p>
+                  <h2 style={{ fontSize: 22, fontWeight: 700, color: "#0b0f1a", marginBottom: 12 }}>
+                    How These Rankings Work
+                  </h2>
+                  <p style={{ fontSize: 15, color: "#374151", lineHeight: 1.7, maxWidth: 680 }}>
+                    Every trip is scored on four dimensions: Golf (course quality and architecture), Lodging (group suitability and value), Food (on-course and nearby dining), and Vibe (pace, caddies, and travel complexity). The overall score weights golf most heavily while accounting for the full trip experience.{" "}
+                    <Link href="/how-we-rate" style={{ color: "#0b0f1a", fontWeight: 600 }}>Learn more about the methodology →</Link>
+                  </p>
+                </div>
+              )}
+            </>
           ) : (
             <div style={{ padding: "40px 0", color: "#6b7280", fontSize: 15 }}>
               <p>No trips match this filter yet.</p>

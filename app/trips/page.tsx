@@ -5,6 +5,7 @@ import { getPublishedTripsWithFirstCourse } from "../../lib/airtable";
 import type { Metadata } from "next";
 import TripsWithFilters from "../../components/TripsWithFilters";
 import { SITE_URL } from "../../lib/seo";
+import { JsonLd } from "@/components/JsonLd";
 
 export const metadata: Metadata = {
   title: "Golf Trip Rankings",
@@ -13,7 +14,41 @@ export const metadata: Metadata = {
 };
 
 export default async function TripsPage() {
-  const trips = await getPublishedTripsWithFirstCourse();
+  const rawTrips = await getPublishedTripsWithFirstCourse();
+
+  // Strip large text fields that are only needed on individual trip pages,
+  // not the list view — keeps the server→client payload under 150KB.
+  const trips = rawTrips.map(({ id, slug, name, secondaryName, currentRanking, previousRanking,
+    durationMinDays, durationMaxDays, driving, stayType, leadTime, costTier, overview,
+    golfRating, lodgingRating, foodRating, vibeRating, overallRating,
+    region, state, seasons, top100Count, firstCourse }) => ({
+    id, slug, name, secondaryName, currentRanking, previousRanking,
+    durationMinDays, durationMaxDays, driving, stayType, leadTime, costTier, overview,
+    golfRating, lodgingRating, foodRating, vibeRating, overallRating,
+    region: region ?? undefined,
+    state: state ?? undefined,
+    seasons: seasons ?? undefined,
+    top100Count,
+    firstCourse: firstCourse ? { slug: firstCourse.slug } : undefined,
+  }));
+
+  const itemListSchema = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: "2026 Golf Trip Rankings",
+    description: "Independent rankings of America's best golf trips, rated on courses, lodging, food, cost, and vibe.",
+    url: `${SITE_URL}/trips`,
+    itemListElement: trips
+      .filter((t) => t.currentRanking != null)
+      .sort((a, b) => (a.currentRanking ?? 999) - (b.currentRanking ?? 999))
+      .slice(0, 50)
+      .map((t, i) => ({
+        "@type": "ListItem",
+        position: t.currentRanking ?? i + 1,
+        name: t.name,
+        url: `${SITE_URL}/trips/${t.slug}`,
+      })),
+  };
 
   const content =
     trips.length > 0 ? (
@@ -28,6 +63,7 @@ export default async function TripsPage() {
 
   return (
     <main className={styles.page}>
+      <JsonLd data={itemListSchema} />
       <section className={styles.banner}>
         <div className={styles.bannerMedia} aria-hidden="true" />
         <div className={styles.bannerPanel}>

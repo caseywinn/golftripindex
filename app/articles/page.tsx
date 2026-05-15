@@ -33,8 +33,8 @@ export async function generateMetadata({
   const pageNum = Math.max(1, parseInt(page ?? "1", 10));
   const canonical = pageNum === 1 ? `${SITE_URL}/articles` : `${SITE_URL}/articles?page=${pageNum}`;
   return {
-    title: pageNum === 1 ? "Articles | Golf Trip Index" : `Articles — Page ${pageNum} | Golf Trip Index`,
-    description: "News and stories about the best golf trips in America.",
+    title: pageNum === 1 ? "Golf Trip Articles & Planning Guides" : `Golf Trip Articles & Planning Guides — Page ${pageNum}`,
+    description: "Planning guides, head-to-head trip comparisons, and editorial coverage of America's best golf destinations — from Bandon Dunes to Pinehurst.",
     alternates: { canonical },
   };
 }
@@ -68,6 +68,10 @@ export default async function ArticlesPage({
   return (
     <main className={styles.page}>
       <JsonLd data={breadcrumbSchema} />
+
+      <div className={styles.pageHeader}>
+        <h1 className={styles.pageTitle}>Golf Trip Articles &amp; Planning Guides</h1>
+      </div>
 
       {/* Featured hero — page 1 only */}
       {currentPage === 1 && featured && (
@@ -135,7 +139,7 @@ export default async function ArticlesPage({
                       <img
                         className={styles.newsImg}
                         src={`/images/articles/${article.slug}.jpg`}
-                        alt=""
+                        alt={article.name}
                         loading="lazy"
                       />
                     </Link>
