@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Golf Trips — SEO Cluster Map | Golf Trip Index</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8fafc; color: #1e293b; }
+
+  .header { background: #0b0f1a; color: #fff; padding: 24px 32px; }
+  .header h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+  .header p { font-size: 13px; color: #94a3b8; margin-top: 4px; }
+
+  .stats { display: flex; gap: 24px; padding: 20px 32px; background: #fff; border-bottom: 1px solid #e2e8f0; flex-wrap: wrap; }
+  .stat { display: flex; flex-direction: column; gap: 2px; }
+  .stat-val { font-size: 22px; font-weight: 700; color: #0b0f1a; }
+  .stat-label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  .main { padding: 24px 32px; max-width: 1200px; margin: 0 auto; }
+
+  .pillar-section { margin-bottom: 32px; }
+  .section-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #64748b; margin-bottom: 12px; }
+
+  .pillar-card {
+    background: #0b0f1a;
+    color: #fff;
+    border-radius: 12px;
+    padding: 20px 24px;
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+  }
+  .pillar-badge {
+    background: #f59e0b;
+    color: #0b0f1a;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    padding: 3px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    margin-top: 2px;
+  }
+  .pillar-info { flex: 1; }
+  .pillar-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+  .pillar-keyword { font-size: 12px; color: #94a3b8; margin-bottom: 8px; }
+  .pillar-meta { display: flex; gap: 16px; flex-wrap: wrap; }
+  .pillar-meta span { font-size: 11px; color: #94a3b8; }
+  .pillar-meta strong { color: #e2e8f0; }
+  .pillar-url { font-size: 12px; color: #60a5fa; margin-top: 8px; font-family: monospace; }
+
+  .clusters-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(520px, 1fr)); gap: 20px; }
+
+  .cluster-card { background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; }
+  .cluster-header { padding: 14px 18px; display: flex; align-items: center; gap: 10px; }
+  .cluster-color { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .cluster-name { font-size: 13px; font-weight: 700; flex: 1; }
+  .cluster-intent { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 8px; border-radius: 10px; }
+  .intent-commercial { background: #dbeafe; color: #1d4ed8; }
+  .intent-informational { background: #dcfce7; color: #15803d; }
+  .cluster-description { padding: 0 18px 12px; font-size: 12px; color: #64748b; line-height: 1.5; }
+
+  .post-list { list-style: none; }
+  .post-item { padding: 10px 18px; border-top: 1px solid #f1f5f9; display: flex; align-items: flex-start; gap: 10px; }
+  .post-item:hover { background: #f8fafc; }
+  .post-status { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+  .status-planned { background: #d1d5db; }
+  .status-written { background: #22c55e; }
+  .post-body { flex: 1; }
+  .post-title { font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 2px; line-height: 1.3; }
+  .post-keyword { font-size: 11px; color: #64748b; margin-bottom: 4px; font-style: italic; }
+  .post-meta { display: flex; gap: 10px; flex-wrap: wrap; }
+  .post-meta span { font-size: 10px; color: #94a3b8; }
+  .post-url { font-family: monospace; font-size: 10px; color: #60a5fa; }
+
+  .links-section { margin-top: 32px; }
+  .link-matrix { background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; }
+  .link-matrix table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .link-matrix th { padding: 10px 14px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; text-align: left; font-weight: 600; color: #64748b; }
+  .link-matrix td { padding: 9px 14px; border-bottom: 1px solid #f1f5f9; color: #374151; }
+  .link-matrix tr:last-child td { border-bottom: none; }
+  .link-type-mandatory { color: #dc2626; font-weight: 600; }
+  .link-type-recommended { color: #2563eb; }
+
+  .serp-section { margin-top: 32px; }
+  .serp-table { background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; }
+  .serp-table table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .serp-table th { padding: 10px 14px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; text-align: left; font-weight: 600; color: #64748b; }
+  .serp-table td { padding: 9px 14px; border-bottom: 1px solid #f1f5f9; }
+  .serp-table tr:last-child td { border-bottom: none; }
+  .overlap-high { color: #dc2626; font-weight: 700; }
+  .overlap-medium { color: #d97706; font-weight: 600; }
+  .overlap-low { color: #6b7280; }
+  .rel-same { background: #fef2f2; color: #dc2626; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+  .rel-cluster { background: #eff6ff; color: #2563eb; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+  .rel-interlink { background: #f0fdf4; color: #16a34a; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+  .rel-separate { background: #f1f5f9; color: #64748b; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+
+  .priority-section { margin-top: 32px; }
+  .priority-table { background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; }
+  .priority-table table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .priority-table th { padding: 10px 14px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; text-align: left; font-weight: 600; color: #64748b; }
+  .priority-table td { padding: 9px 14px; border-bottom: 1px solid #f1f5f9; }
+  .priority-table tr:last-child td { border-bottom: none; }
+  .priority-num { font-weight: 800; color: #0b0f1a; font-size: 14px; }
+
+  .footer { margin-top: 40px; padding: 20px 32px; background: #f1f5f9; text-align: center; font-size: 11px; color: #94a3b8; border-radius: 8px; }
+
+  svg.cluster-viz { display: block; margin: 0 auto 32px; max-width: 100%; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Golf Trips — SEO Cluster Map</h1>
+  <p>Golf Trip Index &nbsp;·&nbsp; Generated 2026-05-15 &nbsp;·&nbsp; SERP-overlap clustering methodology</p>
+</div>
+
+<div class="stats">
+  <div class="stat"><span class="stat-val">1</span><span class="stat-label">Pillar Page</span></div>
+  <div class="stat"><span class="stat-val">13</span><span class="stat-label">Spoke Posts</span></div>
+  <div class="stat"><span class="stat-val">4</span><span class="stat-label">Clusters</span></div>
+  <div class="stat"><span class="stat-val">~22,000</span><span class="stat-label">Est. Words</span></div>
+  <div class="stat"><span class="stat-val">28</span><span class="stat-label">Internal Links</span></div>
+  <div class="stat"><span class="stat-val">0</span><span class="stat-label">Cannibalization Conflicts</span></div>
+</div>
+
+<div class="main">
+
+  <!-- SVG Visualization -->
+  <div class="pillar-section">
+    <div class="section-label">Cluster Architecture</div>
+
+    <svg class="cluster-viz" viewBox="0 0 900 480" xmlns="http://www.w3.org/2000/svg">
+      <!-- Background -->
+      <rect width="900" height="480" fill="#f8fafc" rx="12"/>
+
+      <!-- Link lines from pillar to cluster centers -->
+      <line x1="450" y1="240" x2="200" y2="120" stroke="#2563eb" stroke-width="2" stroke-dasharray="5,3" opacity="0.5"/>
+      <line x1="450" y1="240" x2="700" y2="120" stroke="#16a34a" stroke-width="2" stroke-dasharray="5,3" opacity="0.5"/>
+      <line x1="450" y1="240" x2="200" y2="360" stroke="#d97706" stroke-width="2" stroke-dasharray="5,3" opacity="0.5"/>
+      <line x1="450" y1="240" x2="700" y2="360" stroke="#9333ea" stroke-width="2" stroke-dasharray="5,3" opacity="0.5"/>
+
+      <!-- Cluster 1 spokes (State Guides, blue) -->
+      <line x1="200" y1="120" x2="80" y2="50" stroke="#2563eb" stroke-width="1.5" opacity="0.4"/>
+      <line x1="200" y1="120" x2="140" y2="40" stroke="#2563eb" stroke-width="1.5" opacity="0.4"/>
+      <line x1="200" y1="120" x2="200" y2="35" stroke="#2563eb" stroke-width="1.5" opacity="0.4"/>
+      <line x1="200" y1="120" x2="260" y2="40" stroke="#2563eb" stroke-width="1.5" opacity="0.4"/>
+      <line x1="200" y1="120" x2="310" y2="55" stroke="#2563eb" stroke-width="1.5" opacity="0.4"/>
+
+      <!-- Cluster 2 spokes (Planning, green) -->
+      <line x1="700" y1="120" x2="590" y2="40" stroke="#16a34a" stroke-width="1.5" opacity="0.4"/>
+      <line x1="700" y1="120" x2="700" y2="35" stroke="#16a34a" stroke-width="1.5" opacity="0.4"/>
+      <line x1="700" y1="120" x2="810" y2="40" stroke="#16a34a" stroke-width="1.5" opacity="0.4"/>
+
+      <!-- Cluster 3 spokes (Budget, amber) -->
+      <line x1="200" y1="360" x2="100" y2="430" stroke="#d97706" stroke-width="1.5" opacity="0.4"/>
+      <line x1="200" y1="360" x2="220" y2="440" stroke="#d97706" stroke-width="1.5" opacity="0.4"/>
+
+      <!-- Cluster 4 spokes (Group, purple) -->
+      <line x1="700" y1="360" x2="600" y2="440" stroke="#9333ea" stroke-width="1.5" opacity="0.4"/>
+      <line x1="700" y1="360" x2="710" y2="445" stroke="#9333ea" stroke-width="1.5" opacity="0.4"/>
+      <line x1="700" y1="360" x2="820" y2="430" stroke="#9333ea" stroke-width="1.5" opacity="0.4"/>
+
+      <!-- Pillar node -->
+      <circle cx="450" cy="240" r="55" fill="#0b0f1a"/>
+      <text x="450" y="232" text-anchor="middle" fill="#f59e0b" font-size="9" font-weight="800" letter-spacing="1">PILLAR</text>
+      <text x="450" y="246" text-anchor="middle" fill="#fff" font-size="9" font-weight="600">Best Golf</text>
+      <text x="450" y="258" text-anchor="middle" fill="#fff" font-size="9" font-weight="600">Trips USA</text>
+      <text x="450" y="270" text-anchor="middle" fill="#94a3b8" font-size="8">/trips</text>
+
+      <!-- Cluster 1: State Guides (blue) -->
+      <circle cx="200" cy="120" r="38" fill="#2563eb"/>
+      <text x="200" y="112" text-anchor="middle" fill="#fff" font-size="9" font-weight="700">State</text>
+      <text x="200" y="124" text-anchor="middle" fill="#fff" font-size="9" font-weight="700">Destination</text>
+      <text x="200" y="136" text-anchor="middle" fill="#bfdbfe" font-size="8">5 spokes</text>
+
+      <!-- Cluster 1 spoke nodes -->
+      <circle cx="80" cy="50" r="22" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+      <text x="80" y="46" text-anchor="middle" fill="#1d4ed8" font-size="7.5" font-weight="600">Florida</text>
+      <text x="80" y="56" text-anchor="middle" fill="#64748b" font-size="7">/articles</text>
+
+      <circle cx="140" cy="40" r="22" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+      <text x="140" y="36" text-anchor="middle" fill="#1d4ed8" font-size="7.5" font-weight="600">Michigan</text>
+      <text x="140" y="46" text-anchor="middle" fill="#64748b" font-size="7">/articles</text>
+
+      <circle cx="200" cy="35" r="22" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+      <text x="200" y="31" text-anchor="middle" fill="#1d4ed8" font-size="7.5" font-weight="600">Wisconsin</text>
+      <text x="200" y="41" text-anchor="middle" fill="#64748b" font-size="7">/articles</text>
+
+      <circle cx="260" cy="40" r="22" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+      <text x="260" y="36" text-anchor="middle" fill="#1d4ed8" font-size="6.5" font-weight="600">N. Carolina</text>
+      <text x="260" y="46" text-anchor="middle" fill="#64748b" font-size="7">/articles</text>
+
+      <circle cx="310" cy="55" r="22" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+      <text x="310" y="51" text-anchor="middle" fill="#1d4ed8" font-size="7.5" font-weight="600">Oregon</text>
+      <text x="310" y="61" text-anchor="middle" fill="#64748b" font-size="7">/articles</text>
+
+      <!-- Cluster 2: Planning (green) -->
+      <circle cx="700" cy="120" r="38" fill="#16a34a"/>
+      <text x="700" y="112" text-anchor="middle" fill="#fff" font-size="9" font-weight="700">Trip</text>
+      <text x="700" y="124" text-anchor="middle" fill="#fff" font-size="9" font-weight="700">Planning</text>
+      <text x="700" y="136" text-anchor="middle" fill="#bbf7d0" font-size="8">3 spokes</text>
+
+      <circle cx="590" cy="40" r="22" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+      <text x="590" y="36" text-anchor="middle" fill="#15803d" font-size="7" font-weight="600">How to Plan</text>
+      <text x="590" y="46" text-anchor="middle" fill="#64748b" font-size="7">/articles</text>
+
+      <circle cx="700" cy="35" r="22" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+      <text x="700" y="31" text-anchor="middle" fill="#15803d" font-size="7" font-weight="600">Packing List</text>
+      <text x="700" y="41" text-anchor="middle" fill="#64748b" font-size="7">/articles</text>
+
+      <circle cx="810" cy="40" r="22" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+      <text x="810" y="36" text-anchor="middle" fill="#15803d" font-size="7" font-weight="600">Best Season</text>
+      <text x="810" y="46" text-anchor="middle" fill="#64748b" font-size="7">/articles</text>
+
+      <!-- Cluster 3: Budget (amber) -->
+      <circle cx="200" cy="360" r="38" fill="#d97706"/>
+      <text x="200" y="352" text-anchor="middle" fill="#fff" font-size="9" font-weight="700">Budget</text>
+      <text x="200" y="364" text-anchor="middle" fill="#fff" font-size="9" font-weight="700">&amp; Value</text>
+      <text x="200" y="376" text-anchor="middle" fill="#fef3c7" font-size="8">2 spokes</text>
+
+      <circle cx="100" cy="430" r="22" fill="#fffbeb" stroke="#d97706" stroke-width="1.5"/>
+      <text x="100" y="426" text-anchor="middle" fill="#92400e" font-size="7" font-weight="600">Budget Trips</text>
+      <text x="100" y="436" text-anchor="middle" fill="#64748b" font-size="7">/articles</text>
+
+      <circle cx="220" cy="440" r="22" fill="#fffbeb" stroke="#d97706" stroke-width="1.5"/>
+      <text x="220" y="436" text-anchor="middle" fill="#92400e" font-size="7" font-weight="600">Under $1,000</text>
+      <text x="220" y="446" text-anchor="middle" fill="#64748b" font-size="7">/articles</text>
+
+      <!-- Cluster 4: Group (purple) -->
+      <circle cx="700" cy="360" r="38" fill="#9333ea"/>
+      <text x="700" y="352" text-anchor="middle" fill="#fff" font-size="9" font-weight="700">Group</text>
+      <text x="700" y="364" text-anchor="middle" fill="#fff" font-size="9" font-weight="700">&amp; Social</text>
+      <text x="700" y="376" text-anchor="middle" fill="#e9d5ff" font-size="8">3 spokes</text>
+
+      <circle cx="600" cy="440" r="22" fill="#faf5ff" stroke="#9333ea" stroke-width="1.5"/>
+      <text x="600" y="436" text-anchor="middle" fill="#6b21a8" font-size="7" font-weight="600">Bachelor</text>
+      <text x="600" y="446" text-anchor="middle" fill="#64748b" font-size="7">/articles</text>
+
+      <circle cx="710" cy="445" r="22" fill="#faf5ff" stroke="#9333ea" stroke-width="1.5"/>
+      <text x="710" y="441" text-anchor="middle" fill="#6b21a8" font-size="7" font-weight="600">Weekend</text>
+      <text x="710" y="451" text-anchor="middle" fill="#64748b" font-size="7">/articles</text>
+
+      <circle cx="820" cy="430" r="22" fill="#faf5ff" stroke="#9333ea" stroke-width="1.5"/>
+      <text x="820" y="426" text-anchor="middle" fill="#6b21a8" font-size="7" font-weight="600">Group Plan</text>
+      <text x="820" y="436" text-anchor="middle" fill="#64748b" font-size="7">/articles</text>
+
+      <!-- Legend -->
+      <rect x="20" y="200" width="130" height="90" rx="6" fill="#fff" stroke="#e2e8f0"/>
+      <text x="30" y="216" fill="#64748b" font-size="9" font-weight="700" letter-spacing="0.5">LEGEND</text>
+      <circle cx="32" cy="228" r="5" fill="#2563eb"/>
+      <text x="42" y="232" fill="#374151" font-size="8">State Destination</text>
+      <circle cx="32" cy="244" r="5" fill="#16a34a"/>
+      <text x="42" y="248" fill="#374151" font-size="8">Trip Planning</text>
+      <circle cx="32" cy="260" r="5" fill="#d97706"/>
+      <text x="42" y="264" fill="#374151" font-size="8">Budget &amp; Value</text>
+      <circle cx="32" cy="276" r="5" fill="#9333ea"/>
+      <text x="42" y="280" fill="#374151" font-size="8">Group &amp; Social</text>
+    </svg>
+  </div>
+
+  <!-- Pillar Card -->
+  <div class="pillar-section">
+    <div class="section-label">Pillar Page</div>
+    <div class="pillar-card">
+      <span class="pillar-badge">PILLAR</span>
+      <div class="pillar-info">
+        <div class="pillar-title">Best Golf Trips USA 2026: Complete Rankings &amp; Destination Guide</div>
+        <div class="pillar-keyword">Primary keyword: best golf trips usa &nbsp;·&nbsp; Secondary: golf trip rankings, top golf trips, best golf trips 2026</div>
+        <div class="pillar-meta">
+          <span><strong>Action:</strong> Enhance existing page</span>
+          <span><strong>Target words:</strong> 3,000</span>
+          <span><strong>Template:</strong> best-of ranking hub</span>
+          <span><strong>Spoke links out:</strong> 13</span>
+        </div>
+        <div class="pillar-url">/trips</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Clusters -->
+  <div class="section-label" style="margin-bottom:12px">Spoke Clusters</div>
+  <div class="clusters-grid">
+
+    <!-- Cluster 1 -->
+    <div class="cluster-card">
+      <div class="cluster-header" style="background:#eff6ff; border-bottom:1px solid #dbeafe">
+        <div class="cluster-color" style="background:#2563eb"></div>
+        <span class="cluster-name">Cluster 1 — State Destination Guides</span>
+        <span class="cluster-intent intent-commercial">Commercial</span>
+      </div>
+      <div class="cluster-description">State-level pillar articles targeting "[state] golf trip" queries. GTI's in-depth ranked trip content beats thin GolfPass/GolfDigest listicles. Highest priority — enables state tourism board outreach for backlinks.</div>
+      <ul class="post-list">
+        <li class="post-item">
+          <div class="post-status status-planned"></div>
+          <div class="post-body">
+            <div class="post-title">Best Golf Trips in Florida: Streamsong, Cabot Citrus Farms &amp; Top Resorts Ranked</div>
+            <div class="post-keyword">best golf trips in Florida</div>
+            <div class="post-meta">
+              <span>1,800 words</span><span>best-of</span><span>High volume</span>
+              <span class="post-url">/articles/best-golf-trips-florida</span>
+            </div>
+          </div>
+        </li>
+        <li class="post-item">
+          <div class="post-status status-planned"></div>
+          <div class="post-body">
+            <div class="post-title">Best Golf Trips in Michigan: Arcadia Bluffs, Forest Dunes &amp; More</div>
+            <div class="post-keyword">best golf trips in Michigan</div>
+            <div class="post-meta">
+              <span>1,800 words</span><span>best-of</span><span>Medium-high volume</span>
+              <span class="post-url">/articles/best-golf-trips-michigan</span>
+            </div>
+          </div>
+        </li>
+        <li class="post-item">
+          <div class="post-status status-planned"></div>
+          <div class="post-body">
+            <div class="post-title">Best Golf Trips in Wisconsin: Sand Valley, Kohler &amp; Beyond</div>
+            <div class="post-keyword">best golf trips in Wisconsin</div>
+            <div class="post-meta">
+              <span>1,600 words</span><span>best-of</span><span>Medium volume</span>
+              <span class="post-url">/articles/best-golf-trips-wisconsin</span>
+            </div>
+          </div>
+        </li>
+        <li class="post-item">
+          <div class="post-status status-planned"></div>
+          <div class="post-body">
+            <div class="post-title">Best Golf Trips in North Carolina: Pinehurst &amp; the Sandhills</div>
+            <div class="post-keyword">best golf trips in North Carolina</div>
+            <div class="post-meta">
+              <span>1,600 words</span><span>best-of</span><span>Medium-high volume</span>
+              <span class="post-url">/articles/best-golf-trips-north-carolina</span>
+            </div>
+          </div>
+        </li>
+        <li class="post-item">
+          <div class="post-status status-planned"></div>
+          <div class="post-body">
+            <div class="post-title">Best Golf Trips in Oregon: Bandon Dunes &amp; Pacific Links Golf</div>
+            <div class="post-keyword">best golf trips in Oregon</div>
+            <div class="post-meta">
+              <span>1,600 words</span><span>best-of</span><span>Medium volume</span>
+              <span class="post-url">/articles/best-golf-trips-oregon</span>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Cluster 2 -->
+    <div class="cluster-card">
+      <div class="cluster-header" style="background:#f0fdf4; border-bottom:1px solid #bbf7d0">
+        <div class="cluster-color" style="background:#16a34a"></div>
+        <span class="cluster-name">Cluster 2 — Trip Planning</span>
+        <span class="cluster-intent intent-informational">Informational</span>
+      </div>
+      <div class="cluster-description">How-to planning content. GTI differentiates by integrating specific booking windows and lead times for ranked resorts rather than generic advice. Top-of-funnel entry point that funnels to destination pages.</div>
+      <ul class="post-list">
+        <li class="post-item">
+          <div class="post-status status-planned"></div>
+          <div class="post-body">
+            <div class="post-title">How to Plan a Golf Trip: The Complete Step-by-Step Guide</div>
+            <div class="post-keyword">how to plan a golf trip</div>
+            <div class="post-meta">
+              <span>2,200 words</span><span>how-to</span><span>Medium-high volume</span><span style="color:#dc2626;font-weight:600">Priority #1</span>
+              <span class="post-url">/articles/how-to-plan-a-golf-trip</span>
+            </div>
+          </div>
+        </li>
+        <li class="post-item">
+          <div class="post-status status-planned"></div>
+          <div class="post-body">
+            <div class="post-title">Golf Trip Packing List: Everything You Need on the Course</div>
+            <div class="post-keyword">golf trip packing list</div>
+            <div class="post-meta">
+              <span>1,400 words</span><span>listicle</span><span>Medium volume</span>
+              <span class="post-url">/articles/golf-trip-packing-list</span>
+            </div>
+          </div>
+        </li>
+        <li class="post-item">
+          <div class="post-status status-planned"></div>
+          <div class="post-body">
+            <div class="post-title">Best Time to Visit America's Top Golf Destinations</div>
+            <div class="post-keyword">best time to visit golf destinations</div>
+            <div class="post-meta">
+              <span>1,600 words</span><span>explainer</span><span>Medium volume</span>
+              <span class="post-url">/articles/best-time-visit-golf-destinations</span>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Cluster 3 -->
+    <div class="cluster-card">
+      <div class="cluster-header" style="background:#fffbeb; border-bottom:1px solid #fde68a">
+        <div class="cluster-color" style="background:#d97706"></div>
+        <span class="cluster-name">Cluster 3 — Budget &amp; Value</span>
+        <span class="cluster-intent intent-commercial">Commercial</span>
+      </div>
+      <div class="cluster-description">GTI differentiates with honest cost breakdowns tied to specific ranked trips (cost tier data from the DB). GolfBreaks and GolfDigest dominate with booking-engine content; GTI offers independent quality-per-dollar ranking.</div>
+      <ul class="post-list">
+        <li class="post-item">
+          <div class="post-status status-planned"></div>
+          <div class="post-body">
+            <div class="post-title">Best Budget Golf Trips USA: Top Value Destinations Ranked</div>
+            <div class="post-keyword">cheap golf trips usa</div>
+            <div class="post-meta">
+              <span>1,800 words</span><span>best-of</span><span>Medium volume</span>
+              <span class="post-url">/articles/budget-golf-trips-usa</span>
+            </div>
+          </div>
+        </li>
+        <li class="post-item">
+          <div class="post-status status-planned"></div>
+          <div class="post-body">
+            <div class="post-title">Golf Trips Under $1,000 Per Person: Where to Go and What to Expect</div>
+            <div class="post-keyword">golf trips under $1000</div>
+            <div class="post-meta">
+              <span>1,400 words</span><span>listicle</span><span>Medium volume</span>
+              <span class="post-url">/articles/golf-trips-under-1000</span>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Cluster 4 -->
+    <div class="cluster-card">
+      <div class="cluster-header" style="background:#faf5ff; border-bottom:1px solid #e9d5ff">
+        <div class="cluster-color" style="background:#9333ea"></div>
+        <span class="cluster-name">Cluster 4 — Group &amp; Social Golf</span>
+        <span class="cluster-intent intent-commercial">Commercial</span>
+      </div>
+      <div class="cluster-description">18away.com dominates bachelor/group SERPs with paid blueprints. GTI offers independent rankings where course quality drives recommendations rather than commission relationships — a credibility advantage.</div>
+      <ul class="post-list">
+        <li class="post-item">
+          <div class="post-status status-planned"></div>
+          <div class="post-body">
+            <div class="post-title">Best Bachelor Party Golf Trips: Top Destinations for Groups</div>
+            <div class="post-keyword">bachelor party golf trip</div>
+            <div class="post-meta">
+              <span>1,800 words</span><span>best-of</span><span>Medium-high volume</span>
+              <span class="post-url">/articles/bachelor-party-golf-trips</span>
+            </div>
+          </div>
+        </li>
+        <li class="post-item">
+          <div class="post-status status-planned"></div>
+          <div class="post-body">
+            <div class="post-title">Golf Weekend Trips: Best Short Golf Getaways in the USA</div>
+            <div class="post-keyword">golf weekend trips</div>
+            <div class="post-meta">
+              <span>1,600 words</span><span>best-of</span><span>Medium volume</span>
+              <span class="post-url">/articles/golf-weekend-trips</span>
+            </div>
+          </div>
+        </li>
+        <li class="post-item">
+          <div class="post-status status-planned"></div>
+          <div class="post-body">
+            <div class="post-title">How to Plan a Group Golf Trip: Logistics, Course Selection &amp; Tips</div>
+            <div class="post-keyword">how to plan a group golf trip</div>
+            <div class="post-meta">
+              <span>1,400 words</span><span>how-to</span><span>Medium volume</span>
+              <span class="post-url">/articles/group-golf-trip-planning</span>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+  </div>
+
+  <!-- SERP Overlap Table -->
+  <div class="serp-section">
+    <div class="section-label" style="margin-bottom:12px">SERP Overlap Analysis</div>
+    <div class="serp-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Keyword Pair</th>
+            <th>Shared Results</th>
+            <th>Relationship</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>"best golf trips usa" / "golf trip rankings"</td>
+            <td><span class="overlap-high">8-9</span></td>
+            <td><span class="rel-same">SAME POST</span></td>
+            <td>Both target /trips pillar page</td>
+          </tr>
+          <tr>
+            <td>"cheap golf trips" / "affordable golf trips usa"</td>
+            <td><span class="overlap-high">7-8</span></td>
+            <td><span class="rel-same">SAME POST</span></td>
+            <td>Single budget article targets both</td>
+          </tr>
+          <tr>
+            <td>"how to plan a golf trip" / "golf trip planning guide"</td>
+            <td><span class="overlap-high">8-9</span></td>
+            <td><span class="rel-same">SAME POST</span></td>
+            <td>Single planning article targets both</td>
+          </tr>
+          <tr>
+            <td>"top 100 golf courses" / "golf course rankings"</td>
+            <td><span class="overlap-high">8+</span></td>
+            <td><span class="rel-same">SAME POST</span></td>
+            <td>Existing /courses page — do not create article</td>
+          </tr>
+          <tr>
+            <td>"bachelor party golf trip" / "buddies golf trip"</td>
+            <td><span class="overlap-medium">4-5</span></td>
+            <td><span class="rel-cluster">SAME CLUSTER</span></td>
+            <td>Bachelor article + weekend trips article, linked</td>
+          </tr>
+          <tr>
+            <td>"best golf trips in Florida" / "best golf trips in Michigan"</td>
+            <td><span class="overlap-medium">2-3</span></td>
+            <td><span class="rel-interlink">INTERLINK</span></td>
+            <td>Separate state articles with cross-links</td>
+          </tr>
+          <tr>
+            <td>"best golf trips usa" / "how to plan a golf trip"</td>
+            <td><span class="overlap-low">0-1</span></td>
+            <td><span class="rel-separate">SEPARATE</span></td>
+            <td>Different clusters — pillar vs. planning hub</td>
+          </tr>
+          <tr>
+            <td>"best golf trips usa" / "cheap golf trips"</td>
+            <td><span class="overlap-medium">2</span></td>
+            <td><span class="rel-interlink">INTERLINK</span></td>
+            <td>Cross-link pillar → budget article</td>
+          </tr>
+          <tr>
+            <td>"best golf trips usa" / "bachelor party golf"</td>
+            <td><span class="overlap-low">1</span></td>
+            <td><span class="rel-separate">SEPARATE</span></td>
+            <td>Different clusters — pillar links to bachelor article</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Priority Table -->
+  <div class="priority-section">
+    <div class="section-label" style="margin-bottom:12px">Execution Priority</div>
+    <div class="priority-table">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Article</th>
+            <th>URL</th>
+            <th>Reason</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="priority-num">1</span></td>
+            <td>How to Plan a Golf Trip</td>
+            <td style="font-family:monospace;font-size:11px">/articles/how-to-plan-a-golf-trip</td>
+            <td>Informational, highest-volume, easiest to rank; no direct competitor can match GTI's booking-window specificity</td>
+          </tr>
+          <tr>
+            <td><span class="priority-num">2</span></td>
+            <td>Best Golf Trips in North Carolina</td>
+            <td style="font-family:monospace;font-size:11px">/articles/best-golf-trips-north-carolina</td>
+            <td>Pinehurst content + state tourism board outreach opportunity (visitnc.com/golf)</td>
+          </tr>
+          <tr>
+            <td><span class="priority-num">3</span></td>
+            <td>Best Golf Trips in Michigan</td>
+            <td style="font-family:monospace;font-size:11px">/articles/best-golf-trips-michigan</td>
+            <td>Arcadia Bluffs content + michigan.org/golf outreach</td>
+          </tr>
+          <tr>
+            <td><span class="priority-num">4</span></td>
+            <td>Best Golf Trips in Wisconsin</td>
+            <td style="font-family:monospace;font-size:11px">/articles/best-golf-trips-wisconsin</td>
+            <td>Sand Valley/Kohler content + travelwisconsin.com outreach</td>
+          </tr>
+          <tr>
+            <td><span class="priority-num">5</span></td>
+            <td>Best Golf Trips in Florida</td>
+            <td style="font-family:monospace;font-size:11px">/articles/best-golf-trips-florida</td>
+            <td>Streamsong/Cabot content + visitflorida.com outreach</td>
+          </tr>
+          <tr>
+            <td><span class="priority-num">6</span></td>
+            <td>Best Golf Trips in Oregon</td>
+            <td style="font-family:monospace;font-size:11px">/articles/best-golf-trips-oregon</td>
+            <td>Bandon Dunes content + traveloregon.com outreach (highest-value destination)</td>
+          </tr>
+          <tr>
+            <td><span class="priority-num">7</span></td>
+            <td>Best Bachelor Party Golf Trips</td>
+            <td style="font-family:monospace;font-size:11px">/articles/bachelor-party-golf-trips</td>
+            <td>Social sharing magnet; backlink potential from golf community forums</td>
+          </tr>
+          <tr>
+            <td><span class="priority-num">8</span></td>
+            <td>Best Budget Golf Trips USA</td>
+            <td style="font-family:monospace;font-size:11px">/articles/budget-golf-trips-usa</td>
+            <td>Commercial intent; GTI cost-tier data is a unique differentiator</td>
+          </tr>
+          <tr>
+            <td><span class="priority-num">9+</span></td>
+            <td>Remaining 5 articles</td>
+            <td style="font-family:monospace;font-size:11px">packing list, season guide, under $1k, weekend trips, group planning</td>
+            <td>Fill out clusters after core 8 posts are live</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="footer">
+    Generated by /seo cluster golf trips &nbsp;·&nbsp; Golf Trip Index SEO Cluster Plan 2026-05-15<br>
+    Pillar: /trips &nbsp;·&nbsp; 4 clusters &nbsp;·&nbsp; 13 spoke posts &nbsp;·&nbsp; ~22,000 words<br>
+    <strong>Next step:</strong> Write posts in priority order. Start with <code>/articles/how-to-plan-a-golf-trip</code>.
+    Brief is in <code>cluster-briefs/how-to-plan-a-golf-trip.md</code>
+  </div>
+
+</div>
+</body>
+</html>

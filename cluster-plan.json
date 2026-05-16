@@ -1,0 +1,223 @@
+{
+  "meta": {
+    "seedKeyword": "golf trips",
+    "generatedAt": "2026-05-15",
+    "totalPosts": 14,
+    "totalClusters": 4,
+    "estimatedWords": 22000,
+    "methodology": "SERP overlap clustering — keywords grouped by shared top-10 results, not text similarity"
+  },
+  "pillar": {
+    "title": "Best Golf Trips USA 2026: Complete Rankings & Destination Guide",
+    "keyword": "best golf trips usa",
+    "secondaryKeywords": ["golf trip rankings", "top golf trips", "best golf trips 2026", "best golf resorts usa"],
+    "volume": "high",
+    "template": "best-of",
+    "wordCount": 3000,
+    "url": "/trips",
+    "note": "Existing page — enhance with pillar content, stronger H1, deeper editorial intro, and explicit internal links to all spoke articles"
+  },
+  "clusters": [
+    {
+      "id": 1,
+      "name": "State Destination Guides",
+      "color": "#2563eb",
+      "intent": "commercial",
+      "description": "State-level pillar articles targeting '[state] golf trip' queries. GolfPass and GolfDigest dominate these SERPs with thin listicles; GTI's in-depth ranked trip content is a direct competitive advantage.",
+      "posts": [
+        {
+          "title": "Best Golf Trips in Florida: Top Courses, Resorts & Itineraries",
+          "keyword": "best golf trips in Florida",
+          "secondaryKeywords": ["Florida golf vacation", "Florida golf resorts", "Streamsong golf trip", "Cabot Citrus Farms trip"],
+          "volume": "high",
+          "template": "best-of",
+          "wordCount": 1800,
+          "url": "/articles/best-golf-trips-florida",
+          "status": "planned",
+          "trips": ["streamsong", "cabot-citrus-farms"]
+        },
+        {
+          "title": "Best Golf Trips in Michigan: Arcadia Bluffs, Forest Dunes & More",
+          "keyword": "best golf trips in Michigan",
+          "secondaryKeywords": ["Michigan golf vacation", "Arcadia Bluffs trip", "Forest Dunes golf", "northern Michigan golf trip"],
+          "volume": "medium-high",
+          "template": "best-of",
+          "wordCount": 1800,
+          "url": "/articles/best-golf-trips-michigan",
+          "status": "planned",
+          "trips": ["arcadia-bluffs"]
+        },
+        {
+          "title": "Best Golf Trips in Wisconsin: Sand Valley, Kohler & Beyond",
+          "keyword": "best golf trips in Wisconsin",
+          "secondaryKeywords": ["Wisconsin golf vacation", "Sand Valley golf trip", "Whistling Straits trip", "Kohler golf"],
+          "volume": "medium",
+          "template": "best-of",
+          "wordCount": 1600,
+          "url": "/articles/best-golf-trips-wisconsin",
+          "status": "planned",
+          "trips": ["sand-valley", "kohler"]
+        },
+        {
+          "title": "Best Golf Trips in North Carolina: Pinehurst & the Sandhills",
+          "keyword": "best golf trips in North Carolina",
+          "secondaryKeywords": ["Pinehurst golf trip", "North Carolina golf vacation", "Sandhills golf", "Pinehurst No 2"],
+          "volume": "medium-high",
+          "template": "best-of",
+          "wordCount": 1600,
+          "url": "/articles/best-golf-trips-north-carolina",
+          "status": "planned",
+          "trips": ["pinehurst"]
+        },
+        {
+          "title": "Best Golf Trips in Oregon: Bandon Dunes & Pacific Links Golf",
+          "keyword": "best golf trips in Oregon",
+          "secondaryKeywords": ["Bandon Dunes golf trip", "Oregon golf vacation", "links golf Oregon", "Bandon Dunes review"],
+          "volume": "medium",
+          "template": "best-of",
+          "wordCount": 1600,
+          "url": "/articles/best-golf-trips-oregon",
+          "status": "planned",
+          "trips": ["bandon-dunes"]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Trip Planning",
+      "color": "#16a34a",
+      "intent": "informational",
+      "description": "How-to and planning content. SERP dominated by Hole19, GolfPass, PGA.com with generic advice. GTI can differentiate with specific, ranked course data and booking windows for premium resorts.",
+      "posts": [
+        {
+          "title": "How to Plan a Golf Trip: The Complete Step-by-Step Guide",
+          "keyword": "how to plan a golf trip",
+          "secondaryKeywords": ["golf trip planning guide", "golf vacation planning", "how to book a golf trip", "golf trip checklist"],
+          "volume": "medium-high",
+          "template": "how-to",
+          "wordCount": 2200,
+          "url": "/articles/how-to-plan-a-golf-trip",
+          "status": "planned"
+        },
+        {
+          "title": "Golf Trip Packing List: Everything You Need on the Course",
+          "keyword": "golf trip packing list",
+          "secondaryKeywords": ["what to pack for golf trip", "golf travel essentials", "golf bag packing guide"],
+          "volume": "medium",
+          "template": "listicle",
+          "wordCount": 1400,
+          "url": "/articles/golf-trip-packing-list",
+          "status": "planned"
+        },
+        {
+          "title": "Best Time to Visit America's Top Golf Destinations",
+          "keyword": "best time to visit golf destinations",
+          "secondaryKeywords": ["when to go to Bandon Dunes", "best golf trip season", "Pinehurst best time to visit", "Arizona golf weather"],
+          "volume": "medium",
+          "template": "explainer",
+          "wordCount": 1600,
+          "url": "/articles/best-time-visit-golf-destinations",
+          "status": "planned"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Budget & Value",
+      "color": "#d97706",
+      "intent": "commercial",
+      "description": "Budget-focused content. GolfBreaks and GolfDigest (budget buddies list) dominate. GTI has an advantage with honest cost breakdowns tied to specific ranked trips.",
+      "posts": [
+        {
+          "title": "Best Budget Golf Trips USA: Top Value Destinations Ranked",
+          "keyword": "cheap golf trips usa",
+          "secondaryKeywords": ["affordable golf trips usa", "budget golf trip", "golf trips under $1000", "best value golf destinations"],
+          "volume": "medium",
+          "template": "best-of",
+          "wordCount": 1800,
+          "url": "/articles/budget-golf-trips-usa",
+          "status": "planned"
+        },
+        {
+          "title": "Golf Trips Under $1,000 Per Person: Where to Go and What to Expect",
+          "keyword": "golf trips under $1000",
+          "secondaryKeywords": ["cheap golf vacation", "affordable golf trip ideas", "budget golf destinations"],
+          "volume": "medium",
+          "template": "listicle",
+          "wordCount": 1400,
+          "url": "/articles/golf-trips-under-1000",
+          "status": "planned"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Group & Social Golf",
+      "color": "#9333ea",
+      "intent": "commercial",
+      "description": "Group trip content. 18away.com and GolfDigest dominate bachelor/buddies SERPs with destination blueprints. GTI's ranking methodology gives objective course selection credibility vs. opinionated listicles.",
+      "posts": [
+        {
+          "title": "Best Bachelor Party Golf Trips: Top Destinations for Groups",
+          "keyword": "bachelor party golf trip",
+          "secondaryKeywords": ["golf bachelor party ideas", "best golf bachelor trips", "buddies golf trip destinations"],
+          "volume": "medium-high",
+          "template": "best-of",
+          "wordCount": 1800,
+          "url": "/articles/bachelor-party-golf-trips",
+          "status": "planned"
+        },
+        {
+          "title": "Golf Weekend Trips: Best Short Golf Getaways in the USA",
+          "keyword": "golf weekend trips",
+          "secondaryKeywords": ["weekend golf getaway", "short golf trip ideas", "golf trips near me"],
+          "volume": "medium",
+          "template": "best-of",
+          "wordCount": 1600,
+          "url": "/articles/golf-weekend-trips",
+          "status": "planned"
+        },
+        {
+          "title": "How to Plan a Group Golf Trip: Logistics, Course Selection & Tips",
+          "keyword": "how to plan a group golf trip",
+          "secondaryKeywords": ["golf trip for friends", "planning golf trip with buddies", "group golf trip logistics"],
+          "volume": "medium",
+          "template": "how-to",
+          "wordCount": 1400,
+          "url": "/articles/group-golf-trip-planning",
+          "status": "planned"
+        }
+      ]
+    }
+  ],
+  "links": [
+    { "from": "pillar", "to": "cluster-1-post-0", "type": "mandatory", "anchor": "best golf trips in Florida" },
+    { "from": "pillar", "to": "cluster-1-post-1", "type": "mandatory", "anchor": "best golf trips in Michigan" },
+    { "from": "pillar", "to": "cluster-1-post-2", "type": "mandatory", "anchor": "best golf trips in Wisconsin" },
+    { "from": "pillar", "to": "cluster-1-post-3", "type": "mandatory", "anchor": "best golf trips in North Carolina" },
+    { "from": "pillar", "to": "cluster-1-post-4", "type": "mandatory", "anchor": "best golf trips in Oregon" },
+    { "from": "pillar", "to": "cluster-2-post-0", "type": "mandatory", "anchor": "how to plan a golf trip" },
+    { "from": "pillar", "to": "cluster-3-post-0", "type": "mandatory", "anchor": "budget golf trips" },
+    { "from": "pillar", "to": "cluster-4-post-0", "type": "mandatory", "anchor": "bachelor party golf trips" },
+    { "from": "cluster-1-post-0", "to": "pillar", "type": "mandatory", "anchor": "golf trip rankings" },
+    { "from": "cluster-1-post-1", "to": "pillar", "type": "mandatory", "anchor": "best golf trips usa" },
+    { "from": "cluster-1-post-2", "to": "pillar", "type": "mandatory", "anchor": "best golf trips usa" },
+    { "from": "cluster-1-post-3", "to": "pillar", "type": "mandatory", "anchor": "golf trip rankings" },
+    { "from": "cluster-1-post-4", "to": "pillar", "type": "mandatory", "anchor": "best golf trips usa" },
+    { "from": "cluster-1-post-0", "to": "cluster-1-post-2", "type": "recommended", "anchor": "best golf trips in Wisconsin" },
+    { "from": "cluster-1-post-1", "to": "cluster-1-post-2", "type": "recommended", "anchor": "Wisconsin golf trips" },
+    { "from": "cluster-1-post-3", "to": "cluster-1-post-0", "type": "recommended", "anchor": "Florida golf trips" },
+    { "from": "cluster-1-post-4", "to": "cluster-1-post-3", "type": "recommended", "anchor": "North Carolina golf trips" },
+    { "from": "cluster-2-post-0", "to": "pillar", "type": "mandatory", "anchor": "golf trip rankings" },
+    { "from": "cluster-2-post-0", "to": "cluster-1-post-0", "type": "recommended", "anchor": "Florida golf trips" },
+    { "from": "cluster-2-post-1", "to": "cluster-2-post-0", "type": "mandatory", "anchor": "how to plan a golf trip" },
+    { "from": "cluster-2-post-2", "to": "cluster-2-post-0", "type": "mandatory", "anchor": "golf trip planning guide" },
+    { "from": "cluster-3-post-0", "to": "pillar", "type": "mandatory", "anchor": "best golf trips usa" },
+    { "from": "cluster-3-post-1", "to": "cluster-3-post-0", "type": "mandatory", "anchor": "budget golf trips" },
+    { "from": "cluster-4-post-0", "to": "pillar", "type": "mandatory", "anchor": "best golf trips usa" },
+    { "from": "cluster-4-post-0", "to": "cluster-1-post-0", "type": "recommended", "anchor": "Florida golf trips" },
+    { "from": "cluster-4-post-1", "to": "cluster-4-post-0", "type": "mandatory", "anchor": "bachelor party golf destinations" },
+    { "from": "cluster-4-post-2", "to": "cluster-4-post-0", "type": "mandatory", "anchor": "group golf trip destinations" },
+    { "from": "cluster-4-post-2", "to": "cluster-2-post-0", "type": "recommended", "anchor": "golf trip planning guide" }
+  ]
+}

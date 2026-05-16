@@ -580,6 +580,7 @@ function mapArticles(r: Airtable.Record<Airtable.FieldSet>) {
     author: asString(f["Author"]),
     publishedOn: asString(f["Published On"]),
     status: asString(f["Status"]),
+    category: asString(f["Category"]),
   };
 }
 
@@ -675,6 +676,89 @@ export async function getPublishedTripsWithFirstCourse(): Promise<
   });
 
   return result.sort((a, b) => (a.currentRanking ?? 999) - (b.currentRanking ?? 999));
+}
+
+// --- Cost Index helpers ---
+
+function parsePriceRangeLow(s: string): number {
+  const cleaned = s.replace(/[$,\s]/g, "").replace(/[–—]/g, "-");
+  const range = cleaned.match(/^(\d+)-(\d+)$/);
+  if (range) return +range[1];
+  const single = cleaned.match(/^(\d+)$/);
+  if (single) return +single[1];
+  return 0;
+}
+
+function parsePriceRangeHigh(s: string): number {
+  const cleaned = s.replace(/[$,\s]/g, "").replace(/[–—]/g, "-");
+  const range = cleaned.match(/^(\d+)-(\d+)$/);
+  if (range) return +range[2];
+  const single = cleaned.match(/^(\d+)$/);
+  if (single) return +single[1];
+  return 0;
+}
+
+export type TripCostSummary = {
+  slug: string;
+  name: string;
+  state?: string;
+  currentRanking?: number;
+  allInLow: number;
+  allInHigh: number;
+};
+
+export async function getAllTripsCostSummary(): Promise<TripCostSummary[]> {
+  const base = getBase();
+
+  const tripRecords = await base(TRIPS_TABLE)
+    .select({ filterByFormula: `{Status}="published"`, maxRecords: 200 })
+    .all();
+
+  const tripMetas = tripRecords.map((r) => ({
+    slug: asString(r.fields["Slug"]) ?? r.id,
+    name: asString(r.fields["Name"]) ?? "",
+    state: asString(r.fields["State"]),
+    currentRanking: asNumber(r.fields["Current Ranking"]),
+    costRowIds: (r.fields["TripCostRows"] as string[] | undefined) ?? [],
+  }));
+
+  const allCostRowIds = Array.from(
+    new Set(tripMetas.flatMap((t) => t.costRowIds))
+  );
+
+  const costRowMap = new Map<string, TripCostRow>();
+  if (allCostRowIds.length > 0) {
+    const chunkSize = 60;
+    for (let i = 0; i < allCostRowIds.length; i += chunkSize) {
+      const chunk = allCostRowIds.slice(i, i + chunkSize);
+      const formula = `OR(${chunk.map((id) => `RECORD_ID()="${id}"`).join(",")})`;
+      const records = await base(COST_ROWS_TABLE)
+        .select({ filterByFormula: formula, maxRecords: 200 })
+        .all();
+      for (const r of records) {
+        costRowMap.set(r.id, mapCostRow(r));
+      }
+    }
+  }
+
+  return tripMetas.map((t) => {
+    const rows = t.costRowIds
+      .map((id) => costRowMap.get(id))
+      .filter((r): r is TripCostRow => r != null)
+      .filter((r) => !r.optional);
+
+    const allInLow = rows.reduce((s, r) => s + parsePriceRangeLow(r.shoulder), 0);
+    const allInHigh = rows.reduce((s, r) => s + parsePriceRangeHigh(r.peak), 0);
+
+    return {
+      slug: t.slug,
+      name: t.name,
+      state: t.state,
+      currentRanking: t.currentRanking,
+      allInLow,
+      allInHigh,
+    };
+  });
 }
 
 /**

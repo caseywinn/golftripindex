@@ -1,0 +1,425 @@
+.page {
+  background: var(--bg);
+  min-height: 60vh;
+}
+
+/* PAGE HEADER */
+.pageHeader {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 48px 28px 0;
+}
+
+.pageBack {
+  font-size: 13px;
+  margin: 0 0 14px;
+}
+
+.pageBack a {
+  color: #6b7280;
+  text-decoration: none;
+}
+
+.pageBack a:hover {
+  color: #0b0f1a;
+}
+
+.eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #0488db;
+  margin: 0 0 12px;
+}
+
+.pageTitle {
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: #0b0f1a;
+  margin: 0 0 14px;
+  line-height: 1.15;
+}
+
+.pageSubtitle {
+  font-size: 16px;
+  line-height: 1.65;
+  color: #4c5568;
+  margin: 0;
+  max-width: 68ch;
+}
+
+.metaRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid #eef1f6;
+  flex-wrap: wrap;
+}
+
+.metaItem {
+  font-size: 12px;
+  color: #7b8597;
+}
+
+.metaItem strong {
+  color: #0b0f1a;
+  font-weight: 600;
+}
+
+/* CONTROLS */
+.controls {
+  max-width: 1200px;
+  margin: 32px auto 0;
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.filterGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filterLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.filterBtn {
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  color: #4c5568;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s, color 0.12s;
+  white-space: nowrap;
+}
+
+.filterBtn:hover {
+  border-color: #0488db;
+  color: #0488db;
+}
+
+.filterBtnActive {
+  background: #0488db;
+  border-color: #0488db;
+  color: #fff;
+}
+
+.filterBtnActive:hover {
+  background: #0376c5;
+  border-color: #0376c5;
+  color: #fff;
+}
+
+.sortGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.sortSelect {
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  color: #4c5568;
+  cursor: pointer;
+  outline: none;
+}
+
+.sortSelect:focus {
+  border-color: #0488db;
+}
+
+.resultCount {
+  font-size: 12px;
+  color: #9ba3b0;
+  margin-left: 4px;
+}
+
+/* TABLE SECTION */
+.tableSection {
+  max-width: 1200px;
+  margin: 20px auto 0;
+  padding: 0 28px 80px;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid #eef1f6;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.table {
+  width: 100%;
+  min-width: 860px;
+  border-collapse: collapse;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.table thead {
+  background: #f8f9fc;
+  border-bottom: 1px solid #eef1f6;
+}
+
+.table th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #7b8597;
+  padding: 12px 16px;
+  white-space: nowrap;
+}
+
+.table th.right {
+  text-align: right;
+}
+
+.table td {
+  padding: 13px 16px;
+  font-size: 13px;
+  color: #374151;
+  border-bottom: 1px solid #f3f4f8;
+  vertical-align: top;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.table tbody tr:hover {
+  background: #fafbfe;
+}
+
+.rankCell {
+  font-size: 11px;
+  font-weight: 700;
+  color: #9ba3b0;
+  width: 40px;
+  white-space: nowrap;
+}
+
+.tripCell {
+  min-width: 170px;
+}
+
+.tripLink {
+  font-weight: 600;
+  color: #0b0f1a;
+  text-decoration: none;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.tripLink:hover {
+  color: #0488db;
+}
+
+.stateCell {
+  font-size: 12px;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.numCell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.allInCell {
+  text-align: right;
+  font-weight: 700;
+  font-size: 13px;
+  color: #0b0f1a;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.calloutCell {
+  font-size: 12px;
+  color: #5b6475;
+  line-height: 1.5;
+  max-width: 280px;
+}
+
+/* TIER BADGES */
+.tierBadge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.tierValue {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.tierMid {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.tierMidHigh {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.tierPremium {
+  background: #fce7f3;
+  color: #db2777;
+}
+
+.tierUltra {
+  background: #f5f3ff;
+  color: #7c3aed;
+}
+
+/* INSIGHTS STRIP */
+.insights {
+  max-width: 1200px;
+  margin: 40px auto 0;
+  padding: 0 28px;
+}
+
+.insightsTitle {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #0b0f1a;
+  margin: 0 0 16px;
+}
+
+.insightCards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.insightCard {
+  background: #fff;
+  border: 1px solid #eef1f6;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.insightCardLabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #9ba3b0;
+  margin: 0 0 8px;
+}
+
+.insightCardValue {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0b0f1a;
+  letter-spacing: -0.03em;
+  margin: 0 0 6px;
+}
+
+.insightCardDesc {
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* METHODOLOGY */
+.methodology {
+  max-width: 1200px;
+  margin: 48px auto 0;
+  padding: 0 28px 80px;
+}
+
+.methodologyTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0b0f1a;
+  margin: 0 0 10px;
+}
+
+.methodologyText {
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.7;
+  margin: 0;
+  max-width: 72ch;
+}
+
+/* RESPONSIVE */
+@media (max-width: 900px) {
+  .insightCards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .pageHeader {
+    padding: 32px 20px 0;
+  }
+
+  .pageTitle {
+    font-size: 26px;
+  }
+
+  .controls {
+    padding: 0 20px;
+  }
+
+  .tableSection {
+    padding: 0 16px 60px;
+  }
+
+  .sortGroup {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .sortSelect {
+    width: 100%;
+  }
+
+  .insightCards {
+    grid-template-columns: 1fr;
+  }
+
+  .insights,
+  .methodology {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}

@@ -332,6 +332,89 @@
   user-select: none;
 }
 
+/* HUB PAGE */
+.hubSection {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 28px 0;
+}
+
+.hubSectionHead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 18px;
+}
+
+.hubSectionLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hubLabel {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #0b0f1a;
+  margin: 0;
+}
+
+.hubDesc {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0;
+  max-width: 52ch;
+}
+
+.hubSeeAll {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0488db;
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.hubSeeAll:hover {
+  text-decoration: underline;
+}
+
+.hubViewAll {
+  max-width: 1200px;
+  margin: 40px auto 80px;
+  padding: 0 28px;
+  border-top: 1px solid #eef1f6;
+  padding-top: 32px;
+}
+
+.hubViewAllLink {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  text-decoration: none;
+}
+
+.hubViewAllLink:hover {
+  color: #0b0f1a;
+}
+
+/* Back link */
+.pageBack {
+  font-size: 13px;
+  margin: 0 0 12px;
+}
+
+.pageBack a {
+  color: #6b7280;
+  text-decoration: none;
+}
+
+.pageBack a:hover {
+  color: #0b0f1a;
+}
+
 /* RESPONSIVE */
 @media (max-width: 900px) {
   .featuredCard {
@@ -354,6 +437,12 @@
 
   .cardRow {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .hubSectionHead {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
   }
 }
 
@@ -390,5 +479,14 @@
   .cardRow {
     grid-template-columns: 1fr;
     gap: 14px;
+  }
+
+  .hubSection {
+    padding: 32px 16px 0;
+  }
+
+  .hubViewAll {
+    padding: 24px 16px 60px;
+    margin-bottom: 0;
   }
 }

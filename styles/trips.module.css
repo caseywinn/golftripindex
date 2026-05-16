@@ -150,6 +150,65 @@
   gap: 8px;
 }
 
+/* Guides strip (bottom of page, below editorial) */
+.guidesStrip {
+  background: #fff;
+  border-top: 1px solid #e5e9ef;
+}
+
+.guidesInner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 18px 28px;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+
+.guidesGroup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.guidesLabel {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #9ca3af;
+  white-space: nowrap;
+}
+
+.guidesLinks {
+  display: flex;
+  gap: 0;
+  flex-wrap: wrap;
+}
+
+.guidesLinks a {
+  font-size: 13px;
+  color: #374151;
+  text-decoration: none;
+  padding: 4px 12px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.guidesLinks a:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.guidesDivider {
+  width: 1px;
+  height: 28px;
+  background: #e5e9ef;
+  flex-shrink: 0;
+}
+
 /* the area below the hero */
 .listWrap {
   background: #f5f8f9;
@@ -172,6 +231,52 @@
 
 .dot {
   opacity: 0.6;
+}
+
+/* Editorial section (below ranked list) */
+.editorial {
+  background: #fff;
+  border-top: 1px solid #e5e9ef;
+  padding: 64px 0 80px;
+}
+
+.editorialInner {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 28px;
+}
+
+.editorialHeading {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #0b0f1a;
+  margin: 0 0 24px;
+}
+
+.editorialSubheading {
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: #0b0f1a;
+  margin: 32px 0 12px;
+}
+
+.editorialBody p {
+  font-size: 15px;
+  line-height: 1.7;
+  color: #374151;
+  margin: 0 0 16px;
+}
+
+.editorialBody a {
+  color: #0b0f1a;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.editorialBody a:hover {
+  color: #374151;
 }
 
 /* Responsive */
@@ -218,5 +323,26 @@
 
   .listWrap {
     padding: 28px 0 40px; /* slightly tighter on mobile */
+  }
+
+  .guidesInner {
+    gap: 16px;
+    padding: 14px 18px;
+  }
+
+  .guidesDivider {
+    display: none;
+  }
+
+  .guidesGroup {
+    gap: 8px;
+  }
+
+  .editorial {
+    padding: 40px 0 56px;
+  }
+
+  .editorialInner {
+    padding: 0 18px;
   }
 }

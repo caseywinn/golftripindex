@@ -5,56 +5,55 @@ import { getArticlesForIndex } from "../../lib/airtable";
 import { formatPublishedDate } from "../../lib/formatters";
 import styles from "../../styles/articles.module.css";
 import { SITE_URL } from "../../lib/seo";
-import EmailSignup from "@/components/EmailSignup";
 import ShareButton from "@/components/ShareButton";
 import { JsonLd } from "@/components/JsonLd";
 
 export const revalidate = 3600;
 
-const PAGE_SIZE = 9;
+export const metadata: Metadata = {
+  title: "Golf Trip Planning Guides & Articles",
+  description: "Planning guides, destination guides, trip types, comparisons, and captain's corner articles — everything you need to plan a better golf trip.",
+  alternates: { canonical: `${SITE_URL}/articles` },
+};
 
-function pageUrl(n: number) {
-  return n === 1 ? "/articles" : `/articles?page=${n}`;
-}
+const CATEGORIES = [
+  {
+    name: "Comparisons",
+    slug: "comparisons",
+    label: "Head-to-Head Comparisons",
+    description: "Matchups, overrated lists, and honest takes on your dollar.",
+  },
+  {
+    name: "Destinations",
+    slug: "destinations",
+    label: "Destination Guides",
+    description: "State-by-state guides to America's best golf.",
+  },
+  {
+    name: "Trip Types",
+    slug: "trip-types",
+    label: "Trip Types",
+    description: "Bachelor parties, weekenders, budget trips, and more.",
+  },
+  {
+    name: "Planning",
+    slug: "planning",
+    label: "Planning Guides",
+    description: "How to book, pack, budget, and run a golf trip.",
+  },
+];
 
-function getPageNumbers(current: number, total: number): (number | "…")[] {
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-  if (current <= 4) return [1, 2, 3, 4, 5, "…", total];
-  if (current >= total - 3) return [1, "…", total - 4, total - 3, total - 2, total - 1, total];
-  return [1, "…", current - 1, current, current + 1, "…", total];
-}
-
-export async function generateMetadata({
-  searchParams,
-}: {
-  searchParams: Promise<{ page?: string }>;
-}): Promise<Metadata> {
-  const { page } = await searchParams;
-  const pageNum = Math.max(1, parseInt(page ?? "1", 10));
-  const canonical = pageNum === 1 ? `${SITE_URL}/articles` : `${SITE_URL}/articles?page=${pageNum}`;
-  return {
-    title: pageNum === 1 ? "Golf Trip Articles & Planning Guides" : `Golf Trip Articles & Planning Guides — Page ${pageNum}`,
-    description: "Planning guides, head-to-head trip comparisons, and editorial coverage of America's best golf destinations — from Bandon Dunes to Pinehurst.",
-    alternates: { canonical },
-  };
-}
-
-export default async function ArticlesPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ page?: string }>;
-}) {
-  const { page } = await searchParams;
+export default async function ArticlesPage() {
   const articles = await getArticlesForIndex();
 
   const featured = articles[0];
-  const remaining = articles.slice(1);
-  const totalPages = Math.max(1, Math.ceil(remaining.length / PAGE_SIZE));
-  const currentPage = Math.min(Math.max(1, parseInt(page ?? "1", 10)), totalPages);
 
-  const gridStart = (currentPage - 1) * PAGE_SIZE;
-  const gridArticles = remaining.slice(gridStart, gridStart + PAGE_SIZE);
-  const pages = getPageNumbers(currentPage, totalPages);
+  const byCategory = Object.fromEntries(
+    CATEGORIES.map((cat) => [
+      cat.name,
+      articles.filter((a) => a.category === cat.name),
+    ])
+  );
 
   const breadcrumbSchema = {
     "@context": "https://schema.org",
@@ -70,11 +69,10 @@ export default async function ArticlesPage({
       <JsonLd data={breadcrumbSchema} />
 
       <div className={styles.pageHeader}>
-        <h1 className={styles.pageTitle}>Golf Trip Articles &amp; Planning Guides</h1>
+        <h1 className={styles.pageTitle}>Golf Trip Planning Guides &amp; Articles</h1>
       </div>
 
-      {/* Featured hero — page 1 only */}
-      {currentPage === 1 && featured && (
+      {featured && (
         <div className={styles.featuredWrap}>
           <div className={styles.featuredCard}>
             <div className={styles.featuredImageWrap}>
@@ -123,105 +121,84 @@ export default async function ArticlesPage({
         </div>
       )}
 
-      {/* Grid */}
-      {gridArticles.length > 0 && (
-        <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>
-            {currentPage === 1 ? "More articles" : "Articles"}
-          </h2>
-          <div className={styles.cardRow}>
-            {gridArticles.map((article) => {
-              const href = `/articles/${article.slug}`;
-              return (
-                <article key={article.id} className={styles.card}>
-                  <div className={styles.newsMedia}>
-                    <Link href={href} className={styles.newsImageLink} aria-label={article.name}>
-                      <img
-                        className={styles.newsImg}
-                        src={`/images/articles/${article.slug}.jpg`}
-                        alt={article.name}
-                        loading="lazy"
-                      />
-                    </Link>
-                    <ShareButton
-                      itemType="article"
-                      itemId={article.slug ?? ""}
-                      itemName={article.name}
-                      variant="dark"
-                      corner
-                      small
-                    />
-                  </div>
-                  <div className={styles.newsBody}>
-                    <div className={styles.newsTitle}>
-                      <Link href={href} className={styles.newsTitleLink}>
-                        {article.name}
+      {CATEGORIES.map((cat) => {
+        const catArticles = byCategory[cat.name] ?? [];
+        const preview = catArticles.slice(0, 3);
+        if (preview.length === 0) return null;
+
+        return (
+          <section key={cat.slug} className={styles.hubSection}>
+            <div className={styles.hubSectionHead}>
+              <div className={styles.hubSectionLeft}>
+                <h2 className={styles.hubLabel}>{cat.label}</h2>
+                <p className={styles.hubDesc}>{cat.description}</p>
+              </div>
+              <Link
+                href={`/articles/category/${cat.slug}`}
+                className={styles.hubSeeAll}
+              >
+                See all {catArticles.length} {cat.label.toLowerCase()} →
+              </Link>
+            </div>
+
+            <div className={styles.cardRow}>
+              {preview.map((article) => {
+                const href = `/articles/${article.slug}`;
+                return (
+                  <article key={article.id} className={styles.card}>
+                    <div className={styles.newsMedia}>
+                      <Link href={href} className={styles.newsImageLink} aria-label={article.name}>
+                        <img
+                          className={styles.newsImg}
+                          src={`/images/articles/${article.slug}.jpg`}
+                          alt={article.name}
+                          loading="lazy"
+                        />
                       </Link>
+                      <ShareButton
+                        itemType="article"
+                        itemId={article.slug ?? ""}
+                        itemName={article.name}
+                        variant="dark"
+                        corner
+                        small
+                      />
                     </div>
-                    {article.teaser && (
-                      <p className={styles.newsTeaser}>{article.teaser}</p>
-                    )}
-                    {(article.author || article.publishedOn) && (
-                      <div className={styles.newsMeta}>
-                        {article.author && (
-                          <span className={styles.newsAuthor}>{article.author}</span>
-                        )}
-                        {article.publishedOn && (
-                          <span className={styles.newsDate}>
-                            {formatPublishedDate(article.publishedOn)}
-                          </span>
-                        )}
+                    <div className={styles.newsBody}>
+                      <div className={styles.newsTitle}>
+                        <Link href={href} className={styles.newsTitleLink}>
+                          {article.name}
+                        </Link>
                       </div>
-                    )}
-                  </div>
-                </article>
-              );
-            })}
-          </div>
+                      {article.teaser && (
+                        <p className={styles.newsTeaser}>{article.teaser}</p>
+                      )}
+                      {(article.author || article.publishedOn) && (
+                        <div className={styles.newsMeta}>
+                          {article.author && (
+                            <span className={styles.newsAuthor}>{article.author}</span>
+                          )}
+                          {article.publishedOn && (
+                            <span className={styles.newsDate}>
+                              {formatPublishedDate(article.publishedOn)}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <nav className={styles.pagination} aria-label="Article pages">
-              {currentPage > 1 ? (
-                <Link href={pageUrl(currentPage - 1)} className={styles.pageArrow} aria-label="Previous page">
-                  ←
-                </Link>
-              ) : (
-                <span className={`${styles.pageArrow} ${styles.pageArrowDisabled}`} aria-hidden="true">←</span>
-              )}
-
-              {pages.map((p, i) =>
-                p === "…" ? (
-                  <span key={`ellipsis-${i}`} className={styles.pageEllipsis}>…</span>
-                ) : (
-                  <Link
-                    key={p}
-                    href={pageUrl(p)}
-                    className={`${styles.pageNum} ${p === currentPage ? styles.pageNumActive : ""}`}
-                    aria-current={p === currentPage ? "page" : undefined}
-                  >
-                    {p}
-                  </Link>
-                )
-              )}
-
-              {currentPage < totalPages ? (
-                <Link href={pageUrl(currentPage + 1)} className={styles.pageArrow} aria-label="Next page">
-                  →
-                </Link>
-              ) : (
-                <span className={`${styles.pageArrow} ${styles.pageArrowDisabled}`} aria-hidden="true">→</span>
-              )}
-            </nav>
-          )}
-        </section>
-      )}
-
-      <EmailSignup
-        heading="Get the next article first."
-        subtext="New stories from GTI, straight to your inbox."
-        buttonText="Sign up"
-      />
+      <div className={styles.hubViewAll}>
+        <Link href="/articles/all" className={styles.hubViewAllLink}>
+          View all {articles.length} articles →
+        </Link>
+      </div>
     </main>
   );
 }
