@@ -12,6 +12,7 @@ export type TripCostRow = {
   lodging: string;
   allIn: string;
   allInLow: number;
+  allInHigh: number;
   tier: "Value" | "Mid" | "Mid-High" | "Premium" | "Ultra-Premium";
   callout: string;
   ranking?: number;
