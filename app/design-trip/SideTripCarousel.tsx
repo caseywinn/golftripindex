@@ -17,10 +17,10 @@ export default function SideTripCarousel({ items }: { items: SideTrip[] }) {
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const touchStartX = useRef(0);
+  const mountedRef = useRef(false);
   const current = items[index];
-  // Scroll active card and tab into view — index starts at 0 on mount, skip it
   useEffect(() => {
-    if (index === 0) return;
+    if (!mountedRef.current) { mountedRef.current = true; return; }
     const card = cardRefs.current[index];
     if (card && viewportRef.current) {
       viewportRef.current.scrollTo({ left: card.offsetLeft, behavior: "smooth" });
