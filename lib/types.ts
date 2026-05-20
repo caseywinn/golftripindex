@@ -10,6 +10,7 @@ export type GolfTrip = {
   secondaryName?: string;
   subheader?: string;
 
+  pullQuote?: string;
   overview?: string;
   verdict?: string;
   fullDescription?: string;
@@ -19,6 +20,8 @@ export type GolfTrip = {
   foodAndLodgingOverview?: string;
   seoDescription?: string;
   dataDump?: string;
+
+  vibe?: string[];
 
   fitYes?: string;
   fitNo?: string;
@@ -41,6 +44,9 @@ export type GolfTrip = {
   foodRating: number;
   vibeRating: number;
   overallRating: number;
+  beyondGolfRating?: number;
+  valueRating?: number;
+  logisticsRating?: number;
 
   currentRanking?: number;
   previousRanking?: number;
@@ -100,7 +106,19 @@ export type GolfCourse = {
   name: string;
 
   state?: string;
+  city?: string;
   courseType?: string;
+  accessType?: string;
+  courseStyle?: string[];
+  architect?: string;
+  yearOpened?: number;
+
+  greenFeePeak?: number;
+  greenFeeShoulder?: number;
+  greenFeeOffSeason?: number;
+  walkFriendly?: boolean;
+  closedOffSeason?: boolean;
+
   dataDump?: string;
 
   golfDigestRanking?: number;
@@ -165,10 +183,20 @@ export type GTISearchHit =
         | "wantMore"
         | "sampleItinerary"
         | "foodAndLodgingOverview"
+        | "vibe"
+        | "pullQuote"
+        | "verdict"
+        | "fitYes"
+        | "fitNo"
+        | "state"
+        | "region"
+        | "overallRating"
+        | "beyondGolfRating"
+        | "valueRating"
+        | "logisticsRating"
         | "costTier"
         | "durationMinDays"
         | "durationMaxDays"
-        | "overallRating"
         | "dataDump"
       >;
       match?: { field?: string; score?: number };

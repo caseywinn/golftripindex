@@ -11,13 +11,34 @@ export type TripDetail = {
     slug: string;
     name: string;
     secondaryName?: string;
+    subheader?: string;
+    overview?: string;
+    pullQuote?: string;
+    verdict?: string;
     fullDescription?: string;
     wantMore?: string;
     foodAndLodgingOverview?: string;
+    fitYes?: string;
+    fitNo?: string;
+    teeTimeRules?: string;
+    vibe?: string[];
+    state?: string;
+    region?: string;
     leadTime?: string;
     costTier?: number;
     durationMinDays?: number;
     durationMaxDays?: number;
+    golfRating?: number;
+    lodgingRating?: number;
+    foodRating?: number;
+    vibeRating?: number;
+    overallRating?: number;
+    beyondGolfRating?: number;
+    valueRating?: number;
+    logisticsRating?: number;
+    peakVerdict?: string;
+    shoulderVerdict?: string;
+    offSeasonVerdict?: string;
     dataDump?: string;
   };
   courses: {
@@ -141,26 +162,52 @@ const F = {
     Name: "Name",
     Slug: "Slug",
     SecondaryName: "Secondary Name",
+    Subheader: "Subheader",
+    Overview: "Overview",
+    PullQuote: "Pull Quote",
+    Verdict: "Verdict",
     FullDescription: "Full Description",
     WantMore: "Want More",
-    LeadTime: "Lead Time",
     FoodAndLodging: "Food and Lodging Overview",
+    FitYes: "Fit Yes",
+    FitNo: "Fit No",
+    TeeTimeRules: "Tee Time Rules",
+    Vibe: "Vibe",
+    State: "State",
+    Region: "Region",
+    LeadTime: "Lead Time",
     CurrentRanking: "Current Ranking",
     GolfRating: "Golf Rating",
     LodgingRating: "Lodging Rating",
     FoodRating: "Food Rating",
     VibeRating: "Vibe Rating",
     OverallRating: "Overall Rating",
+    BeyondGolfRating: "Beyond Golf Rating",
+    ValueRating: "Value Rating",
+    LogisticsRating: "Logistics Rating",
     CostTier: "Cost Tier",
     DurationMin: "Duration Min Days",
     DurationMax: "Duration Max Days",
+    PeakVerdict: "Peak Verdict",
+    ShoulderVerdict: "Shoulder Verdict",
+    OffSeasonVerdict: "Off-Season Verdict",
     DataDump: "Data Dump",
   },
   Course: {
     Name: "Name",
     Slug: "Slug",
     State: "State",
+    City: "City",
     CourseType: "Course Type",
+    AccessType: "Access Type",
+    CourseStyle: "Course Style",
+    Architect: "Architect",
+    YearOpened: "Year Opened",
+    GreenFeePeak: "Green Fee Peak",
+    GreenFeeShoulder: "Green Fee Shoulder",
+    GreenFeeOffSeason: "Green Fee Off-Season",
+    WalkFriendly: "Walk Friendly",
+    ClosedOffSeason: "Closed Off-Season",
     ConsolidatedRanking: "Consolidated Ranking",
     DataDump: "Data Dump",
   },
@@ -225,41 +272,41 @@ function pickTrip(fields: Record<string, any>, id: string): GTISearchHit | null 
 
   const trip: Pick<
     GolfTrip,
-    | "id"
-    | "slug"
-    | "name"
-    | "secondaryName"
-    | "fullDescription"
-    | "wantMore"
-    | "foodAndLodgingOverview"
-    | "currentRanking"
-    | "golfRating"
-    | "lodgingRating"
-    | "foodRating"
-    | "vibeRating"
-    | "overallRating"
-    | "costTier"
-    | "durationMinDays"
-    | "durationMaxDays"
-    | "dataDump"
+    | "id" | "slug" | "name" | "secondaryName" | "subheader" | "overview"
+    | "pullQuote" | "verdict" | "fullDescription" | "wantMore"
+    | "foodAndLodgingOverview" | "fitYes" | "fitNo" | "vibe"
+    | "state" | "region"
+    | "currentRanking" | "golfRating" | "lodgingRating" | "foodRating"
+    | "vibeRating" | "overallRating" | "beyondGolfRating" | "valueRating" | "logisticsRating"
+    | "costTier" | "durationMinDays" | "durationMaxDays" | "dataDump"
   > = {
     id,
     slug: String(slug),
     name: String(name),
     secondaryName: secondaryName ? String(secondaryName) : undefined,
-
+    subheader: asString(fields[F.Trip.Subheader]),
+    overview: asString(fields[F.Trip.Overview]),
+    pullQuote: asString(fields[F.Trip.PullQuote]),
+    verdict: asString(fields[F.Trip.Verdict]),
     fullDescription: asString(fields[F.Trip.FullDescription]),
     wantMore: asString(fields[F.Trip.WantMore]),
     foodAndLodgingOverview: asString(fields[F.Trip.FoodAndLodging]),
+    fitYes: asString(fields[F.Trip.FitYes]),
+    fitNo: asString(fields[F.Trip.FitNo]),
+    vibe: Array.isArray(fields[F.Trip.Vibe]) ? (fields[F.Trip.Vibe] as string[]) : undefined,
+    state: asString(fields[F.Trip.State]),
+    region: asString(fields[F.Trip.Region]),
     dataDump: asString(fields[F.Trip.DataDump]),
 
-    // If these are required in your GolfTrip type, they must be numbers (not undefined)
     currentRanking: safeNumberish(fields[F.Trip.CurrentRanking]) ?? 0,
     golfRating: safeNumberish(fields[F.Trip.GolfRating]) ?? 0,
     lodgingRating: safeNumberish(fields[F.Trip.LodgingRating]) ?? 0,
     foodRating: safeNumberish(fields[F.Trip.FoodRating]) ?? 0,
     vibeRating: safeNumberish(fields[F.Trip.VibeRating]) ?? 0,
     overallRating: safeNumberish(fields[F.Trip.OverallRating]) ?? 0,
+    beyondGolfRating: safeNumberish(fields[F.Trip.BeyondGolfRating]),
+    valueRating: safeNumberish(fields[F.Trip.ValueRating]),
+    logisticsRating: safeNumberish(fields[F.Trip.LogisticsRating]),
 
     costTier: safeCostTier(fields[F.Trip.CostTier], 3),
     durationMinDays: safeNumberish(fields[F.Trip.DurationMin]) ?? 2,
@@ -276,13 +323,27 @@ function pickCourse(fields: Record<string, any>, id: string): GTISearchHit | nul
 
   const course: Pick<
     GolfCourse,
-    "id" | "slug" | "name" | "state" | "courseType" | "consolidatedRanking" | "dataDump"
+    | "id" | "slug" | "name" | "state" | "city" | "courseType"
+    | "accessType" | "courseStyle" | "architect" | "yearOpened"
+    | "greenFeePeak" | "greenFeeShoulder" | "greenFeeOffSeason"
+    | "walkFriendly" | "closedOffSeason"
+    | "consolidatedRanking" | "dataDump"
   > = {
     id,
     slug: String(slug),
     name: String(name),
-    state: fields[F.Course.State] ? String(fields[F.Course.State]) : undefined,
-    courseType: fields[F.Course.CourseType] ? String(fields[F.Course.CourseType]) : undefined,
+    state: asString(fields[F.Course.State]),
+    city: asString(fields[F.Course.City]),
+    courseType: asString(fields[F.Course.CourseType]),
+    accessType: asString(fields[F.Course.AccessType]),
+    courseStyle: Array.isArray(fields[F.Course.CourseStyle]) ? (fields[F.Course.CourseStyle] as string[]) : undefined,
+    architect: asString(fields[F.Course.Architect]),
+    yearOpened: safeNumberish(fields[F.Course.YearOpened]),
+    greenFeePeak: safeNumberish(fields[F.Course.GreenFeePeak]),
+    greenFeeShoulder: safeNumberish(fields[F.Course.GreenFeeShoulder]),
+    greenFeeOffSeason: safeNumberish(fields[F.Course.GreenFeeOffSeason]),
+    walkFriendly: fields[F.Course.WalkFriendly] === true ? true : undefined,
+    closedOffSeason: fields[F.Course.ClosedOffSeason] === true ? true : undefined,
     consolidatedRanking: safeNumberish(fields[F.Course.ConsolidatedRanking]),
     dataDump: asString(fields[F.Course.DataDump]),
   };
@@ -412,13 +473,34 @@ export async function getTripBySlug(slug: string) {
     slug: String(f[F.Trip.Slug]),
     name: String(f[F.Trip.Name]),
     secondaryName: asString(f[F.Trip.SecondaryName]),
+    subheader: asString(f[F.Trip.Subheader]),
+    overview: asString(f[F.Trip.Overview]),
+    pullQuote: asString(f[F.Trip.PullQuote]),
+    verdict: asString(f[F.Trip.Verdict]),
     fullDescription: asString(f[F.Trip.FullDescription]),
     wantMore: asString(f[F.Trip.WantMore]),
     foodAndLodgingOverview: asString(f[F.Trip.FoodAndLodging]),
+    fitYes: asString(f[F.Trip.FitYes]),
+    fitNo: asString(f[F.Trip.FitNo]),
+    teeTimeRules: asString(f[F.Trip.TeeTimeRules]),
+    vibe: Array.isArray(f[F.Trip.Vibe]) ? (f[F.Trip.Vibe] as string[]) : undefined,
+    state: asString(f[F.Trip.State]),
+    region: asString(f[F.Trip.Region]),
     leadTime: asString(f[F.Trip.LeadTime]),
     costTier: safeNumberish(f[F.Trip.CostTier]),
     durationMinDays: safeNumberish(f[F.Trip.DurationMin]),
     durationMaxDays: safeNumberish(f[F.Trip.DurationMax]),
+    golfRating: safeNumberish(f[F.Trip.GolfRating]),
+    lodgingRating: safeNumberish(f[F.Trip.LodgingRating]),
+    foodRating: safeNumberish(f[F.Trip.FoodRating]),
+    vibeRating: safeNumberish(f[F.Trip.VibeRating]),
+    overallRating: safeNumberish(f[F.Trip.OverallRating]),
+    beyondGolfRating: safeNumberish(f[F.Trip.BeyondGolfRating]),
+    valueRating: safeNumberish(f[F.Trip.ValueRating]),
+    logisticsRating: safeNumberish(f[F.Trip.LogisticsRating]),
+    peakVerdict: asString(f[F.Trip.PeakVerdict]),
+    shoulderVerdict: asString(f[F.Trip.ShoulderVerdict]),
+    offSeasonVerdict: asString(f[F.Trip.OffSeasonVerdict]),
     dataDump: asString(f[F.Trip.DataDump]),
   };
 }
@@ -536,7 +618,17 @@ export async function getCoursesByIds(courseRecordIds: string[]) {
       slug: String(slug),
       name: String(name),
       state: asString(f[F.Course.State]),
+      city: asString(f[F.Course.City]),
       courseType: asString(f[F.Course.CourseType]),
+      accessType: asString(f[F.Course.AccessType]),
+      courseStyle: Array.isArray(f[F.Course.CourseStyle]) ? (f[F.Course.CourseStyle] as string[]) : undefined,
+      architect: asString(f[F.Course.Architect]),
+      yearOpened: safeNumberish(f[F.Course.YearOpened]),
+      greenFeePeak: safeNumberish(f[F.Course.GreenFeePeak]),
+      greenFeeShoulder: safeNumberish(f[F.Course.GreenFeeShoulder]),
+      greenFeeOffSeason: safeNumberish(f[F.Course.GreenFeeOffSeason]),
+      walkFriendly: f[F.Course.WalkFriendly] === true ? true : undefined,
+      closedOffSeason: f[F.Course.ClosedOffSeason] === true ? true : undefined,
       consolidatedRanking: safeNumberish(f[F.Course.ConsolidatedRanking]),
       dataDump: asString(f[F.Course.DataDump]),
     } as any);
@@ -678,13 +770,34 @@ export async function getTripDetailBySlug(slug: string): Promise<TripDetail | nu
       slug: trip.slug,
       name: trip.name,
       secondaryName: trip.secondaryName,
+      subheader: trip.subheader,
+      overview: trip.overview,
+      pullQuote: trip.pullQuote,
+      verdict: trip.verdict,
       fullDescription: trip.fullDescription,
       wantMore: trip.wantMore,
       foodAndLodgingOverview: trip.foodAndLodgingOverview,
+      fitYes: trip.fitYes,
+      fitNo: trip.fitNo,
+      teeTimeRules: trip.teeTimeRules,
+      vibe: trip.vibe,
+      state: trip.state,
+      region: trip.region,
       leadTime: trip.leadTime,
       costTier: trip.costTier,
       durationMinDays: trip.durationMinDays,
       durationMaxDays: trip.durationMaxDays,
+      golfRating: trip.golfRating,
+      lodgingRating: trip.lodgingRating,
+      foodRating: trip.foodRating,
+      vibeRating: trip.vibeRating,
+      overallRating: trip.overallRating,
+      beyondGolfRating: trip.beyondGolfRating,
+      valueRating: trip.valueRating,
+      logisticsRating: trip.logisticsRating,
+      peakVerdict: trip.peakVerdict,
+      shoulderVerdict: trip.shoulderVerdict,
+      offSeasonVerdict: trip.offSeasonVerdict,
       dataDump: trip.dataDump,
     },
     courses: {

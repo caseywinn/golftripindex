@@ -114,6 +114,7 @@ export async function runCaddieTurn(args: {
     "- If TRIP_DETAIL_JSON exists and the user asks about nearby courses or other courses in the area, answer using courses.want_more first, then trip.wantMore prose.",
     "- If the user asks about courses included in a trip, use courses.must_play and courses.should_play, then trip prose.",
     "- If the user asks about food/lodging, use trip.foodAndLodgingOverview first, then other trip prose.",
+    "- trip.vibe is a multi-select array of vibe tags (e.g. ['Rowdy', 'Walking'], ['Bucket List', 'Resort']). Use it to match trips to vibe preferences, compare trips on atmosphere, and surface similar trips.",
     "- Keep the conversation context: if activeTripSlug is set, assume the user is still on that trip unless they switch.",
     "- If the user asks about holes/routing/architect/conditions/etc, use Airtable data first. If Airtable is missing those details, you may use PUBLIC_GOLF_DETAILS_JSON or PUBLIC_INFO_JSON.",
     "- If the user asks about a trip/location that is not in Airtable and there is no active trip, ask a clarifying question instead of guessing.",

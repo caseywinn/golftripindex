@@ -1,7 +1,6 @@
 import "./globals.css";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
-import CaddieWidget from "@/components/CaddieWidget";
 import SessionProviderWrapper from "@/components/SessionProviderWrapper";
 import { Inter, Inter_Tight } from "next/font/google";
 import type { Metadata } from "next";
@@ -91,8 +90,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <SessionProviderWrapper>
           <SiteHeader />
           {children}
-          <CaddieWidget />
-          <SiteFooter />
+<SiteFooter />
         </SessionProviderWrapper>
       </body>
     </html>

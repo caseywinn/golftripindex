@@ -90,6 +90,7 @@ function mapTrip(r: Airtable.Record<Airtable.FieldSet>): GolfTrip {
     name: f["Name"] as string,
     secondaryName: asString(f["Secondary Name"]),
     subheader: asString(f["Subheader"]),
+    pullQuote: asString(f["Pull Quote"]),
     overview: asString(f["Overview"]),
     verdict: asString(f["Verdict"]),
     fullDescription: asString(f["Full Description"]),
@@ -97,6 +98,8 @@ function mapTrip(r: Airtable.Record<Airtable.FieldSet>): GolfTrip {
     sampleItinerary: asString(f["Sample Itinerary"]),
     sampleItineraryNotes: asString(f["Sample Itinerary Notes"]),
     foodAndLodgingOverview: asString(f["Food and Lodging Overview"]),
+    vibe: Array.isArray(f["Vibe"]) ? (f["Vibe"] as string[]) : undefined,
+
     fitYes: asString(f["Fit Yes"]),
     fitNo: asString(f["Fit No"]),
     teeTimeRules: asString(f["Tee Time Rules"]),
@@ -117,6 +120,9 @@ function mapTrip(r: Airtable.Record<Airtable.FieldSet>): GolfTrip {
     foodRating: (asNumber(f["Food Rating"]) ?? 0) as number,
     vibeRating: (asNumber(f["Vibe Rating"]) ?? 0) as number,
     overallRating: (asNumber(f["Overall Rating"]) ?? 0) as number,
+    beyondGolfRating: asNumber(f["Beyond Golf Rating"]) ?? undefined,
+    valueRating: asNumber(f["Value Rating"]) ?? undefined,
+    logisticsRating: asNumber(f["Logistics Rating"]) ?? undefined,
 
     currentRanking: asNumber(f["Current Ranking"]),
     previousRanking: asNumber(f["Previous Ranking"]),
@@ -164,7 +170,19 @@ function mapCourse(r: Airtable.Record<Airtable.FieldSet>): GolfCourse {
     slug: f["Slug"] as string,
     name: f["Name"] as string,
     state: asString(f["State"]),
+    city: asString(f["City"]),
     courseType: asString(f["Course Type"]),
+    accessType: asString(f["Access Type"]),
+    courseStyle: Array.isArray(f["Course Style"]) ? (f["Course Style"] as string[]) : undefined,
+    architect: asString(f["Architect"]),
+    yearOpened: asNumber(f["Year Opened"]),
+
+    greenFeePeak: asNumber(f["Green Fee Peak"]),
+    greenFeeShoulder: asNumber(f["Green Fee Shoulder"]),
+    greenFeeOffSeason: asNumber(f["Green Fee Off-Season"]),
+    walkFriendly: f["Walk Friendly"] === true ? true : undefined,
+    closedOffSeason: f["Closed Off-Season"] === true ? true : undefined,
+
     dataDump: asString(f["Data Dump"]),
 
     golfDigestRanking: asNumber(f["Golf Digest Ranking"]),
@@ -203,6 +221,88 @@ function mapTripCourse(r: Airtable.Record<Airtable.FieldSet>): TripCourseRow | n
     tripCourseRank: rank,
     status: status as any,
   };
+}
+
+export type CaddieTrip = GolfTrip & {
+  courses: Array<{
+    course: GolfCourse;
+    status: TripCourse["status"];
+    tripCourseRank: number;
+  }>;
+};
+
+export async function getAllTripsWithCoursesForCaddie(): Promise<CaddieTrip[]> {
+  const base = getBase();
+
+  // 1. Fetch all published trips (with their linked TripCourse IDs)
+  const tripRecords = await base(TRIPS_TABLE)
+    .select({ filterByFormula: `{Status}="published"`, maxRecords: 200 })
+    .all();
+
+  const trips = tripRecords.map(mapTrip);
+  const tripById = new Map<string, GolfTrip>();
+  const tripCourseIdsByTripId = new Map<string, string[]>();
+
+  for (const r of tripRecords) {
+    tripById.set(r.id, mapTrip(r));
+    const ids = (r.fields["TripCourses"] as string[] | undefined) ?? [];
+    if (ids.length) tripCourseIdsByTripId.set(r.id, ids);
+  }
+
+  // 2. Collect all TripCourse record IDs across all trips and fetch in bulk
+  const allTcIds = Array.from(tripCourseIdsByTripId.values()).flat();
+  const tcRecords: Airtable.Record<Airtable.FieldSet>[] = [];
+  const chunkSize = 60;
+
+  for (let i = 0; i < allTcIds.length; i += chunkSize) {
+    const chunk = allTcIds.slice(i, i + chunkSize);
+    const formula = `OR(${chunk.map((id) => `RECORD_ID()="${id}"`).join(",")})`;
+    const recs = await base(TRIP_COURSES_TABLE)
+      .select({ filterByFormula: formula, maxRecords: 200 })
+      .all();
+    tcRecords.push(...recs);
+  }
+
+  const tcRows = tcRecords
+    .map(mapTripCourse)
+    .filter((x): x is TripCourseRow => x !== null);
+
+  // 3. Collect all unique course IDs and fetch in bulk
+  const allCourseIds = Array.from(new Set(tcRows.map((x) => x.golfCourseId)));
+  const courseMap = new Map<string, GolfCourse>();
+
+  for (let i = 0; i < allCourseIds.length; i += chunkSize) {
+    const chunk = allCourseIds.slice(i, i + chunkSize);
+    const formula = `OR(${chunk.map((id) => `RECORD_ID()="${id}"`).join(",")})`;
+    const recs = await base(COURSES_TABLE)
+      .select({ filterByFormula: formula, maxRecords: 200 })
+      .all();
+    for (const r of recs) courseMap.set(r.id, mapCourse(r));
+  }
+
+  // 4. Join: for each trip, attach its courses
+  const tcsByTripId = new Map<string, TripCourseRow[]>();
+  for (const tc of tcRows) {
+    const arr = tcsByTripId.get(tc.golfTripId) ?? [];
+    arr.push(tc);
+    tcsByTripId.set(tc.golfTripId, arr);
+  }
+
+  return trips
+    .sort((a, b) => (a.currentRanking ?? 999) - (b.currentRanking ?? 999))
+    .map((trip) => {
+      const tcs = (tcsByTripId.get(trip.id) ?? []).sort(
+        (a, b) => a.tripCourseRank - b.tripCourseRank
+      );
+      const courses = tcs
+        .map((tc) => {
+          const course = courseMap.get(tc.golfCourseId);
+          if (!course) return null;
+          return { course, status: tc.status, tripCourseRank: tc.tripCourseRank };
+        })
+        .filter(Boolean) as CaddieTrip["courses"];
+      return { ...trip, courses };
+    });
 }
 
 export async function getPublishedTrips(): Promise<GolfTrip[]> {
