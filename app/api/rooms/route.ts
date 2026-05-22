@@ -16,9 +16,6 @@ export async function POST() {
   const client = getPgClient();
 
   try {
-    console.log("POST /api/rooms: connecting...");
-    await withTimeout(client.connect(), 3000, "connect");
-    console.log("POST /api/rooms: connected");
 
     const joinCode = Math.random().toString(36).slice(2, 8).toUpperCase();
     const slug = `room-${Date.now()}`;
@@ -52,9 +49,5 @@ export async function POST() {
   } catch (e: any) {
     console.error("POST /api/rooms failed:", e?.stack ?? e);
     return NextResponse.json({ error: e?.message ?? String(e) }, { status: 500 });
-  } finally {
-    try {
-      await client.end();
-    } catch {}
   }
 }

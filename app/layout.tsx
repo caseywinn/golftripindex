@@ -7,6 +7,7 @@ import type { Metadata } from "next";
 import { JsonLd } from "@/components/JsonLd";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
 import { SITE_URL, SITE_NAME } from "@/lib/seo";
+import CaddieWidget from "@/components/CaddieWidget";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -91,6 +92,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <SiteHeader />
           {children}
 <SiteFooter />
+          <CaddieWidget />
         </SessionProviderWrapper>
       </body>
     </html>

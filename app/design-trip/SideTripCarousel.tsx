@@ -15,7 +15,6 @@ export default function SideTripCarousel({ items }: { items: SideTrip[] }) {
   const [index, setIndex] = useState(0);
   const viewportRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const touchStartX = useRef(0);
   const mountedRef = useRef(false);
   const current = items[index];
@@ -25,8 +24,8 @@ export default function SideTripCarousel({ items }: { items: SideTrip[] }) {
     if (card && viewportRef.current) {
       viewportRef.current.scrollTo({ left: card.offsetLeft, behavior: "smooth" });
     }
-    tabRefs.current[index]?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
   }, [index]);
+  useEffect(() => () => { mountedRef.current = false; }, []);
 
   const prev = () => setIndex((i) => Math.max(0, i - 1));
   const next = () => setIndex((i) => Math.min(items.length - 1, i + 1));
@@ -61,7 +60,6 @@ export default function SideTripCarousel({ items }: { items: SideTrip[] }) {
         {items.map((item, i) => (
           <button
             key={item.id}
-            ref={(el) => { tabRefs.current[i] = el; }}
             className={`${dt.courseNavTab} ${i === index ? dt.courseNavTabActive : ""}`}
             onClick={() => setIndex(i)}
           >

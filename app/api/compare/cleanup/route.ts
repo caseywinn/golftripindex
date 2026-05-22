@@ -9,13 +9,8 @@ export async function POST(req: Request) {
   }
 
   const client = getPgClient();
-  await client.connect();
-  try {
-    const { rowCount } = await client.query(
-      `delete from public.compare_cache where expires_at < now()`
-    );
-    return NextResponse.json({ deleted: rowCount ?? 0 });
-  } finally {
-    await client.end();
-  }
+  const { rowCount } = await client.query(
+    `delete from public.compare_cache where expires_at < now()`
+  );
+  return NextResponse.json({ deleted: rowCount ?? 0 });
 }

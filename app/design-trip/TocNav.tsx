@@ -40,18 +40,22 @@ export default function TocNav() {
     return () => observer.disconnect();
   }, []);
 
+  function scrollTo(id: string) {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+  }
+
   return (
     <nav aria-label="Page sections">
       <div className={dt.tocLabel}>On this page</div>
       <ul className={dt.tocList}>
         {TOC.map(({ id, label }) => (
           <li key={id}>
-            <a
-              href={`#${id}`}
+            <button
+              onClick={() => scrollTo(id)}
               className={`${dt.tocItem} ${activeId === id ? dt.tocItemActive : ""}`}
             >
               {label}
-            </a>
+            </button>
           </li>
         ))}
       </ul>

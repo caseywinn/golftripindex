@@ -9,7 +9,6 @@ export async function GET(
 
   const client = getPgClient();
   try {
-    await client.connect();
 
     const res = await client.query(
       `select * from public.rooms where join_code = $1`,
@@ -24,9 +23,5 @@ export async function GET(
   } catch (e: any) {
     console.error("GET /api/rooms/join/[code] failed:", e?.stack ?? e);
     return NextResponse.json({ error: e?.message ?? String(e) }, { status: 500 });
-  } finally {
-    try {
-      await client.end();
-    } catch {}
   }
 }

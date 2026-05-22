@@ -613,8 +613,6 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
   const client = getPgClient();
 
   try {
-    await withTimeout(client.connect(), 3000, "db connect");
-
     // 1) Resolve room
     const roomRes = (await withTimeout(
       client.query(`select id from public.rooms where join_code = $1`, [joinCode]),
@@ -1286,9 +1284,5 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
   } catch (e: any) {
     console.error("POST /api/rooms/join/[code]/chat failed:", e?.stack ?? e);
     return NextResponse.json({ error: e?.message ?? String(e) }, { status: 500 });
-  } finally {
-    try {
-      await client.end();
-    } catch {}
   }
 }

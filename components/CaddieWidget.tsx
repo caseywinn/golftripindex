@@ -270,6 +270,8 @@ export default function CaddieWidget() {
     saveHistory(seed);
   }
 
+  if (pathname === "/plan") return null;
+
   return (
     <>
       {/* Floating launcher — hidden on mobile/tablet, shown on desktop */}

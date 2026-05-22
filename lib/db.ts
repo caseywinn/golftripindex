@@ -9,24 +9,26 @@ declare global {
 /**
  * Preferred: returns singleton Pool.
  */
-export function getPgPool(): pg.Pool {
-  if (global.__gtiPool) return global.__gtiPool;
-
+function createPool(): pg.Pool {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
     throw new Error(
       "DATABASE_URL is not set. Add it in Vercel Project Settings → Environment Variables (Production)."
     );
   }
-
-  global.__gtiPool = new Pool({
+  return new Pool({
     connectionString,
     ssl: { rejectUnauthorized: false },
     max: 5,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 10_000,
   });
+}
 
+export function getPgPool(): pg.Pool {
+  const p = global.__gtiPool as any;
+  if (p && !p.ending && !p.ended) return global.__gtiPool!;
+  global.__gtiPool = createPool();
   return global.__gtiPool;
 }
 

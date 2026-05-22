@@ -85,7 +85,6 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
 
   try {
     console.log("assistant: start", { joinCode, persist });
-    await maybeConnect(client);
 
     console.log("assistant: room lookup");
     const roomRes = (await withTimeout(
@@ -158,7 +157,5 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
       { error: e?.message ?? "assistant bootstrap failed", payload },
       { status: 500 }
     );
-  } finally {
-    await cleanupClient(client);
   }
 }

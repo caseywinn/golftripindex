@@ -3,7 +3,6 @@ import { getPgClient } from "@/lib/db";
 
 export async function POST() {
   const client = getPgClient();
-  await client.connect();
 
   try {
     const slug = `room-${Date.now()}`;
@@ -31,7 +30,5 @@ export async function POST() {
     );
 
     return NextResponse.json({ room }, { status: 201 });
-  } finally {
-    await client.end();
   }
 }
