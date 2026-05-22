@@ -30,5 +30,7 @@ export async function POST() {
     );
 
     return NextResponse.json({ room }, { status: 201 });
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message ?? String(e) }, { status: 500 });
   }
 }
