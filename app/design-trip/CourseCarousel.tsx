@@ -19,10 +19,12 @@ export default function CourseCarousel({ courses }: { courses: Course[] }) {
   const current = courses[index];
   const touchStartX = useRef(0);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const mountedRef = useRef(false);
   useEffect(() => {
-    if (index === 0) return;
+    if (!mountedRef.current) { mountedRef.current = true; return; }
     tabRefs.current[index]?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
   }, [index]);
+  useEffect(() => () => { mountedRef.current = false; }, []);
 
   const prev = () => setIndex((i) => Math.max(0, i - 1));
   const next = () => setIndex((i) => Math.min(courses.length - 1, i + 1));
