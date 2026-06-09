@@ -158,8 +158,8 @@ export default function TripsListClient({
             style={{
               padding: "12px 18px",
               borderRadius: 999,
-              border: "1px solid rgba(255,255,255,0.2)",
-              background: "rgba(0,0,0,0.35)",
+              border: "1px solid #2563eb",
+              background: "#2563eb",
               color: "white",
               cursor: "pointer",
               fontSize: 14,
