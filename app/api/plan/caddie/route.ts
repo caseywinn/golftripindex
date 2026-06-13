@@ -140,25 +140,58 @@ ${tripBlocks}`;
 // ── Course / architect / style matching ─────────────────────────────────────
 // Matches a single clean value (the model passes one full course name,
 // architect, or style into courseOrArchitect — abbreviations already expanded).
-// Substring both directions so "David McLay Kidd" hits only DMK's courses, not
-// every architect named David, while "Coore" still finds "Bill Coore & Ben
-// Crenshaw". Returns the set of matching trip slugs.
+// Returns the set of matching trip slugs.
+
+// Architect fields are inconsistent free text: the SAME firm appears as
+// "Coore & Crenshaw", "Bill Coore; Ben Crenshaw", and "Ben Crenshaw; Bill
+// Coore". A naive contiguous-substring match against the full query is
+// therefore order-, separator-, and first-name-dependent — "Coore Crenshaw"
+// finds 0, "Coore & Crenshaw" finds 6, "Coore" finds 12. We instead tokenize
+// both sides and match when one token set is a subset of the other, so any
+// phrasing of a designer resolves to the same trips.
+const ARCHITECT_NOISE = new Set([
+  "and", "the", "of", "jr", "sr", "ii", "iii",
+  "designed", "by", "with", "redesign", "original", "design", "golf",
+]);
+
+// Lowercase, treat & , / ; + . as separators, drop noise + sub-3-char tokens
+// (initials, "of", etc.) so only distinctive name parts remain.
+function architectTokens(value: string | undefined): string[] {
+  return (value ?? "")
+    .toLowerCase()
+    .replace(/[&,/;+.]/g, " ")
+    .split(/\s+/)
+    .map((t) => t.replace(/[^a-z0-9]/g, ""))
+    .filter((t) => t.length >= 3 && !ARCHITECT_NOISE.has(t));
+}
+
+// One token set is contained in the other (order-independent), and the
+// contained side carries at least one ≥4-char token. The length guard stops a
+// bare common first name ("tom") from matching every Tom while still letting a
+// distinctive surname ("coore", "doak") match on its own.
+function architectMatch(queryTokens: string[], arch: string | undefined): boolean {
+  const aToks = architectTokens(arch);
+  if (!queryTokens.length || !aToks.length) return false;
+  const aSet = new Set(aToks);
+  const qSet = new Set(queryTokens);
+  if (queryTokens.every((t) => aSet.has(t)) && queryTokens.some((t) => t.length >= 4)) return true;
+  if (aToks.every((t) => qSet.has(t)) && aToks.some((t) => t.length >= 4)) return true;
+  return false;
+}
+
 function matchCourseOrArchitect(query: string, pool: CaddieTrip[]): Set<string> {
   const q = query.toLowerCase().trim();
   const matched = new Set<string>();
   if (!q) return matched;
 
+  const queryTokens = architectTokens(query);
+
   for (const trip of pool) {
     for (const { course: c } of trip.courses) {
-      const arch = c.architect?.toLowerCase() ?? "";
       const name = c.name?.toLowerCase() ?? "";
       const styles = (c.courseStyle ?? []).map((s) => s.toLowerCase());
       if (
-        // Architect: the course's architect field must CONTAIN the query — one
-        // direction only. "coore" → "bill coore & ben crenshaw" ✓; "david mclay
-        // kidd" → only DMK's courses, never a course merely co-listing a short
-        // partial that happens to sit inside the query string.
-        (arch.length >= 3 && arch.includes(q)) ||
+        architectMatch(queryTokens, c.architect) ||
         (name.length >= 4 && (name.includes(q) || q.includes(name))) ||
         styles.some((s) => s === q || s.includes(q) || q.includes(s))
       ) {
