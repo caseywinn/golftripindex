@@ -10,180 +10,78 @@ import {
   REGIONS,
   COST_TIERS,
   DURATION_RANGES,
-  SEASONS,
-  slugifyState,
 } from "@/lib/filters";
+import {
+  type TripOption,
+  type Destination,
+  type FilterState,
+  type SortKey,
+  type TripWhen,
+  EMPTY_FILTERS,
+  EMPTY_WHEN,
+  TOP_100_MINS,
+  SORT_OPTIONS,
+  makeid,
+  dollars,
+  applyFilters,
+  hasActiveFilters,
+  orderGridTrips,
+  useCaddie,
+  TripModal,
+  WishlistBadge,
+  WhenPicker,
+  assessTiming,
+  TimingBadge,
+} from "./planShared";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+export type { TripOption };
 
-export type TripOption = {
-  slug: string;
-  name: string;
-  overallRating: number;
-  durationMinDays: number;
-  durationMaxDays: number;
-  costTier: 1 | 2 | 3 | 4 | 5;
-  region?: string;
-  seasons?: string[];
-  top100Count?: number;
-  vibe?: string[];
-  leadTime?: string;
-  driving?: string;
-};
+// Persisted "My Trip" working state, so it survives leaving/returning the page.
+const TRIP_STORAGE_KEY = "gti-plan-trip-v1";
 
-type DateWindow = {
-  id: string;
-  startDate: string;
-  endDate: string;
-};
-
-type Destination = {
-  id: string;
-  slug: string;
-  name: string;
-  overallRating: number | null;
-  costTier: number | null;
-};
-
-type CaddieMsg = {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  trips?: TripOption[];
-};
-
-// ── Filter state ──────────────────────────────────────────────────────────────
-
-type FilterState = {
-  region: string[];
-  budget: string[];
-  duration: string[];
-  vibe: string[];
-  season: string[];
-  top100: boolean;
-};
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function makeid() {
-  return Math.random().toString(36).slice(2, 10);
-}
-
-function dollars(n: number | null): string {
-  if (!n || n < 1) return "";
-  return "$".repeat(Math.min(5, Math.max(1, n)));
-}
-
-function formatDuration(min: number, max: number): string {
-  if (!min && !max) return "";
-  if (min && max && min !== max) return `${min}–${max} days`;
-  return `${min ?? max} days`;
-}
-
-function formatDateRange(start: string, end: string): string {
-  if (!start || !end) return "";
-  const s = new Date(start + "T00:00");
-  const e = new Date(end + "T00:00");
-  const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
-  const sameYear = s.getFullYear() === e.getFullYear();
-  const sf = s.toLocaleDateString("en-US", { ...opts, ...(sameYear ? {} : { year: "numeric" }) });
-  const ef = e.toLocaleDateString("en-US", { ...opts, year: "numeric" });
-  return `${sf} – ${ef}`;
-}
-
-function applyFilters(pool: TripOption[], fs: FilterState): TripOption[] {
-  let result = [...pool];
-  if (fs.region.length > 0)
-    result = result.filter((t) => t.region && fs.region.includes(slugifyState(t.region)));
-  if (fs.budget.length > 0) {
-    const tiers = fs.budget.flatMap((s) => COST_TIERS.find((c) => c.slug === s)?.tiers ?? []);
-    result = result.filter((t) => tiers.includes(t.costTier));
-  }
-  if (fs.duration.length > 0)
-    result = result.filter((t) =>
-      fs.duration.some((s) => {
-        const def = DURATION_RANGES.find((d) => d.slug === s);
-        return def ? t.durationMinDays >= def.minDays && t.durationMinDays <= def.maxDays : false;
-      })
-    );
-  if (fs.vibe.length > 0)
-    result = result.filter((t) => fs.vibe.every((v) => t.vibe?.includes(v)));
-  if (fs.season.length > 0)
-    result = result.filter((t) =>
-      fs.season.some((s) => {
-        const def = SEASONS.find((x) => x.slug === s);
-        return def ? t.seasons?.some((ts) => ts.toLowerCase() === def.label.toLowerCase()) : false;
-      })
-    );
-  if (fs.top100)
-    result = result
-      .filter((t) => (t.top100Count ?? 0) >= 1)
-      .sort((a, b) => (b.top100Count ?? 0) - (a.top100Count ?? 0));
-  return result;
-}
-
-// ── Component ─────────────────────────────────────────────────────────────────
-
-export default function ShortlistClient({ trips, wishlistSlugs = [] }: { trips: TripOption[]; wishlistSlugs?: string[] }) {
-  const hasWishlist = wishlistSlugs.length > 0;
-
-  // Caddie — seed message (text only) + persistent carousel state
-  const [caddieMessages, setCaddieMessages] = useState<CaddieMsg[]>([{
-    id: "seed",
-    role: "assistant",
-    content: hasWishlist
-      ? "Welcome back! I've pulled up your wishlist below. Ask me anything about these trips, or tell me what you're looking for and I'll help you narrow it down."
-      : "I'm your GTI Caddie. Search or filter down below and I'll recommend some options. I can also answer any questions about any destination. Here are some randomly selected trips to get you started.",
-  }]);
-  const [currentTrips, setCurrentTrips] = useState<TripOption[]>(() => {
-    if (hasWishlist) {
-      const bySlug = new Map(trips.map((t) => [t.slug, t]));
-      const wishlisted = wishlistSlugs.map((s) => bySlug.get(s)).filter((t): t is TripOption => t !== undefined);
-      if (wishlisted.length > 0) return wishlisted;
-    }
-    return [...trips].sort(() => Math.random() - 0.5);
-  });
-  const [carouselPage, setCarouselPage] = useState(0);
-  const [caddieInput, setCaddieInput] = useState("");
-  const [caddieSending, setCaddieSending] = useState(false);
-  const caddieThreadRef = useRef<HTMLDivElement>(null);
-  const caddieMainRef = useRef<HTMLDivElement>(null);
-  const tripRailRef = useRef<HTMLElement>(null);
-  const railBodyRef = useRef<HTMLDivElement>(null);
-
-  // Group
-  const [playerCount, setPlayerCount] = useState(4);
-  const [nightCount, setNightCount] = useState(4);
-
-  // Date windows (start date only — end inferred from nightCount)
-  const [dateWindows, setDateWindows] = useState<DateWindow[]>([]);
-  const [newDateStart, setNewDateStart] = useState("");
-  const [addingDate, setAddingDate] = useState(false);
-
-  // Destinations
-  const [destinations, setDestinations] = useState<Destination[]>([]);
+export default function ShortlistClient({
+  trips,
+  wishlistSlugs = [],
+  isLoggedIn = false,
+}: {
+  trips: TripOption[];
+  wishlistSlugs?: string[];
+  isLoggedIn?: boolean;
+}) {
+  const caddie = useCaddie({ trips, wishlistSlugs });
 
   // Filters
-  const [filterState, setFilterState] = useState<FilterState>({
-    region: [], budget: [], duration: [], vibe: [], season: [], top100: false,
-  });
-  // const [showHidden, setShowHidden] = useState(false); // HIDE FEATURE
-  const [portalMenu, setPortalMenu] = useState<{
-    id: string;
-    bottom: number;
-    left?: number;
-    right?: number;
-  } | null>(null);
-  const filterBarRef = useRef<HTMLDivElement>(null);
-  const portalMenuRef = useRef<HTMLDivElement>(null);
+  const [filterState, setFilterState] = useState<FilterState>(EMPTY_FILTERS);
+  const [sortKey, setSortKey] = useState<SortKey>("ranking");
+  const hasAnyFilter = hasActiveFilters(filterState);
+  const wishlistSet = useMemo(() => new Set(wishlistSlugs), [wishlistSlugs]);
 
-  const hasAnyFilter =
-    filterState.region.length > 0 ||
-    filterState.budget.length > 0 ||
-    filterState.duration.length > 0 ||
-    filterState.vibe.length > 0 ||
-    filterState.season.length > 0 ||
-    filterState.top100;
+  // Caddie thread expansion
+  const [threadOpen, setThreadOpen] = useState(false);
+
+  // Group / dates / destinations (right rail)
+  const [playerCount, setPlayerCount] = useState(4);
+  const [nightCount, setNightCount] = useState(4);
+  const [tripWhen, setTripWhen] = useState<TripWhen>(EMPTY_WHEN);
+  const [destinations, setDestinations] = useState<Destination[]>([]);
+  const [hydrated, setHydrated] = useState(false);
+
+  // Planning prompt — shown whenever the trip list goes from empty to one trip
+  const [planPopupOpen, setPlanPopupOpen] = useState(false);
+  const [popGolfers, setPopGolfers] = useState(4);
+  const [popNights, setPopNights] = useState(4);
+  const [popWhen, setPopWhen] = useState<TripWhen>(EMPTY_WHEN);
+
+  // Share-with-group
+  const [sharing, setSharing] = useState(false);
+  const [shareError, setShareError] = useState("");
+  const [shareInfo, setShareInfo] = useState<{ id: string; url: string } | null>(null);
+
+  // Modal + filter portal
+  const [modalTrip, setModalTrip] = useState<TripOption | null>(null);
+  const [portalMenu, setPortalMenu] = useState<{ id: string; top: number; left?: number; right?: number } | null>(null);
+  const portalMenuRef = useRef<HTMLDivElement>(null);
+  const threadRef = useRef<HTMLDivElement>(null);
 
   const vibeOptions = useMemo(() => {
     const set = new Set<string>();
@@ -191,93 +89,90 @@ export default function ShortlistClient({ trips, wishlistSlugs = [] }: { trips: 
     return Array.from(set).sort();
   }, [trips]);
 
-  // HIDE FEATURE — excluded trips (commented out, kept for future use)
-  // const [excluded, setExcluded] = useState<Set<string>>(new Set());
-  // function excludeTrip(slug: string) {
-  //   setExcluded((prev) => new Set([...prev, slug]));
-  // }
-  // function restoreTrip(slug: string) {
-  //   setExcluded((prev) => { const next = new Set(prev); next.delete(slug); return next; });
-  // }
-
-  // Modal
-  const [modalTrip, setModalTrip] = useState<TripOption | null>(null);
+  // Derived grid: filters narrow the live set, then order it (wishlist-pinned
+  // ranking by default; explicit sorts otherwise).
+  const gridTrips = useMemo(
+    () => orderGridTrips(applyFilters(caddie.currentTrips, filterState), sortKey, wishlistSlugs, caddie.isCaddiePicks),
+    [caddie.currentTrips, filterState, sortKey, wishlistSlugs, caddie.isCaddiePicks]
+  );
 
   useEffect(() => {
-    const el = caddieThreadRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [caddieMessages]);
-
-  useEffect(() => {
-    const panel = caddieMainRef.current;
-    if (!panel) return;
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      if (caddieThreadRef.current) caddieThreadRef.current.scrollTop += e.deltaY;
-    };
-    panel.addEventListener("wheel", onWheel, { passive: false });
-    return () => panel.removeEventListener("wheel", onWheel);
-  }, []);
-
-  useEffect(() => {
-    const onWheel = (e: WheelEvent) => {
-      const rail = tripRailRef.current;
-      const body = railBodyRef.current;
-      if (!rail || !body) return;
-      if (!rail.contains(e.target as Node)) return;
-      if (body.scrollHeight <= body.clientHeight) return;
-      e.preventDefault();
-      body.scrollTop += e.deltaY;
-    };
-    document.addEventListener("wheel", onWheel, { capture: true, passive: false });
-    return () => document.removeEventListener("wheel", onWheel, { capture: true });
-  }, []);
+    if (threadOpen && threadRef.current) threadRef.current.scrollTop = threadRef.current.scrollHeight;
+  }, [caddie.messages, threadOpen]);
 
   useEffect(() => {
     if (!modalTrip) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setModalTrip(null); };
     document.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
+    return () => { document.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
   }, [modalTrip]);
 
-  // Close portal menu on outside click
+  useEffect(() => {
+    if (!planPopupOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setPlanPopupOpen(false); };
+    document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => { document.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
+  }, [planPopupOpen]);
+
+  // Restore the saved trip on mount. Deliberately a mount effect (not a lazy
+  // initializer) so SSR renders defaults and the client hydrates from storage
+  // afterward — avoids a hydration mismatch on the rail.
+  useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect -- one-time restore of persisted client state */
+    try {
+      const raw = localStorage.getItem(TRIP_STORAGE_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (typeof saved.playerCount === "number") setPlayerCount(saved.playerCount);
+        if (typeof saved.nightCount === "number") setNightCount(saved.nightCount);
+        if (saved.tripWhen && typeof saved.tripWhen === "object") setTripWhen({ ...EMPTY_WHEN, ...saved.tripWhen });
+        if (Array.isArray(saved.destinations)) setDestinations(saved.destinations);
+      }
+    } catch {
+      /* ignore corrupt/unavailable storage */
+    }
+    setHydrated(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, []);
+
+  // Persist the trip whenever it changes (only after the initial restore).
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      localStorage.setItem(
+        TRIP_STORAGE_KEY,
+        JSON.stringify({ playerCount, nightCount, tripWhen, destinations }),
+      );
+    } catch {
+      /* ignore storage write failures (quota, private mode) */
+    }
+  }, [hydrated, playerCount, nightCount, tripWhen, destinations]);
+
   useEffect(() => {
     if (!portalMenu) return;
     const onDown = (e: MouseEvent) => {
       const t = e.target as Element;
-      const inPortal = portalMenuRef.current?.contains(t);
-      const isTrigger = !!t.closest("[data-filter-trigger]");
-      if (!inPortal && !isTrigger) setPortalMenu(null);
+      if (!portalMenuRef.current?.contains(t) && !t.closest("[data-filter-trigger]")) setPortalMenu(null);
     };
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
   }, [portalMenu]);
 
-  // Filters narrow the VIEW of currentTrips — they never replace it or send messages
+  // ── Filter handlers ─────────────────────────────────────────────────────────
 
   function toggleFilter(key: Exclude<keyof FilterState, "top100">, value: string) {
     setFilterState((prev) => {
-      const arr = prev[key] as string[];
+      const arr = prev[key];
       return { ...prev, [key]: arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value] };
     });
   }
 
-  function toggleTop100() {
-    setFilterState((prev) => ({ ...prev, top100: !prev.top100 }));
-  }
-
-  function clearFilters() {
-    setFilterState({ region: [], budget: [], duration: [], vibe: [], season: [], top100: false });
-  }
-
   function resetAll() {
-    setFilterState({ region: [], budget: [], duration: [], vibe: [], season: [], top100: false });
-    setCurrentTrips([...trips].sort(() => Math.random() - 0.5));
-    setCarouselPage(0);
+    setFilterState(EMPTY_FILTERS);
+    setSortKey("ranking");
+    caddie.resetToAll();
   }
 
   function openFilterMenu(id: string, e: React.MouseEvent<HTMLButtonElement>, rightAlign = false) {
@@ -285,194 +180,73 @@ export default function ShortlistClient({ trips, wishlistSlugs = [] }: { trips: 
     const rect = e.currentTarget.getBoundingClientRect();
     setPortalMenu({
       id,
-      bottom: window.innerHeight - rect.top + 6,
+      top: rect.bottom + 6,
       ...(rightAlign ? { right: window.innerWidth - rect.right } : { left: rect.left }),
     });
   }
 
-  // ── Caddie query engine ─────────────────────────────────────────────────────
-
-  function resolveQuery(msg: string): { text: string; trips: TripOption[] } {
-    const q = msg.toLowerCase();
-    const addedSlugs = new Set(destinations.map((d) => d.slug));
-    const pool = trips.filter((t) => !addedSlugs.has(t.slug));
-
-    // All trips
-    if (q.includes("all") || q === "show all" || q === "everything") {
-      return { text: `Here are all ${pool.length} trips in the GTI index:`, trips: pool };
-    }
-
-    // Region match
-    const regionMatch = REGIONS.find(
-      (r) => q.includes(r.label.toLowerCase()) || q.includes(r.slug.replace(/-/g, " "))
-    );
-    if (regionMatch) {
-      const found = pool.filter((t) => t.region && slugifyState(t.region) === regionMatch.slug);
-      return {
-        text: found.length > 0
-          ? `${found.length} trip${found.length !== 1 ? "s" : ""} in the ${regionMatch.label}:`
-          : `No trips in the ${regionMatch.label} right now — try another region.`,
-        trips: found,
-      };
-    }
-
-    // Budget / cost
-    if (q.includes("budget") || q.includes("cheap") || q.includes("affordable")) {
-      const found = pool.filter((t) => t.costTier <= 2);
-      return { text: `${found.length} budget-friendly options ($ and $$):`, trips: found };
-    }
-    if (q.includes("luxury") || q.includes("high-end") || q.includes("splurge")) {
-      const found = pool.filter((t) => t.costTier >= 4);
-      return { text: `${found.length} premium and luxury options:`, trips: found };
-    }
-    if (q.includes("moderate") || q.includes("mid-range") || q.includes("$$$")) {
-      const found = pool.filter((t) => t.costTier === 3);
-      return { text: `${found.length} moderate-priced trips:`, trips: found };
-    }
-
-    // Duration
-    if (q.includes("weekend") || q.match(/\b2[\s-]?day\b/) || q.match(/\b3[\s-]?day\b/)) {
-      const found = pool.filter((t) => {
-        const def = DURATION_RANGES.find((d) => d.slug === "weekend");
-        return def ? t.durationMinDays >= def.minDays && t.durationMinDays <= def.maxDays : false;
-      });
-      return { text: `${found.length} weekend trip options (2–3 days):`, trips: found };
-    }
-    if (q.includes("week") || q.match(/\b7[\s-]?day\b/) || q.includes("long trip")) {
-      const found = pool.filter((t) => t.durationMinDays >= 6);
-      return { text: `${found.length} week-long trips:`, trips: found };
-    }
-    if (q.includes("4") || q.includes("5") || q.includes("4-5")) {
-      const found = pool.filter((t) => t.durationMinDays >= 4 && t.durationMinDays <= 5);
-      return { text: `${found.length} 4–5 day trips:`, trips: found };
-    }
-
-    // Top 100
-    if (q.includes("top 100") || q.includes("top-100") || q.includes("ranked course") || q.includes("best course")) {
-      const found = pool
-        .filter((t) => (t.top100Count ?? 0) >= 1)
-        .sort((a, b) => (b.top100Count ?? 0) - (a.top100Count ?? 0));
-      return { text: `${found.length} trips with Top 100 ranked courses:`, trips: found };
-    }
-
-    // Season
-    for (const season of SEASONS) {
-      if (q.includes(season.label.toLowerCase())) {
-        const found = pool.filter((t) => t.seasons?.some((s) => s.toLowerCase() === season.label.toLowerCase()));
-        return { text: `${found.length} trips best in ${season.label}:`, trips: found };
-      }
-    }
-
-    // Name / text search
-    const nameMatches = pool.filter(
-      (t) =>
-        t.name.toLowerCase().includes(q) ||
-        (t.region && t.region.toLowerCase().includes(q)) ||
-        t.vibe?.some((v) => v.toLowerCase().includes(q))
-    );
-    if (nameMatches.length > 0) {
-      return { text: `Here's what I found for "${msg}":`, trips: nameMatches };
-    }
-
-    // Fallback
-    return {
-      text: `I didn't find a match for "${msg}". Try a region, budget level, duration, season, or ask about Top 100 courses.`,
-      trips: [],
-    };
-  }
-
-  async function sendQuery(msg: string) {
-    const trimmed = msg.trim();
-    if (!trimmed || caddieSending) return;
-
-    const userMsgId = makeid();
-    setCaddieMessages((prev) => [
-      ...prev,
-      { id: userMsgId, role: "user", content: trimmed },
-    ]);
-    setCaddieInput("");
-    setCaddieSending(true);
-
-    // History: exclude seed and filter messages; cap at last 10 exchanges
-    const history = caddieMessages
-      .filter((m) => m.id !== "seed" && m.id !== "filter-user" && m.id !== "filter-result")
-      .slice(-10)
-      .map((m) => ({ role: m.role, content: m.content }));
-
-    // Filtered slugs: the full filter-matching universe from ALL trips (not just current carousel)
-    const filteredSlugs = hasAnyFilter ? applyFilters(trips, filterState).map((t) => t.slug) : null;
-
-    try {
-      const res = await fetch("/api/plan/caddie", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: trimmed, history, filteredSlugs }),
-      });
-
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const { text, slugs } = await res.json();
-
-      setCaddieMessages((prev) => [
-        ...prev,
-        { id: makeid(), role: "assistant", content: text },
-      ]);
-
-      if (slugs !== null) {
-        // Validate against the full trips list; filter-narrowing happens in carouselAvailable
-        const validSlugSet = new Set(trips.map((t) => t.slug));
-        const resultTrips = (slugs as string[])
-          .filter((s) => validSlugSet.has(s))
-          .map((s) => trips.find((t) => t.slug === s))
-          .filter((t): t is TripOption => t !== undefined);
-
-        if (resultTrips.length > 0) {
-          setCurrentTrips(resultTrips);
-          setCarouselPage(0);
-        }
-      } else if (hasWishlist) {
-        // Q&A response (no recommendations) — transition away from wishlist to full list
-        setCurrentTrips([...trips].sort(() => Math.random() - 0.5));
-        setCarouselPage(0);
-      }
-    } catch {
-      setCaddieMessages((prev) => [
-        ...prev,
-        { id: makeid(), role: "assistant", content: "Something went wrong. Please try again." },
-      ]);
-    } finally {
-      setCaddieSending(false);
-    }
-  }
-
-  // ── Dest / date handlers ────────────────────────────────────────────────────
+  // ── Rail handlers ─────────────────────────────────────────────────────────
 
   function addDestination(trip: TripOption) {
     if (destinations.some((d) => d.slug === trip.slug)) return;
+    const isFirstTrip = destinations.length === 0;
     setDestinations((prev) => [
       ...prev,
       { id: makeid(), slug: trip.slug, name: trip.name, overallRating: trip.overallRating, costTier: trip.costTier },
     ]);
+    // Empty → first trip: prompt for group basics, prefilled from the rail if set.
+    if (isFirstTrip) {
+      setPopGolfers(playerCount);
+      setPopNights(nightCount);
+      setPopWhen(tripWhen);
+      setPlanPopupOpen(true);
+    }
   }
 
-  function addDateWindow() {
-    if (!newDateStart) return;
-    const start = new Date(newDateStart + "T00:00");
-    start.setDate(start.getDate() + nightCount);
-    const endDate = start.toISOString().slice(0, 10);
-    setDateWindows((prev) => [...prev, { id: makeid(), startDate: newDateStart, endDate }]);
-    setNewDateStart("");
-    setAddingDate(false);
+  // Commit the popup's Golfers / Nights / When back to the rail.
+  function applyPlanPopup() {
+    setPlayerCount(popGolfers);
+    setNightCount(popNights);
+    setTripWhen(popWhen);
+    setPlanPopupOpen(false);
   }
 
   const canShare = destinations.length >= 1;
 
-  // Carousel derived state — filters narrow the view, never replace currentTrips
-  const carouselAvailable = applyFilters(currentTrips, filterState); // HIDE FEATURE: also filter excluded
-  const carouselTotalPages = Math.ceil(carouselAvailable.length / 3);
-  const carouselPageClamped = carouselAvailable.length > 0
-    ? Math.min(carouselPage, Math.max(0, carouselTotalPages - 1))
-    : 0;
-  const carouselPageTrips = carouselAvailable.slice(carouselPageClamped * 3, carouselPageClamped * 3 + 3);
+  async function handleShare() {
+    if (sharing) return;
+    setShareError("");
+    // Logged-out: send them to register, then back to /plan (trip persists locally).
+    if (!isLoggedIn) {
+      window.location.href = `/register?callbackUrl=${encodeURIComponent("/plan")}`;
+      return;
+    }
+    setSharing(true);
+    try {
+      const res = await fetch("/api/plan/share", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          state: { destinations, golfers: playerCount, nights: nightCount, when: tripWhen },
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.id) {
+        setShareInfo({ id: data.id, url: data.url });
+      } else {
+        setShareError(data.error || "Could not save your trip.");
+      }
+    } catch {
+      setShareError("Could not save your trip. Try again.");
+    } finally {
+      setSharing(false);
+    }
+  }
+
+  function submit() {
+    setThreadOpen(true);
+    caddie.sendQuery(caddie.input, hasAnyFilter ? applyFilters(trips, filterState).map((t) => t.slug) : null);
+  }
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
@@ -480,95 +254,88 @@ export default function ShortlistClient({ trips, wishlistSlugs = [] }: { trips: 
     <div className={styles.planPage}>
       <div className={styles.planLayout}>
 
-        {/* ── MAIN: GTI Caddie ───────────────────────────────────── */}
+        {/* ── MAIN: Browse canvas ────────────────────────────────── */}
         <div className={styles.planMain}>
-          <div className={styles.caddieMain} ref={caddieMainRef}>
+          <div className={styles.browsePanel}>
 
-            {/* Header */}
-            <div className={styles.caddieHead}>
-              <img src="/gti-avatar-thumb.png" alt="" aria-hidden="true" className={styles.caddieAvatar} />
-              <div>
-                <div className={styles.caddieName}>GTI Caddie</div>
-                <div className={styles.caddieRole}>Find your next golf trip</div>
+            {/* Filter toolbar */}
+            <div className={styles.browseToolbar}>
+              <div className={styles.browseFilters}>
+                <FilterPill label="Region" count={filterState.region.length}
+                  single={REGIONS.find((r) => r.slug === filterState.region[0])?.label}
+                  onClick={(e) => openFilterMenu("region", e)} />
+                <FilterPill label="Budget" count={filterState.budget.length}
+                  single={COST_TIERS.find((c) => c.slug === filterState.budget[0])?.label}
+                  onClick={(e) => openFilterMenu("budget", e)} />
+                <FilterPill label="Duration" count={filterState.duration.length}
+                  single={DURATION_RANGES.find((d) => d.slug === filterState.duration[0])?.label}
+                  onClick={(e) => openFilterMenu("duration", e)} />
+                {vibeOptions.length > 0 && (
+                  <FilterPill label="Vibe" count={filterState.vibe.length}
+                    single={filterState.vibe[0]}
+                    onClick={(e) => openFilterMenu("vibe", e)} />
+                )}
+                <button
+                  data-filter-trigger
+                  className={`${styles.filterTrigger} ${filterState.top100 > 0 ? styles.filterTriggerActive : ""}`}
+                  onClick={(e) => openFilterMenu("top100", e)}
+                >
+                  {filterState.top100 > 0 ? `Top 100: ${filterState.top100}+` : "Top 100"}
+                  <span className={styles.filterCaret}>▾</span>
+                </button>
+                {(hasAnyFilter || caddie.isCaddiePicks) && (
+                  <button className={styles.filterClearBtn} onClick={resetAll}>Reset</button>
+                )}
+              </div>
+
+              <div className={styles.browseToolbarRight}>
+                <span className={styles.browseCount}>
+                  {gridTrips.length} {gridTrips.length === 1 ? "trip" : "trips"}
+                </span>
+                <label className={styles.sortControl}>
+                  <span className={styles.sortLabel}>Sort</span>
+                  <select
+                    className={styles.sortSelect}
+                    value={sortKey}
+                    onChange={(e) => setSortKey(e.target.value as SortKey)}
+                  >
+                    {SORT_OPTIONS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
+                  </select>
+                </label>
               </div>
             </div>
 
-            {/* Message thread */}
-            <div className={styles.caddieThread} ref={caddieThreadRef}>
-              {caddieMessages.map((m) => (
-                <div key={m.id} className={`${styles.caddieMsg} ${m.role === "user" ? styles.caddieMsgUser : ""}`}>
-                  <div className={styles.caddieMsgRole}>
-                    {m.role === "user" ? "You" : "GTI Caddie"}
-                  </div>
-                  <div className={styles.caddieMsgContent}>
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      urlTransform={(url) => url}
-                      components={{
-                        a: ({ href, children }) => {
-                          if (href?.startsWith("trip:")) {
-                            const slug = href.slice(5);
-                            const trip = trips.find((t) => t.slug === slug);
-                            if (trip) {
-                              return (
-                                <button
-                                  className={styles.caddieLink}
-                                  onClick={() => setModalTrip(trip)}
-                                >
-                                  {children}
-                                </button>
-                              );
-                            }
-                          }
-                          return <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>;
-                        },
-                      }}
-                    >
-                      {m.content}
-                    </ReactMarkdown>
-                  </div>
+            {caddie.isCaddiePicks && (
+              <div className={styles.picksBanner}>
+                Showing the Caddie&apos;s picks for your request.
+                <button className={styles.picksBannerLink} onClick={resetAll}>Browse all trips</button>
+              </div>
+            )}
 
+            {/* Card grid (scrolls) */}
+            <div className={styles.cardGridScroll}>
+              {gridTrips.length === 0 ? (
+                <div className={styles.gridEmpty}>
+                  No trips match these filters. <button className={styles.picksBannerLink} onClick={resetAll}>Reset</button>
                 </div>
-              ))}
-
-              {caddieSending && (
-                <div className={styles.caddieThinking}>
-                  <span />
-                  <span />
-                  <span />
-                </div>
-              )}
-            </div>
-
-            {/* Persistent carousel */}
-            <div className={styles.carouselSection}>
-              {carouselAvailable.length === 0 && currentTrips.length > 0 && hasAnyFilter ? (
-                <div className={styles.carouselEmpty}>
-                  Recommendations are filtered. Clear your filters to see them.
-                </div>
-              ) : carouselAvailable.length === 0 ? (
-                <div className={styles.carouselEmpty}>No trips match. Try adjusting your filters.</div>
               ) : (
-                <div className={styles.chatTripGrid}>
-                  {carouselPageTrips.map((t) => {
-                    const alreadyAdded = destinations.some((d) => d.slug === t.slug);
-                    // const isHidden = excluded.has(t.slug); // HIDE FEATURE
+                <div className={styles.cardGrid}>
+                  {gridTrips.map((t) => {
+                    const added = destinations.some((d) => d.slug === t.slug);
+                    const wished = wishlistSet.has(t.slug);
+                    const timing = assessTiming(t, tripWhen, nightCount);
                     return (
                       <div
                         key={t.slug}
-                        className={`${styles.chatTripCard} ${alreadyAdded ? styles.chatTripCardAdded : ""}`}
-                        // HIDE FEATURE: add ${isHidden ? styles.chatTripCardHidden : ""} to className
+                        className={`${styles.chatTripCard} ${added ? styles.chatTripCardAdded : ""} ${wished ? styles.chatTripCardWishlist : ""}`}
                         onClick={() => setModalTrip(t)}
                         role="button"
                         tabIndex={0}
                         onKeyDown={(e) => e.key === "Enter" && setModalTrip(t)}
                       >
-                        <img
-                          src={`/images/trips/${t.slug}.jpg`}
-                          alt=""
-                          aria-hidden="true"
-                          className={styles.chatTripImg}
-                        />
+                        <img src={`/images/trips/${t.slug}.jpg`} alt="" aria-hidden="true" className={styles.chatTripImg} />
+                        <TimingBadge flag={timing} />
+                        {wished && <WishlistBadge />}
                         <div className={styles.chatTripBody}>
                           <span className={styles.chatTripName}>{t.name}</span>
                           <span className={styles.chatTripMeta}>
@@ -578,24 +345,13 @@ export default function ShortlistClient({ trips, wishlistSlugs = [] }: { trips: 
                             {t.overallRating != null && (
                               <span className={styles.chatTripRating}>{t.overallRating.toFixed(2)}</span>
                             )}
-                            <div className={styles.chatTripActions}>
-                              {/* HIDE FEATURE — replace the Add button below with isHidden ? Restore : (Hide + Add)
-                              {isHidden ? (
-                                <button className={styles.chatTripRestore} onClick={(e) => { e.stopPropagation(); restoreTrip(t.slug); }}>Restore</button>
-                              ) : (
-                                <>
-                                  <button className={styles.chatTripHide} onClick={(e) => { e.stopPropagation(); excludeTrip(t.slug); }} title="Hide from recommendations">Hide</button>
-                                  <button className={styles.chatTripAdd} disabled={alreadyAdded} onClick={(e) => { e.stopPropagation(); addDestination(t); }}>{alreadyAdded ? "Added" : "+ Add"}</button>
-                                </>
-                              )} */}
-                              <button
-                                className={styles.chatTripAdd}
-                                disabled={alreadyAdded}
-                                onClick={(e) => { e.stopPropagation(); addDestination(t); }}
-                              >
-                                {alreadyAdded ? "Added" : "+ Add"}
-                              </button>
-                            </div>
+                            <button
+                              className={styles.chatTripAdd}
+                              disabled={added}
+                              onClick={(e) => { e.stopPropagation(); addDestination(t); }}
+                            >
+                              {added ? "Added" : "+ Add"}
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -605,315 +361,106 @@ export default function ShortlistClient({ trips, wishlistSlugs = [] }: { trips: 
               )}
             </div>
 
-            {/* Filter bar */}
-            <div className={styles.filterBar} ref={filterBarRef}>
+          </div>
 
-              <button
-                data-filter-trigger
-                className={`${styles.filterTrigger} ${filterState.region.length > 0 ? styles.filterTriggerActive : ""}`}
-                onClick={(e) => openFilterMenu("region", e)}
-              >
-                {filterState.region.length === 0 ? "Region" : filterState.region.length === 1 ? (REGIONS.find((r) => r.slug === filterState.region[0])?.label ?? "Region") : `Region (${filterState.region.length})`}
-                <span className={styles.filterCaret}>▾</span>
+          {/* ── GTI Caddie — its own section below the listing ───────── */}
+          <div className={styles.caddiePanel}>
+            <div className={styles.caddiePanelHead}>
+              <img src="/gti-avatar-thumb.png" alt="" aria-hidden="true" className={styles.caddieHeadAvatar} />
+              <div className={styles.caddieHeadText}>
+                <div className={styles.caddieHeadName}>GTI Caddie</div>
+                <div className={styles.caddieHeadRole}>Find your next golf trip</div>
+              </div>
+              <button className={styles.caddieHeadToggle} onClick={() => setThreadOpen((o) => !o)}>
+                {threadOpen ? "Hide chat ▾" : "Open chat ▴"}
               </button>
-
-              <button
-                data-filter-trigger
-                className={`${styles.filterTrigger} ${filterState.budget.length > 0 ? styles.filterTriggerActive : ""}`}
-                onClick={(e) => openFilterMenu("budget", e)}
-              >
-                {filterState.budget.length === 0 ? "Budget" : filterState.budget.length === 1 ? (COST_TIERS.find((c) => c.slug === filterState.budget[0])?.label ?? "Budget") : `Budget (${filterState.budget.length})`}
-                <span className={styles.filterCaret}>▾</span>
-              </button>
-
-              <button
-                data-filter-trigger
-                className={`${styles.filterTrigger} ${filterState.duration.length > 0 ? styles.filterTriggerActive : ""}`}
-                onClick={(e) => openFilterMenu("duration", e)}
-              >
-                {filterState.duration.length === 0 ? "Duration" : filterState.duration.length === 1 ? (DURATION_RANGES.find((d) => d.slug === filterState.duration[0])?.label ?? "Duration") : `Duration (${filterState.duration.length})`}
-                <span className={styles.filterCaret}>▾</span>
-              </button>
-
-              <button
-                data-filter-trigger
-                className={`${styles.filterTrigger} ${filterState.season.length > 0 ? styles.filterTriggerActive : ""}`}
-                onClick={(e) => openFilterMenu("season", e)}
-              >
-                {filterState.season.length === 0 ? "Season" : filterState.season.length === 1 ? (SEASONS.find((s) => s.slug === filterState.season[0])?.label ?? "Season") : `Season (${filterState.season.length})`}
-                <span className={styles.filterCaret}>▾</span>
-              </button>
-
-              {vibeOptions.length > 0 && (
-                <button
-                  data-filter-trigger
-                  className={`${styles.filterTrigger} ${filterState.vibe.length > 0 ? styles.filterTriggerActive : ""}`}
-                  onClick={(e) => openFilterMenu("vibe", e, true)}
-                >
-                  {filterState.vibe.length === 0 ? "Vibe" : filterState.vibe.length === 1 ? filterState.vibe[0] : `Vibe (${filterState.vibe.length})`}
-                  <span className={styles.filterCaret}>▾</span>
-                </button>
-              )}
-
-              <button
-                className={`${styles.filterToggle} ${filterState.top100 ? styles.filterToggleActive : ""}`}
-                onClick={toggleTop100}
-              >
-                Top 100
-              </button>
-
-              <button className={styles.filterClearBtn} onClick={resetAll}>
-                Reset
-              </button>
-
-              {/* HIDE FEATURE — Show/Hide Hidden button
-              {excluded.size > 0 && (
-                <button
-                  className={`${styles.filterToggle} ${styles.filterToggleFarRight} ${showHidden ? styles.filterToggleActive : ""}`}
-                  onClick={() => setShowHidden((v) => !v)}
-                >
-                  {showHidden ? "Hide Hidden" : "Show Hidden"} ({excluded.size})
-                </button>
-              )} */}
-
-              {carouselTotalPages > 1 && (
-                <div className={`${styles.carouselNav} ${styles.carouselNavFarRight}`}>
-                  <button
-                    className={styles.carouselBtn}
-                    onClick={() => setCarouselPage((p) => Math.max(0, p - 1))}
-                    disabled={carouselPageClamped === 0}
-                    aria-label="Previous"
-                  >
-                    ←
-                  </button>
-                  <span className={styles.carouselCount}>
-                    {carouselPageClamped * 3 + 1}–{Math.min(carouselPageClamped * 3 + 3, carouselAvailable.length)} of {carouselAvailable.length}
-                  </span>
-                  <button
-                    className={styles.carouselBtn}
-                    onClick={() => setCarouselPage((p) => Math.min(carouselTotalPages - 1, p + 1))}
-                    disabled={carouselPageClamped >= carouselTotalPages - 1}
-                    aria-label="Next"
-                  >
-                    →
-                  </button>
-                </div>
-              )}
-
             </div>
 
-            {/* Composer */}
+            {threadOpen ? (
+              <div className={styles.caddieThread} ref={threadRef}>
+                {caddie.messages.map((m) => (
+                  <div key={m.id} className={`${styles.caddieMsg} ${m.role === "user" ? styles.caddieMsgUser : ""}`}>
+                    <div className={styles.caddieMsgRole}>{m.role === "user" ? "You" : "GTI Caddie"}</div>
+                    <div className={styles.caddieMsgContent}>
+                      <CaddieMarkdown content={m.content} trips={trips} onOpenTrip={setModalTrip} />
+                    </div>
+                  </div>
+                ))}
+                {caddie.sending && (
+                  <div className={styles.caddieThinking}><span /><span /><span /></div>
+                )}
+              </div>
+            ) : (
+              <button className={styles.caddieLastAnswer} onClick={() => setThreadOpen(true)}>
+                <span className={styles.caddieLastAnswerText}>
+                  {caddie.sending ? "Thinking…" : (caddie.lastAssistant?.content ?? "Ask me anything about these trips.").replace(/[#*[\]()]/g, "")}
+                </span>
+              </button>
+            )}
+
             <div className={styles.caddieComposer}>
               <input
                 className={styles.caddieInput}
-                value={caddieInput}
-                onChange={(e) => setCaddieInput(e.target.value)}
-                placeholder="Ask about regions, budget, courses, timing..."
-                disabled={caddieSending}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    sendQuery(caddieInput);
-                  }
+                value={caddie.input}
+                onChange={(e) => {
+                  // Expand the thread the moment they start typing a message.
+                  if (e.target.value && !caddie.input) setThreadOpen(true);
+                  caddie.setInput(e.target.value);
                 }}
+                placeholder="Ask about regions, budget, courses, timing…"
+                disabled={caddie.sending}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }}
               />
-              <button
-                className={styles.caddieSendBtn}
-                onClick={() => sendQuery(caddieInput)}
-                disabled={caddieSending || !caddieInput.trim()}
-              >
+              <button className={styles.caddieSendBtn} onClick={submit} disabled={caddie.sending || !caddie.input.trim()}>
                 Send
               </button>
             </div>
-
           </div>
         </div>
 
         {/* ── RIGHT RAIL: My Trip ────────────────────────────────── */}
-        <aside className={styles.tripRail} ref={tripRailRef}>
-          <div className={styles.railHead}>
-            <span className={styles.railTitle}>My Trip</span>
-          </div>
-
-          <div className={styles.railBody} ref={railBodyRef}>
-
-            {/* Golfers + Nights */}
-            <div className={styles.railSection}>
-              <div className={styles.railStepperRow}>
-                <div>
-                  <div className={styles.railSectionLabel}>Golfers</div>
-                  <div className={styles.stepper}>
-                    <button className={styles.stepperBtn} onClick={() => setPlayerCount((n) => Math.max(1, n - 1))} aria-label="Remove player">−</button>
-                    <span className={styles.stepperVal}>{playerCount}</span>
-                    <button className={styles.stepperBtn} onClick={() => setPlayerCount((n) => Math.min(24, n + 1))} aria-label="Add player">+</button>
-                  </div>
-                </div>
-                <div>
-                  <div className={styles.railSectionLabel}>Nights</div>
-                  <div className={styles.stepper}>
-                    <button className={styles.stepperBtn} onClick={() => setNightCount((n) => Math.max(1, n - 1))} aria-label="Fewer nights">−</button>
-                    <span className={styles.stepperVal}>{nightCount}</span>
-                    <button className={styles.stepperBtn} onClick={() => setNightCount((n) => Math.min(14, n + 1))} aria-label="More nights">+</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Dates */}
-            <div className={styles.railSection}>
-              <div className={styles.railSectionRow}>
-                <div className={styles.railSectionLabel}>
-                  Start Date <span className={styles.optionalBadge}>Optional</span>
-                </div>
-                {!addingDate && (
-                  <button className={styles.railAddBtn} onClick={() => setAddingDate(true)}>
-                    + Add
-                  </button>
-                )}
-              </div>
-
-              {addingDate && (
-                <div className={styles.dateForm}>
-                  <div className={styles.dateFormGroup}>
-                    <input
-                      type="date"
-                      className={styles.dateInput}
-                      value={newDateStart}
-                      onChange={(e) => setNewDateStart(e.target.value)}
-                    />
-                  </div>
-                  <div className={styles.dateFormActions}>
-                    <button className={styles.confirmBtn} disabled={!newDateStart} onClick={addDateWindow}>
-                      Add
-                    </button>
-                    <button
-                      className={styles.cancelBtn}
-                      onClick={() => { setAddingDate(false); setNewDateStart(""); }}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {dateWindows.length === 0 && !addingDate && (
-                <div className={styles.railEmpty}>No dates added yet.</div>
-              )}
-              {dateWindows.map((w, i) => (
-                <div key={w.id} className={styles.dateItem}>
-                  <span className={styles.dateItemNum}>W{i + 1}</span>
-                  <span className={styles.dateItemRange}>{formatDateRange(w.startDate, w.endDate)}</span>
-                  <button
-                    className={styles.removeBtn}
-                    onClick={() => setDateWindows((prev) => prev.filter((d) => d.id !== w.id))}
-                    aria-label="Remove date"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            {/* Destinations */}
-            <div className={styles.railSection}>
-              <div className={styles.railSectionRow}>
-                <div className={styles.railSectionLabel}>Destinations</div>
-                {destinations.length > 0 && (
-                  <span className={styles.destCount}>{destinations.length}</span>
-                )}
-              </div>
-
-              {destinations.length === 0 && (
-                <div className={styles.railEmpty}>
-                  Ask the Caddie to find trips, then click&nbsp;+ Add.
-                </div>
-              )}
-              {destinations.map((d) => (
-                <div key={d.id} className={styles.destItem}>
-                  <img src={`/images/trips/${d.slug}.jpg`} alt={d.name} className={styles.destItemImg} />
-                  <div className={styles.destItemInfo}>
-                    <Link href={`/trips/${d.slug}`} target="_blank" rel="noopener noreferrer" className={styles.destItemName}>
-                      {d.name}
-                    </Link>
-                    <span className={styles.destItemMeta}>
-                      {[dollars(d.costTier), d.overallRating != null ? d.overallRating.toFixed(2) : null]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </span>
-                  </div>
-                  <button
-                    className={styles.removeBtn}
-                    onClick={() => setDestinations((prev) => prev.filter((x) => x.id !== d.id))}
-                    aria-label="Remove destination"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-
-          </div>
-
-          {/* Actions */}
-          <div className={styles.railActions}>
-            <button className={styles.primaryBtn} disabled={!canShare}>
-              Share with group
-            </button>
-            <button className={styles.ghostBtn}>I&apos;ll choose myself →</button>
-            {!canShare && (
-              <p className={styles.shareHint}>Add at least 1 destination to continue.</p>
-            )}
-          </div>
-        </aside>
+        <MyTripRail
+          playerCount={playerCount} setPlayerCount={setPlayerCount}
+          nightCount={nightCount} setNightCount={setNightCount}
+          tripWhen={tripWhen} setTripWhen={setTripWhen}
+          destinations={destinations} setDestinations={setDestinations}
+          canShare={canShare}
+          onShare={handleShare} sharing={sharing} shareError={shareError}
+        />
 
       </div>
 
-      {/* ── Filter portal menu ────────────────────────────────── */}
+      {/* ── Filter portal menu (drops down) ──────────────────────── */}
       {portalMenu && createPortal(
         <div
           ref={portalMenuRef}
-          className={styles.filterMenu}
+          className={`${styles.filterMenu} ${styles.filterMenuDown}`}
           style={{
             position: "fixed",
-            bottom: portalMenu.bottom,
+            top: portalMenu.top,
             ...(portalMenu.right !== undefined ? { right: portalMenu.right } : { left: portalMenu.left }),
             zIndex: 9999,
           }}
         >
           {portalMenu.id === "region" && REGIONS.map((r) => (
-            <button
-              key={r.slug}
-              className={`${styles.filterMenuItem} ${filterState.region.includes(r.slug) ? styles.filterMenuItemActive : ""}`}
-              onClick={() => toggleFilter("region", r.slug)}
-            >{filterState.region.includes(r.slug) && <span className={styles.filterMenuCheck}>✓</span>}{r.label}</button>
+            <MenuItem key={r.slug} active={filterState.region.includes(r.slug)} onClick={() => toggleFilter("region", r.slug)} label={r.label} />
           ))}
           {portalMenu.id === "budget" && COST_TIERS.map((c) => (
-            <button
-              key={c.slug}
-              className={`${styles.filterMenuItem} ${filterState.budget.includes(c.slug) ? styles.filterMenuItemActive : ""}`}
-              onClick={() => toggleFilter("budget", c.slug)}
-            >{filterState.budget.includes(c.slug) && <span className={styles.filterMenuCheck}>✓</span>}{c.label} <span className={styles.filterMenuSub}>{c.display}</span></button>
+            <MenuItem key={c.slug} active={filterState.budget.includes(c.slug)} onClick={() => toggleFilter("budget", c.slug)} label={c.label} sub={c.display} />
           ))}
           {portalMenu.id === "duration" && DURATION_RANGES.map((d) => (
-            <button
-              key={d.slug}
-              className={`${styles.filterMenuItem} ${filterState.duration.includes(d.slug) ? styles.filterMenuItemActive : ""}`}
-              onClick={() => toggleFilter("duration", d.slug)}
-            >{filterState.duration.includes(d.slug) && <span className={styles.filterMenuCheck}>✓</span>}{d.label} <span className={styles.filterMenuSub}>{d.description}</span></button>
-          ))}
-          {portalMenu.id === "season" && SEASONS.map((s) => (
-            <button
-              key={s.slug}
-              className={`${styles.filterMenuItem} ${filterState.season.includes(s.slug) ? styles.filterMenuItemActive : ""}`}
-              onClick={() => toggleFilter("season", s.slug)}
-            >{filterState.season.includes(s.slug) && <span className={styles.filterMenuCheck}>✓</span>}{s.label}</button>
+            <MenuItem key={d.slug} active={filterState.duration.includes(d.slug)} onClick={() => toggleFilter("duration", d.slug)} label={d.label} sub={d.description} />
           ))}
           {portalMenu.id === "vibe" && vibeOptions.map((v) => (
-            <button
-              key={v}
-              className={`${styles.filterMenuItem} ${filterState.vibe.includes(v) ? styles.filterMenuItemActive : ""}`}
-              onClick={() => toggleFilter("vibe", v)}
-            >{filterState.vibe.includes(v) && <span className={styles.filterMenuCheck}>✓</span>}{v}</button>
+            <MenuItem key={v} active={filterState.vibe.includes(v)} onClick={() => toggleFilter("vibe", v)} label={v} />
+          ))}
+          {portalMenu.id === "top100" && TOP_100_MINS.map((n) => (
+            <MenuItem
+              key={n}
+              active={filterState.top100 === n}
+              onClick={() => setFilterState((p) => ({ ...p, top100: p.top100 === n ? 0 : n }))}
+              label={`${n}+`}
+            />
           ))}
         </div>,
         document.body
@@ -929,113 +476,382 @@ export default function ShortlistClient({ trips, wishlistSlugs = [] }: { trips: 
         />
       )}
 
+      {/* ── First-add planning popup ───────────────────────────── */}
+      {planPopupOpen && (
+        <PlanStartModal
+          golfers={popGolfers} setGolfers={setPopGolfers}
+          nights={popNights} setNights={setPopNights}
+          when={popWhen} setWhen={setPopWhen}
+          onStart={applyPlanPopup}
+          onAddMore={applyPlanPopup}
+          onClose={() => setPlanPopupOpen(false)}
+        />
+      )}
+
+      {/* ── Share-with-group modal ─────────────────────────────── */}
+      {shareInfo && (
+        <ShareModal
+          shareId={shareInfo.id}
+          shareUrl={shareInfo.url}
+          destinationCount={destinations.length}
+          onClose={() => setShareInfo(null)}
+        />
+      )}
+
     </div>
   );
 }
 
-// ── Trip modal ────────────────────────────────────────────────────────────────
+// ── Share-with-group modal ──────────────────────────────────────────────────────
 
-function TripModal({
-  trip,
-  alreadyAdded,
-  onAdd,
-  onClose,
+function ShareModal({
+  shareId, shareUrl, destinationCount, onClose,
 }: {
-  trip: TripOption;
-  alreadyAdded: boolean;
-  onAdd: () => void;
+  shareId: string;
+  shareUrl: string;
+  destinationCount: number;
+  onClose: () => void;
+}) {
+  const [emails, setEmails] = useState<string[]>([]);
+  const [input, setInput] = useState("");
+  const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+  const [sentCount, setSentCount] = useState(0);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => { document.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
+  }, [onClose]);
+
+  function addEmail(raw: string) {
+    const e = raw.trim().replace(/,$/, "");
+    if (!e) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) { setError(`That doesn't look like an email: ${e}`); return; }
+    if (!emails.includes(e)) setEmails((prev) => [...prev, e]);
+    setInput("");
+    setError("");
+  }
+
+  function onKeyDown(ev: React.KeyboardEvent<HTMLInputElement>) {
+    if (ev.key === "Enter" || ev.key === "," || ev.key === " ") { ev.preventDefault(); addEmail(input); }
+    else if (ev.key === "Backspace" && !input && emails.length) setEmails((prev) => prev.slice(0, -1));
+  }
+
+  async function copyLink() {
+    try { await navigator.clipboard.writeText(shareUrl); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch {}
+  }
+
+  async function send() {
+    const list = input.trim() ? [...emails, input.trim()] : emails;
+    const valid = list.filter((e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
+    if (valid.length === 0) { setError("Add at least one recipient."); return; }
+    setSending(true);
+    setError("");
+    try {
+      const res = await fetch("/api/plan/share/email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: shareId, toEmails: valid, message }),
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) setSentCount(data.sent ?? valid.length);
+      else setError(data.error || "Could not send.");
+    } catch {
+      setError("Could not send. Try again.");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className={styles.modalOverlay} onClick={onClose}>
+      <div className={`${styles.modalCard} ${styles.shareModalCard}`} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.planModalHead}>
+          <h2 className={styles.planModalTitle}>Share with your group</h2>
+          <p className={styles.planModalSub}>
+            Your trip is saved. Send it to your buddies, or copy the link — no account needed to view.
+          </p>
+        </div>
+
+        {sentCount > 0 ? (
+          <div className={styles.shareSent}>
+            <div className={styles.shareSentMark}>✓</div>
+            <p className={styles.shareSentText}>Sent to {sentCount} {sentCount === 1 ? "person" : "people"}.</p>
+            <button className={styles.planModalPrimary} onClick={onClose}>Done</button>
+          </div>
+        ) : (
+          <>
+            <div className={styles.shareBody}>
+              <div className={styles.shareLinkRow}>
+                <input className={styles.shareLinkInput} value={shareUrl} readOnly onFocus={(e) => e.target.select()} />
+                <button className={styles.shareCopyBtn} onClick={copyLink}>{copied ? "Copied" : "Copy"}</button>
+              </div>
+
+              <label className={styles.shareLabel}>Email to</label>
+              <div className={styles.shareChips}>
+                {emails.map((e) => (
+                  <span key={e} className={styles.shareChip}>
+                    {e}
+                    <button className={styles.shareChipX} onClick={() => setEmails((prev) => prev.filter((x) => x !== e))} aria-label={`Remove ${e}`}>×</button>
+                  </span>
+                ))}
+                <input
+                  className={styles.shareChipInput}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={onKeyDown}
+                  onBlur={() => input.trim() && addEmail(input)}
+                  placeholder={emails.length ? "" : "buddy@example.com"}
+                  type="email"
+                />
+              </div>
+
+              <label className={styles.shareLabel}>Message <span className={styles.optionalBadge}>Optional</span></label>
+              <textarea
+                className={styles.shareTextarea}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder={`Found a${destinationCount > 1 ? " few options" : " trip"} for us — take a look and let me know what you think.`}
+                rows={3}
+              />
+
+              {error && <p className={styles.shareErr}>{error}</p>}
+            </div>
+
+            <div className={styles.planModalActions}>
+              <button className={styles.planModalPrimary} onClick={send} disabled={sending}>
+                {sending ? "Sending…" : "Send"}
+              </button>
+              <button className={styles.planModalSecondary} onClick={onClose}>Done</button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── First-add planning popup ────────────────────────────────────────────────────
+
+function PlanStartModal({
+  golfers, setGolfers,
+  nights, setNights,
+  when, setWhen,
+  onStart, onAddMore, onClose,
+}: {
+  golfers: number; setGolfers: React.Dispatch<React.SetStateAction<number>>;
+  nights: number; setNights: React.Dispatch<React.SetStateAction<number>>;
+  when: TripWhen; setWhen: React.Dispatch<React.SetStateAction<TripWhen>>;
+  onStart: () => void;
+  onAddMore: () => void;
   onClose: () => void;
 }) {
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
-      <div className={styles.modalCard} onClick={(e) => e.stopPropagation()}>
-
-        {/* Hero image */}
-        <div className={styles.modalHero}>
-          <img src={`/images/trips/${trip.slug}.jpg`} alt={trip.name} className={styles.modalHeroImg} />
-          <button className={styles.modalClose} onClick={onClose} aria-label="Close">×</button>
+      <div className={`${styles.modalCard} ${styles.planModalCard}`} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.planModalHead}>
+          <h2 className={styles.planModalTitle}>Trip added — set up your plan</h2>
+          <p className={styles.planModalSub}>Confirm your group size and dates. You can change these anytime in My Trip.</p>
         </div>
 
-        {/* Title + Add */}
-        <div className={styles.modalTopBar}>
-          <div>
-            <h2 className={styles.modalTitle}>{trip.name}</h2>
-            {trip.overallRating != null && (
-              <div className={styles.modalRating}>
-                <span className={styles.modalRatingNum}>{trip.overallRating.toFixed(2)}</span>
-                <span className={styles.modalRatingLabel}>Overall Rating</span>
-              </div>
-            )}
+        <div className={styles.planModalFields}>
+          <div className={styles.planModalField}>
+            <span className={styles.railSectionLabel}>Golfers</span>
+            <div className={styles.stepper}>
+              <button className={styles.stepperBtn} onClick={() => setGolfers((n) => Math.max(1, n - 1))} aria-label="Fewer golfers">−</button>
+              <span className={styles.stepperVal}>{golfers}</span>
+              <button className={styles.stepperBtn} onClick={() => setGolfers((n) => Math.min(24, n + 1))} aria-label="More golfers">+</button>
+            </div>
           </div>
-          <button
-            className={styles.modalAddBtn}
-            onClick={onAdd}
-            disabled={alreadyAdded}
-          >
-            {alreadyAdded ? "Added to trip" : "+ Add to trip"}
-          </button>
-        </div>
 
-        {/* Details */}
-        <div className={styles.modalDetails}>
-          {trip.region && (
-            <div className={styles.modalRow}>
-              <span className={styles.modalRowLabel}>Region</span>
-              <span className={styles.modalRowValue}>{trip.region}</span>
+          <div className={styles.planModalField}>
+            <span className={styles.railSectionLabel}>Nights</span>
+            <div className={styles.stepper}>
+              <button className={styles.stepperBtn} onClick={() => setNights((n) => Math.max(1, n - 1))} aria-label="Fewer nights">−</button>
+              <span className={styles.stepperVal}>{nights}</span>
+              <button className={styles.stepperBtn} onClick={() => setNights((n) => Math.min(14, n + 1))} aria-label="More nights">+</button>
             </div>
-          )}
-          <div className={styles.modalRow}>
-            <span className={styles.modalRowLabel}>Budget</span>
-            <span className={styles.modalRowValue}>{dollars(trip.costTier) || "—"}</span>
           </div>
-          <div className={styles.modalRow}>
-            <span className={styles.modalRowLabel}>Duration</span>
-            <span className={styles.modalRowValue}>{formatDuration(trip.durationMinDays, trip.durationMaxDays) || "—"}</span>
+
+          <div className={`${styles.planModalField} ${styles.planModalFieldStacked}`}>
+            <span className={styles.railSectionLabel}>
+              When <span className={styles.optionalBadge}>Optional</span>
+            </span>
+            <WhenPicker value={when} onChange={setWhen} nights={nights} />
           </div>
-          {trip.top100Count != null && trip.top100Count > 0 && (
-            <div className={styles.modalRow}>
-              <span className={styles.modalRowLabel}>Top 100 courses</span>
-              <span className={styles.modalRowValue}>{trip.top100Count}</span>
-            </div>
-          )}
-          {trip.seasons && trip.seasons.length > 0 && (
-            <div className={styles.modalRow}>
-              <span className={styles.modalRowLabel}>Best seasons</span>
-              <div className={styles.modalPills}>
-                {trip.seasons.map((s) => <span key={s} className={styles.modalPill}>{s}</span>)}
-              </div>
-            </div>
-          )}
-          {trip.vibe && trip.vibe.length > 0 && (
-            <div className={styles.modalRow}>
-              <span className={styles.modalRowLabel}>Vibe</span>
-              <div className={styles.modalPills}>
-                {trip.vibe.map((v) => <span key={v} className={styles.modalPill}>{v}</span>)}
-              </div>
-            </div>
-          )}
-          {trip.leadTime && (
-            <div className={styles.modalRow}>
-              <span className={styles.modalRowLabel}>Lead time</span>
-              <span className={styles.modalRowValue}>{trip.leadTime}</span>
-            </div>
-          )}
-          {trip.driving && (
-            <div className={styles.modalRow}>
-              <span className={styles.modalRowLabel}>Driving trip</span>
-              <span className={styles.modalRowValue}>{trip.driving}</span>
-            </div>
-          )}
         </div>
 
-        {/* Footer */}
-        <div className={styles.modalFooter}>
-          <Link href={`/trips/${trip.slug}`} target="_blank" rel="noopener noreferrer" className={styles.modalLink}>
-            Read full GTI review →
-          </Link>
+        <div className={styles.planModalActions}>
+          <button className={styles.planModalPrimary} onClick={onStart}>Start Planning</button>
+          <button className={styles.planModalSecondary} onClick={onAddMore}>Add More Trips to Vote</button>
         </div>
-
       </div>
     </div>
+  );
+}
+
+// ── Small shared sub-components ─────────────────────────────────────────────────
+
+function FilterPill({
+  label, count, single, onClick,
+}: {
+  label: string;
+  count: number;
+  single?: string;
+  onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
+}) {
+  return (
+    <button
+      data-filter-trigger
+      className={`${styles.filterTrigger} ${count > 0 ? styles.filterTriggerActive : ""}`}
+      onClick={onClick}
+    >
+      {count === 0 ? label : count === 1 ? (single ?? label) : `${label} (${count})`}
+      <span className={styles.filterCaret}>▾</span>
+    </button>
+  );
+}
+
+function MenuItem({
+  active, onClick, label, sub,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  sub?: string;
+}) {
+  return (
+    <button className={`${styles.filterMenuItem} ${active ? styles.filterMenuItemActive : ""}`} onClick={onClick}>
+      {active && <span className={styles.filterMenuCheck}>✓</span>}
+      {label}
+      {sub && <span className={styles.filterMenuSub}>{sub}</span>}
+    </button>
+  );
+}
+
+export function CaddieMarkdown({
+  content, trips, onOpenTrip,
+}: {
+  content: string;
+  trips: TripOption[];
+  onOpenTrip: (t: TripOption) => void;
+}) {
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      urlTransform={(url) => url}
+      components={{
+        a: ({ href, children }) => {
+          if (href?.startsWith("trip:")) {
+            const trip = trips.find((t) => t.slug === href!.slice(5));
+            if (trip) {
+              return <button className={styles.caddieLink} onClick={() => onOpenTrip(trip)}>{children}</button>;
+            }
+          }
+          return <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>;
+        },
+      }}
+    >
+      {content}
+    </ReactMarkdown>
+  );
+}
+
+// ── My Trip rail ────────────────────────────────────────────────────────────────
+
+export function MyTripRail({
+  playerCount, setPlayerCount,
+  nightCount, setNightCount,
+  tripWhen, setTripWhen,
+  destinations, setDestinations,
+  canShare,
+  onShare, sharing = false, shareError = "",
+}: {
+  playerCount: number; setPlayerCount: React.Dispatch<React.SetStateAction<number>>;
+  nightCount: number; setNightCount: React.Dispatch<React.SetStateAction<number>>;
+  tripWhen: TripWhen; setTripWhen: React.Dispatch<React.SetStateAction<TripWhen>>;
+  destinations: Destination[]; setDestinations: React.Dispatch<React.SetStateAction<Destination[]>>;
+  canShare: boolean;
+  onShare?: () => void;
+  sharing?: boolean;
+  shareError?: string;
+}) {
+  return (
+    <aside className={styles.tripRail}>
+      <div className={styles.railHead}>
+        <span className={styles.railTitle}>My Trip</span>
+      </div>
+
+      <div className={styles.railBody}>
+        <div className={styles.railSection}>
+          <div className={styles.railStepperRow}>
+            <div>
+              <div className={styles.railSectionLabel}>Golfers</div>
+              <div className={styles.stepper}>
+                <button className={styles.stepperBtn} onClick={() => setPlayerCount((n) => Math.max(1, n - 1))} aria-label="Remove player">−</button>
+                <span className={styles.stepperVal}>{playerCount}</span>
+                <button className={styles.stepperBtn} onClick={() => setPlayerCount((n) => Math.min(24, n + 1))} aria-label="Add player">+</button>
+              </div>
+            </div>
+            <div>
+              <div className={styles.railSectionLabel}>Nights</div>
+              <div className={styles.stepper}>
+                <button className={styles.stepperBtn} onClick={() => setNightCount((n) => Math.max(1, n - 1))} aria-label="Fewer nights">−</button>
+                <span className={styles.stepperVal}>{nightCount}</span>
+                <button className={styles.stepperBtn} onClick={() => setNightCount((n) => Math.min(14, n + 1))} aria-label="More nights">+</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.railSection}>
+          <div className={styles.railSectionRow}>
+            <div className={styles.railSectionLabel}>
+              When <span className={styles.optionalBadge}>Optional</span>
+            </div>
+          </div>
+          <WhenPicker value={tripWhen} onChange={setTripWhen} nights={nightCount} />
+        </div>
+
+        <div className={styles.railSection}>
+          <div className={styles.railSectionRow}>
+            <div className={styles.railSectionLabel}>Destinations</div>
+            {destinations.length > 0 && <span className={styles.destCount}>{destinations.length}</span>}
+          </div>
+
+          {destinations.length === 0 && (
+            <div className={styles.railEmpty}>Add trips from the grid with&nbsp;+ Add.</div>
+          )}
+          {destinations.map((d) => (
+            <div key={d.id} className={styles.destItem}>
+              <img src={`/images/trips/${d.slug}.jpg`} alt={d.name} className={styles.destItemImg} />
+              <div className={styles.destItemInfo}>
+                <Link href={`/trips/${d.slug}`} target="_blank" rel="noopener noreferrer" className={styles.destItemName}>{d.name}</Link>
+                <span className={styles.destItemMeta}>
+                  {[dollars(d.costTier), d.overallRating != null ? d.overallRating.toFixed(2) : null].filter(Boolean).join(" · ")}
+                </span>
+              </div>
+              <button className={styles.removeBtn} onClick={() => setDestinations((prev) => prev.filter((x) => x.id !== d.id))} aria-label="Remove destination">×</button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className={styles.railActions}>
+        <button className={styles.primaryBtn} disabled={!canShare || sharing} onClick={onShare}>
+          {sharing ? "Saving…" : "Share with group"}
+        </button>
+        <button className={styles.ghostBtn} disabled={destinations.length !== 1}>Plan this trip →</button>
+        {!canShare ? (
+          <p className={styles.shareHint}>Add at least 1 destination to continue.</p>
+        ) : shareError ? (
+          <p className={styles.shareErr}>{shareError}</p>
+        ) : null}
+      </div>
+    </aside>
   );
 }

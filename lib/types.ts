@@ -62,6 +62,8 @@ export type GolfTrip = {
   shoulderNotes?: string;
   shoulderSeasonName?: string;
   shoulderVerdict?: string;
+  closedMonths?: string[];
+  badMonths?: string[];
   offSeasonName?: string;
   offSeasonNotes?: string;
   offSeasonVerdict?: string;

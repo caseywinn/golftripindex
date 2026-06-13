@@ -144,6 +144,12 @@ function mapTrip(r: Airtable.Record<Airtable.FieldSet>): GolfTrip {
     shoulderNotes: asString(f["Shoulder Notes"]),
     shoulderSeasonName: asString(f["Shoulder Season Name"]),
     shoulderVerdict: asString(f["Shoulder Verdict"]),
+    closedMonths: Array.isArray(f["Closed Months"])
+      ? (f["Closed Months"] as string[])
+      : undefined,
+    badMonths: Array.isArray(f["Bad Months"])
+      ? (f["Bad Months"] as string[])
+      : undefined,
     offSeasonName: asString(f["Off-Season Name"]),
     offSeasonNotes: asString(f["Off-Season Notes"]),
     offSeasonVerdict: asString(f["Off-Season Verdict"]),

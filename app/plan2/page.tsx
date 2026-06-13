@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
-import ShortlistClient from "./ShortlistClient";
+import Plan2Client from "./Plan2Client";
 import { getPublishedTrips } from "@/lib/airtable";
 import { auth } from "@/auth";
 import { getPgPool } from "@/lib/db";
 
 export const metadata: Metadata = {
   title: "Plan a Golf Trip | GolfTripIndex",
-  description: "Build your group trip shortlist: date windows, destination options, and a Caddie to help you plan.",
+  description: "Filter destinations, build your group trip shortlist, and ask the GTI Caddie for help.",
   robots: { index: false },
 };
 
-export default async function PlanPage() {
+export default async function Plan2Page() {
   const [raw, session] = await Promise.all([getPublishedTrips(), auth()]);
 
   let wishlistSlugs: string[] = [];
@@ -43,5 +43,5 @@ export default async function PlanPage() {
     currentRanking: t.currentRanking ?? null,
   }));
 
-  return <ShortlistClient trips={trips} wishlistSlugs={wishlistSlugs} isLoggedIn={!!session?.user?.id} />;
+  return <Plan2Client trips={trips} wishlistSlugs={wishlistSlugs} />;
 }
