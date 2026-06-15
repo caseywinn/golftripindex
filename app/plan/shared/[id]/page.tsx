@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getPgPool } from "@/lib/db";
+import { auth } from "@/auth";
+import { buildPollView } from "@/lib/planPoll";
 import { formatTripWhen, type WhenLike } from "@/lib/planWhen";
 import styles from "@/styles/sharedTrip.module.css";
+import PollClient from "./PollClient";
 
 export const metadata: Metadata = {
   title: "A shared golf trip | GolfTripIndex",
@@ -11,41 +13,31 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-type Dest = { slug: string; name: string; overallRating?: number | null; costTier?: number | null };
-type SharedState = {
-  destinations?: Dest[];
-  golfers?: number | null;
-  nights?: number | null;
-  when?: WhenLike | null;
-  sharedBy?: string | null;
-};
-
 function dollars(n: number | null | undefined): string {
   if (!n || n < 1) return "";
   return "$".repeat(Math.min(5, Math.max(1, n)));
 }
 
-async function getSharedTrip(id: string): Promise<SharedState | null> {
-  if (!UUID_RE.test(id)) return null;
-  const pool = getPgPool();
-  const { rows } = await pool.query(`SELECT state FROM shared_trips WHERE id = $1`, [id]);
-  return rows.length ? (rows[0].state as SharedState) : null;
-}
-
 export default async function SharedTripPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const state = await getSharedTrip(id);
-  if (!state) notFound();
+  const session = await auth();
+  const viewer = { userId: session?.user?.id ?? null, email: session?.user?.email ?? null };
 
-  const dests = Array.isArray(state.destinations) ? state.destinations : [];
-  const whenStr = formatTripWhen(state.when, state.nights ?? 0);
-  const sharedBy = (state.sharedBy ?? "").trim();
+  const view = await buildPollView(id, viewer);
+  if (!view) notFound();
+
+  // Group vote → interactive ballot. Read-only share → the simple list below.
+  if (view.vote) {
+    return <PollClient initial={view} />;
+  }
+
+  const dests = view.destinations;
+  const whenStr = formatTripWhen(view.when as WhenLike, view.nights ?? 0);
+  const sharedBy = (view.sharedBy ?? "").trim();
 
   const meta = [
-    state.golfers ? `${state.golfers} golfer${state.golfers === 1 ? "" : "s"}` : "",
-    state.nights ? `${state.nights} night${state.nights === 1 ? "" : "s"}` : "",
+    view.golfers ? `${view.golfers} golfer${view.golfers === 1 ? "" : "s"}` : "",
+    view.nights ? `${view.nights} night${view.nights === 1 ? "" : "s"}` : "",
     whenStr,
   ].filter(Boolean);
 

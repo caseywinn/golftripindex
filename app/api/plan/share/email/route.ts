@@ -66,7 +66,23 @@ export async function POST(req: NextRequest) {
     }
     const state = rows[0].state as {
       destinations?: Dest[]; golfers?: number | null; nights?: number | null; when?: unknown;
+      vote?: { type?: string } | null;
     };
+
+    // When this share is a group vote, everyone emailed becomes part of the
+    // closed roster (the denominator for auto-close). Idempotent on re-send.
+    if (state?.vote?.type) {
+      await Promise.all(
+        recipients.map((to) =>
+          pool.query(
+            `INSERT INTO trip_poll_voters (shared_trip_id, email)
+             VALUES ($1, $2)
+             ON CONFLICT (shared_trip_id, email) DO NOTHING`,
+            [id, to.toLowerCase()]
+          )
+        )
+      );
+    }
 
     // Rate limit by IP.
     const ip =

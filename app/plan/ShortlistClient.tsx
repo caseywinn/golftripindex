@@ -11,6 +11,7 @@ import {
   COST_TIERS,
   DURATION_RANGES,
 } from "@/lib/filters";
+import { VOTE_TYPES, type VoteType } from "@/lib/planVote";
 import {
   type TripOption,
   type Destination,
@@ -23,6 +24,7 @@ import {
   SORT_OPTIONS,
   makeid,
   dollars,
+  formatDuration,
   applyFilters,
   hasActiveFilters,
   orderGridTrips,
@@ -68,6 +70,7 @@ export default function ShortlistClient({
 
   // Planning prompt — shown whenever the trip list goes from empty to one trip
   const [planPopupOpen, setPlanPopupOpen] = useState(false);
+  const [planPopupTrip, setPlanPopupTrip] = useState<TripOption | null>(null);
   const [popGolfers, setPopGolfers] = useState(4);
   const [popNights, setPopNights] = useState(4);
   const [popWhen, setPopWhen] = useState<TripWhen>(EMPTY_WHEN);
@@ -75,7 +78,8 @@ export default function ShortlistClient({
   // Share-with-group
   const [sharing, setSharing] = useState(false);
   const [shareError, setShareError] = useState("");
-  const [shareInfo, setShareInfo] = useState<{ id: string; url: string } | null>(null);
+  const [shareSetupOpen, setShareSetupOpen] = useState(false);
+  const [shareInfo, setShareInfo] = useState<{ id: string; url: string; voteType: VoteType | null } | null>(null);
 
   // Modal + filter portal
   const [modalTrip, setModalTrip] = useState<TripOption | null>(null);
@@ -199,6 +203,7 @@ export default function ShortlistClient({
       setPopGolfers(playerCount);
       setPopNights(nightCount);
       setPopWhen(tripWhen);
+      setPlanPopupTrip(trip);
       setPlanPopupOpen(true);
     }
   }
@@ -213,14 +218,25 @@ export default function ShortlistClient({
 
   const canShare = destinations.length >= 1;
 
-  async function handleShare() {
-    if (sharing) return;
+  // Entry point from the rail. Logged-out → register. With 2+ trips, let the
+  // captain choose a group-vote format first; a single trip shares directly.
+  function startShare() {
     setShareError("");
-    // Logged-out: send them to register, then back to /plan (trip persists locally).
     if (!isLoggedIn) {
       window.location.href = `/register?callbackUrl=${encodeURIComponent("/plan")}`;
       return;
     }
+    if (destinations.length >= 2) {
+      setShareSetupOpen(true);
+      return;
+    }
+    createShare(null);
+  }
+
+  // Persist the working trip as a shareable plan, optionally as a group vote.
+  async function createShare(vote: VoteType | null) {
+    if (sharing) return;
+    setShareError("");
     setSharing(true);
     try {
       const res = await fetch("/api/plan/share", {
@@ -228,11 +244,13 @@ export default function ShortlistClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           state: { destinations, golfers: playerCount, nights: nightCount, when: tripWhen },
+          vote: vote ? { type: vote } : null,
         }),
       });
       const data = await res.json();
       if (res.ok && data.id) {
-        setShareInfo({ id: data.id, url: data.url });
+        setShareSetupOpen(false);
+        setShareInfo({ id: data.id, url: data.url, voteType: vote });
       } else {
         setShareError(data.error || "Could not save your trip.");
       }
@@ -425,7 +443,7 @@ export default function ShortlistClient({
           tripWhen={tripWhen} setTripWhen={setTripWhen}
           destinations={destinations} setDestinations={setDestinations}
           canShare={canShare}
-          onShare={handleShare} sharing={sharing} shareError={shareError}
+          onShare={startShare} sharing={sharing} shareError={shareError}
         />
 
       </div>
@@ -477,14 +495,23 @@ export default function ShortlistClient({
       )}
 
       {/* ── First-add planning popup ───────────────────────────── */}
-      {planPopupOpen && (
+      {planPopupOpen && planPopupTrip && (
         <PlanStartModal
-          golfers={popGolfers} setGolfers={setPopGolfers}
-          nights={popNights} setNights={setPopNights}
-          when={popWhen} setWhen={setPopWhen}
+          trip={planPopupTrip}
           onStart={applyPlanPopup}
           onAddMore={applyPlanPopup}
           onClose={() => setPlanPopupOpen(false)}
+        />
+      )}
+
+      {/* ── Share setup: choose how the group decides ──────────── */}
+      {shareSetupOpen && (
+        <ShareSetupModal
+          destinationCount={destinations.length}
+          sharing={sharing}
+          error={shareError}
+          onChoose={createShare}
+          onClose={() => { setShareSetupOpen(false); setShareError(""); }}
         />
       )}
 
@@ -494,6 +521,7 @@ export default function ShortlistClient({
           shareId={shareInfo.id}
           shareUrl={shareInfo.url}
           destinationCount={destinations.length}
+          voteType={shareInfo.voteType}
           onClose={() => setShareInfo(null)}
         />
       )}
@@ -502,16 +530,87 @@ export default function ShortlistClient({
   );
 }
 
+// ── Share setup: how should the group decide? ───────────────────────────────────
+
+function ShareSetupModal({
+  destinationCount, sharing, error, onChoose, onClose,
+}: {
+  destinationCount: number;
+  sharing: boolean;
+  error: string;
+  onChoose: (vote: VoteType | null) => void;
+  onClose: () => void;
+}) {
+  // null = just share (read-only, no vote); otherwise a vote format.
+  const [choice, setChoice] = useState<VoteType | null>("approval");
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => { document.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
+  }, [onClose]);
+
+  const options: { key: VoteType | null; label: string; blurb: string }[] = [
+    ...VOTE_TYPES.map((v) => ({ key: v.key as VoteType | null, label: v.label, blurb: v.blurb })),
+    { key: null, label: "Just share it", blurb: "Send the shortlist read-only — no voting, anyone with the link can view." },
+  ];
+
+  return (
+    <div className={styles.modalOverlay} onClick={onClose}>
+      <div className={`${styles.modalCard} ${styles.shareModalCard}`} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.planModalHead}>
+          <h2 className={styles.planModalTitle}>How should the group decide?</h2>
+          <p className={styles.planModalSub}>
+            You&apos;ve shortlisted {destinationCount} trips. Pick how your group picks the winner — voters sign in, and only the people you invite count.
+          </p>
+        </div>
+
+        <div className={styles.voteOptList}>
+          {options.map((o) => {
+            const active = choice === o.key;
+            return (
+              <button
+                key={o.key ?? "none"}
+                className={`${styles.voteOpt} ${active ? styles.voteOptActive : ""}`}
+                onClick={() => setChoice(o.key)}
+                aria-pressed={active}
+              >
+                <span className={styles.voteOptRadio} aria-hidden="true">{active ? "●" : "○"}</span>
+                <span className={styles.voteOptText}>
+                  <span className={styles.voteOptLabel}>{o.label}</span>
+                  <span className={styles.voteOptBlurb}>{o.blurb}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {error && <p className={styles.shareErr}>{error}</p>}
+
+        <div className={styles.planModalActions}>
+          <button className={styles.planModalPrimary} onClick={() => onChoose(choice)} disabled={sharing}>
+            {sharing ? "Saving…" : "Continue"}
+          </button>
+          <button className={styles.planModalSecondary} onClick={onClose} disabled={sharing}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Share-with-group modal ──────────────────────────────────────────────────────
 
 function ShareModal({
-  shareId, shareUrl, destinationCount, onClose,
+  shareId, shareUrl, destinationCount, voteType, onClose,
 }: {
   shareId: string;
   shareUrl: string;
   destinationCount: number;
+  voteType: VoteType | null;
   onClose: () => void;
 }) {
+  const voteLabel = voteType ? VOTE_TYPES.find((v) => v.key === voteType)?.label : null;
   const [emails, setEmails] = useState<string[]>([]);
   const [input, setInput] = useState("");
   const [message, setMessage] = useState("");
@@ -571,9 +670,13 @@ function ShareModal({
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={`${styles.modalCard} ${styles.shareModalCard}`} onClick={(e) => e.stopPropagation()}>
         <div className={styles.planModalHead}>
-          <h2 className={styles.planModalTitle}>Share with your group</h2>
+          <h2 className={styles.planModalTitle}>
+            {voteLabel ? "Invite your group to vote" : "Share with your group"}
+          </h2>
           <p className={styles.planModalSub}>
-            Your trip is saved. Send it to your buddies, or copy the link — no account needed to view.
+            {voteLabel
+              ? `Everyone you email can sign in and vote (${voteLabel}). Only the people you invite count toward the result.`
+              : "Your trip is saved. Send it to your buddies, or copy the link — no account needed to view."}
           </p>
         </div>
 
@@ -638,56 +741,76 @@ function ShareModal({
 // ── First-add planning popup ────────────────────────────────────────────────────
 
 function PlanStartModal({
-  golfers, setGolfers,
-  nights, setNights,
-  when, setWhen,
-  onStart, onAddMore, onClose,
+  trip, onStart, onAddMore, onClose,
 }: {
-  golfers: number; setGolfers: React.Dispatch<React.SetStateAction<number>>;
-  nights: number; setNights: React.Dispatch<React.SetStateAction<number>>;
-  when: TripWhen; setWhen: React.Dispatch<React.SetStateAction<TripWhen>>;
+  trip: TripOption;
   onStart: () => void;
   onAddMore: () => void;
   onClose: () => void;
 }) {
+  const meta = [trip.region, dollars(trip.costTier)].filter(Boolean).join(" · ");
+  const duration = formatDuration(trip.durationMinDays, trip.durationMaxDays);
+
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={`${styles.modalCard} ${styles.planModalCard}`} onClick={(e) => e.stopPropagation()}>
-        <div className={styles.planModalHead}>
-          <h2 className={styles.planModalTitle}>Trip added — set up your plan</h2>
-          <p className={styles.planModalSub}>Confirm your group size and dates. You can change these anytime in My Trip.</p>
-        </div>
-
-        <div className={styles.planModalFields}>
-          <div className={styles.planModalField}>
-            <span className={styles.railSectionLabel}>Golfers</span>
-            <div className={styles.stepper}>
-              <button className={styles.stepperBtn} onClick={() => setGolfers((n) => Math.max(1, n - 1))} aria-label="Fewer golfers">−</button>
-              <span className={styles.stepperVal}>{golfers}</span>
-              <button className={styles.stepperBtn} onClick={() => setGolfers((n) => Math.min(24, n + 1))} aria-label="More golfers">+</button>
+        <div className={styles.planSplit}>
+          {/* ── Left: plan this single trip ── */}
+          <section className={styles.planSplitSide}>
+            <div className={styles.planModalHead}>
+              <h2 className={styles.planModalTitle}>Plan This Trip</h2>
+              <p className={styles.planModalSub}>Lock in this destination and start building your itinerary, tee times, lodging, and the rest.</p>
             </div>
-          </div>
 
-          <div className={styles.planModalField}>
-            <span className={styles.railSectionLabel}>Nights</span>
-            <div className={styles.stepper}>
-              <button className={styles.stepperBtn} onClick={() => setNights((n) => Math.max(1, n - 1))} aria-label="Fewer nights">−</button>
-              <span className={styles.stepperVal}>{nights}</span>
-              <button className={styles.stepperBtn} onClick={() => setNights((n) => Math.min(14, n + 1))} aria-label="More nights">+</button>
+            <div className={styles.planPickWrap}>
+              <div className={styles.planPickCard}>
+                <img src={`/images/trips/${trip.slug}.jpg`} alt="" aria-hidden="true" className={styles.planPickImg} />
+                <div className={styles.planPickBody}>
+                  <span className={styles.planPickName}>{trip.name}</span>
+                  {meta && <span className={styles.planPickMeta}>{meta}</span>}
+                  <div className={styles.planPickStats}>
+                    {trip.overallRating != null && (
+                      <span className={styles.chatTripRating}>{trip.overallRating.toFixed(2)}</span>
+                    )}
+                    {duration && <span className={styles.planPickStat}>{duration}</span>}
+                    {trip.top100Count ? (
+                      <span className={styles.planPickStat}>{trip.top100Count} Top 100</span>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
 
-          <div className={`${styles.planModalField} ${styles.planModalFieldStacked}`}>
-            <span className={styles.railSectionLabel}>
-              When <span className={styles.optionalBadge}>Optional</span>
-            </span>
-            <WhenPicker value={when} onChange={setWhen} nights={nights} />
-          </div>
-        </div>
+            <div className={styles.planModalActions}>
+              <button className={styles.planModalPrimary} onClick={onStart}>Start Planning</button>
+            </div>
+          </section>
 
-        <div className={styles.planModalActions}>
-          <button className={styles.planModalPrimary} onClick={onStart}>Start Planning</button>
-          <button className={styles.planModalSecondary} onClick={onAddMore}>Add More Trips to Vote</button>
+          {/* ── Right: add more trips and vote as a group ── */}
+          <section className={`${styles.planSplitSide} ${styles.planSplitSideAlt}`}>
+            <div className={styles.planModalHead}>
+              <h2 className={styles.planModalTitle}>Group Vote</h2>
+              <p className={styles.planModalSub}>Shortlist a few more destinations, then share with your group so everyone can vote on where to go.</p>
+            </div>
+
+            <div className={styles.planStack}>
+              {/* The trip just added — shown small, then ghost slots for more. */}
+              <div className={styles.planMiniCard}>
+                <img src={`/images/trips/${trip.slug}.jpg`} alt="" aria-hidden="true" className={styles.planMiniImg} />
+                <span className={styles.planMiniName}>{trip.name}</span>
+              </div>
+              {[0, 1].map((i) => (
+                <div key={i} className={styles.planGhostCard} aria-hidden="true">
+                  <span className={styles.planGhostThumb}>+</span>
+                  <span className={styles.planGhostLine} />
+                </div>
+              ))}
+            </div>
+
+            <div className={styles.planModalActions}>
+              <button className={styles.planModalPrimary} onClick={onAddMore}>Add More Trips</button>
+            </div>
+          </section>
         </div>
       </div>
     </div>
