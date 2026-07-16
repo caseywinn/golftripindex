@@ -447,9 +447,35 @@ owner**. If that default is live, club invites would silently reach nobody.
 5. ~~Request-to-join + approve/reject~~ ✅ shipped 2026-07-16 — `migrations/add_club_requests.sql`
    (applied), `POST /api/clubs/[slug]/request`, `POST /api/clubs/[slug]/requests`,
    `components/ClubJoinRequest.tsx`, `components/ClubRequests.tsx`.
-6. **Next: role management** — promote/demote, suspend, remove. Row actions are still
-   unresolved: at 300px there's no room inline, so it needs a `···` menu, a manage popover,
-   or the separate `/clubs/[slug]/members` admin page.
+6. ~~Role management~~ ✅ shipped 2026-07-16 — `POST /api/clubs/[slug]/members`
+   (promote/demote/suspend/reactivate/remove/revoke) + `components/ClubMemberMenu.tsx`.
+   Row actions resolved as a **`···` overflow menu**, portalled to `<body>` because
+   `.railBody` is a scroll container that would clip an in-flow popover.
+
+**Step 1 is complete.** Next is step 2: propose → vote (hand off to the existing `/plan`
+poll engine, roster seeded from active members, `club_trip_id` on `shared_trips`).
+
+### Role management guards (verified 2026-07-16)
+
+Ordered so the owner rule outranks everything:
+
+| Attempt | Result |
+|---|---|
+| Anyone touching the **owner** | 400 — transfer ownership first (not built) |
+| **Admin** managing another **admin** | 403 — only the owner can |
+| **Admin** minting a new admin | 403 — only the owner changes roles |
+| Acting on **your own row** | blocked (locks you out otherwise) |
+| Plain member using the route | 404 (not 403) |
+| Admin managing a plain member | ✅ allowed |
+
+Note the self-guard is currently **unreachable in practice** — a manager is always owner or
+admin, and both are caught by the earlier owner/admin rules first. It's kept as a safety net
+for when ownership transfer lands.
+
+`suspend` only accepts `active` rows: suspending an unclaimed invite would need `user_id`
+null, and `club_members_active_has_user` then leaves no route back to active. Revoke instead.
+`remove` tombstones and **keeps `user_id`** so trip history resolves later; `revoke` deletes
+(no history) and frees the address for a clean re-invite.
 
 ## BUG FIXED 2026-07-16: failed emails were reported as sent
 
