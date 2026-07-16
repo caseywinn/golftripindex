@@ -1,0 +1,572 @@
+/* ============================================================
+   CLUBS — /clubs/[slug]
+   Layout: main column (trips) + right rail (seats + roster),
+   mirroring the Caddie/My-Trip split on /plan.
+   ============================================================ */
+
+/* ── Hero ────────────────────────────────────────────────── */
+
+.heroWrap {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 30px 24px 0;
+}
+
+.heroTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.heroTitle {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #0b0f1a;
+  text-wrap: balance;
+}
+
+.heroSub {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: #9aa3b2;
+}
+
+.privacyPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #9aa3b2;
+  border: 1px solid #e9edf3;
+  background: #fff;
+  padding: 5px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* ── Layout shell ────────────────────────────────────────── */
+
+.layout {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  padding: 24px 24px 80px;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 34px;
+}
+
+/* ── Right rail ──────────────────────────────────────────── */
+
+.rail {
+  width: 300px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 88px;
+  max-height: calc(100vh - 128px);
+  background: #fff;
+  border: 1px solid #eef1f6;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+}
+
+.railHead {
+  padding: 16px 18px;
+  border-bottom: 1px solid #eef1f6;
+  flex-shrink: 0;
+}
+
+.railTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0b0f1a;
+  letter-spacing: -0.01em;
+}
+
+.railBody {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #dde3ef transparent;
+}
+
+.railSection {
+  padding: 14px 18px;
+  border-bottom: 1px solid #f3f5f8;
+}
+
+.railSection:last-child {
+  border-bottom: none;
+}
+
+.railSectionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.railSectionLabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #b0bac9;
+}
+
+.railCount {
+  font-size: 10px;
+  font-weight: 700;
+  color: #b0bac9;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Seats ───────────────────────────────────────────────── */
+
+.seatNums {
+  font-size: 12.5px;
+  color: #9aa3b2;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.seatNums b {
+  color: #0b0f1a;
+  font-weight: 800;
+}
+
+.meter {
+  margin-top: 9px;
+  height: 6px;
+  border-radius: 999px;
+  background: #e9edf3;
+  overflow: hidden;
+  display: flex;
+}
+
+.meterFill {
+  background: #0488db;
+}
+
+/* Hatched so a held-but-unclaimed seat reads differently from an active one. */
+.meterPending {
+  background-color: #fdf5e6;
+  background-image: repeating-linear-gradient(135deg, #b26a00 0 3px, transparent 3px 6px);
+}
+
+.seatNote {
+  margin: 9px 0 0;
+  font-size: 11.5px;
+  color: #b0bac9;
+  line-height: 1.5;
+}
+
+/* ── Roster rows ─────────────────────────────────────────── */
+
+.mrow {
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 0;
+}
+
+.mrow + .mrow {
+  border-top: 1px solid #f3f5f8;
+}
+
+/* Tinted because a pending invite consumes a seat — the cost should be visible. */
+.mrowPending {
+  background: #fdf5e6;
+  margin: 0 -18px;
+  padding: 7px 18px;
+}
+
+.avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: #e9edf3;
+  color: #9aa3b2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.avatarUnclaimed {
+  border: 1px dashed #9aa3b2;
+  background: transparent;
+}
+
+.who {
+  min-width: 0;
+}
+
+.mname {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #0b0f1a;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mnameUnknown {
+  color: #9aa3b2;
+  font-weight: 600;
+  font-style: italic;
+}
+
+.mmail {
+  font-size: 10.5px;
+  color: #b0bac9;
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pill {
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+  border: 1px solid #e9edf3;
+  color: #9aa3b2;
+  background: transparent;
+}
+
+.pillOwner {
+  background: #0b0f1a;
+  color: #fff;
+  border-color: #0b0f1a;
+}
+
+.pillAdmin {
+  color: #0b0f1a;
+  border-color: #0b0f1a;
+}
+
+.pillInvited {
+  color: #b26a00;
+  border-color: #b26a00;
+}
+
+.pillSuspended {
+  color: #b4232a;
+  border-color: #b4232a;
+}
+
+/* ── Rail actions ────────────────────────────────────────── */
+
+.railActions {
+  padding: 14px 18px;
+  border-top: 1px solid #eef1f6;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.railHint {
+  margin: 0;
+  font-size: 11px;
+  color: #b0bac9;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.railError {
+  margin: 0;
+  font-size: 11px;
+  color: #b4232a;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.inviteInput {
+  width: 100%;
+  font: inherit;
+  font-size: 13px;
+  padding: 9px 11px;
+  border-radius: 9px;
+  border: 1px solid #e8edf5;
+  background: #f7f9fc;
+  color: #0b0f1a;
+}
+
+.inviteInput::placeholder {
+  color: #b0bac9;
+}
+
+.inviteInput:disabled {
+  opacity: 0.6;
+}
+
+.inviteBtn {
+  width: 100%;
+  padding: 11px;
+  background: #0488db;
+  color: #fff;
+  border: none;
+  border-radius: 9px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: 0 2px 6px rgba(4, 136, 219, 0.28);
+  transition: filter 0.12s;
+}
+
+.inviteBtn:hover:not(:disabled) {
+  filter: brightness(1.07);
+}
+
+.inviteBtn:disabled {
+  background: #c3cddb;
+  box-shadow: none;
+  cursor: default;
+}
+
+/* ── Join requests (rail) ────────────────────────────────── */
+
+.reqBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #b26a00;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.reqRow {
+  padding: 9px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reqRow + .reqRow {
+  border-top: 1px solid #f3f5f8;
+}
+
+.reqActions {
+  display: flex;
+  gap: 6px;
+}
+
+.reqApprove,
+.reqReject {
+  flex: 1;
+  padding: 6px 8px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.reqApprove {
+  background: #0488db;
+  color: #fff;
+}
+
+.reqApprove:hover:not(:disabled) {
+  filter: brightness(1.07);
+}
+
+.reqApprove:disabled {
+  background: #c3cddb;
+  cursor: default;
+}
+
+.reqReject {
+  background: transparent;
+  color: #7a8499;
+  border-color: #e8edf5;
+}
+
+.reqReject:hover:not(:disabled) {
+  color: #b4232a;
+  border-color: #b4232a;
+}
+
+.reqReject:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ── Public stub (non-members) ───────────────────────────── */
+
+.stub {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 60px 24px 80px;
+  text-align: center;
+}
+
+.stubCard {
+  border: 1px solid #e8edf5;
+  border-radius: 16px;
+  background: #fff;
+  padding: 40px 32px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+}
+
+.stubName {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #0b0f1a;
+  text-wrap: balance;
+}
+
+.stubMeta {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: #9aa3b2;
+}
+
+.stubBlurb {
+  margin: 20px 0 24px;
+  font-size: 14px;
+  color: #5a6478;
+  line-height: 1.6;
+}
+
+.stubBtn {
+  padding: 12px 26px;
+  background: #0488db;
+  color: #fff;
+  border: none;
+  border-radius: 9px;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(4, 136, 219, 0.28);
+}
+
+.stubBtn:hover:not(:disabled) {
+  filter: brightness(1.07);
+}
+
+.stubBtn:disabled {
+  background: #c3cddb;
+  box-shadow: none;
+  cursor: default;
+}
+
+.stubPending {
+  border: 1px dashed #b26a00;
+  background: #fdf5e6;
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.stubPendingText {
+  margin: 0;
+  font-size: 13px;
+  color: #b26a00;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.stubError {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: #b4232a;
+}
+
+/* ── Main column ─────────────────────────────────────────── */
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #0b0f1a;
+  margin: 0 0 0 4px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #e9edf3;
+}
+
+.empty {
+  border: 1px dashed #e8edf5;
+  border-radius: 14px;
+  padding: 34px 24px;
+  margin-top: 20px;
+  text-align: center;
+  background: #fff;
+}
+
+.emptyText {
+  margin: 0;
+  font-size: 13px;
+  color: #9aa3b2;
+  line-height: 1.6;
+}
+
+/* ── Responsive ──────────────────────────────────────────── */
+
+@media (max-width: 1000px) {
+  .layout {
+    flex-direction: column;
+  }
+
+  .rail {
+    width: 100%;
+    position: static;
+    max-height: none;
+    order: -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .heroWrap {
+    padding: 18px 14px 0;
+  }
+
+  .layout {
+    padding: 18px 14px 40px;
+  }
+
+  .heroTitle {
+    font-size: 23px;
+  }
+}
