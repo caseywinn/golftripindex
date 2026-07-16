@@ -16,6 +16,7 @@ import {
 import ClubInvite from "@/components/ClubInvite";
 import ClubJoinRequest from "@/components/ClubJoinRequest";
 import ClubRequests from "@/components/ClubRequests";
+import ClubMemberMenu from "@/components/ClubMemberMenu";
 import styles from "@/styles/clubs.module.css";
 
 export const dynamic = "force-dynamic";
@@ -196,6 +197,16 @@ export default async function ClubPage({ params }: { params: Promise<{ slug: str
                       <div className={styles.mmail}>{m.email}</div>
                     </div>
                     <span className={`${styles.pill} ${pill.className}`}>{pill.label}</span>
+                    {manages && m.status !== "requested" && m.status !== "removed" && (
+                      <ClubMemberMenu
+                        slug={club.slug}
+                        email={m.email}
+                        role={m.role}
+                        status={m.status}
+                        viewerRole={viewer.role === "owner" ? "owner" : "admin"}
+                        isSelf={m.userId === session.user.id}
+                      />
+                    )}
                   </div>
                 );
               })}

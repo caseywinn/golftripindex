@@ -181,9 +181,11 @@
 
 /* ── Roster rows ─────────────────────────────────────────── */
 
+/* Fourth column is the ··· menu; it collapses to nothing when the viewer can't
+   manage, or on rows with no available actions (owner, self). */
 .mrow {
   display: grid;
-  grid-template-columns: 26px 1fr auto;
+  grid-template-columns: 26px 1fr auto auto;
   align-items: center;
   gap: 9px;
   padding: 7px 0;
@@ -350,6 +352,97 @@
   background: #c3cddb;
   box-shadow: none;
   cursor: default;
+}
+
+/* ── Roster row overflow menu ────────────────────────────── */
+
+.menuWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.menuBtn {
+  border: none;
+  background: transparent;
+  color: #b0bac9;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+  padding: 4px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.menuBtn:hover:not(:disabled) {
+  background: #f0f4f8;
+  color: #0b0f1a;
+}
+
+.menuBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Portalled to <body> and positioned from the button's rect: the rail is a
+   scroll container, so an in-flow absolute popover would be clipped. Top/right
+   are set inline at open time. */
+.menuPop {
+  position: fixed;
+  z-index: 60;
+  min-width: 160px;
+  background: #fff;
+  border: 1px solid #e8edf5;
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+}
+
+.menuItem,
+.menuItemDanger {
+  text-align: left;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 8px 10px;
+  border-radius: 7px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.menuItem {
+  color: #0b0f1a;
+}
+
+.menuItem:hover:not(:disabled) {
+  background: #f0f4f8;
+}
+
+.menuItemDanger {
+  color: #b4232a;
+}
+
+.menuItemDanger:hover:not(:disabled) {
+  background: #fdf0f0;
+}
+
+.menuItem:disabled,
+.menuItemDanger:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.menuError {
+  margin: 4px 6px 2px;
+  font-size: 11px;
+  color: #b4232a;
+  line-height: 1.4;
+  white-space: normal;
 }
 
 /* ── Join requests (rail) ────────────────────────────────── */
