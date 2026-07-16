@@ -1,20 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Resend } from "resend";
 import { getPublishedTripBySlug, getPublishedJourneyBySlug } from "@/lib/airtable";
 import { formatCostTier, formatDuration } from "@/lib/formatters";
 import { SITE_URL, SITE_NAME } from "@/lib/seo";
 import { getPgPool } from "@/lib/db";
+import { isValidEmail, sendEmails, getClientIp, isRateLimited, logSend } from "@/lib/email";
 
 const RATE_LIMIT = 10; // max shares per IP per hour
-
-function getResend() {
-  return new Resend(process.env.RESEND_API_KEY);
-}
-const FROM = process.env.SHARE_FROM_EMAIL || "onboarding@resend.dev";
-
-function isValidEmail(e: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
-}
 
 function toAbsoluteUrl(url: string | null | undefined, fallback: string): string {
   if (!url) return fallback;
@@ -39,18 +30,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Rate limit by IP
-    const ip =
-      req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
-      req.headers.get("x-real-ip") ||
-      "unknown";
-
+    const ip = getClientIp(req);
     const pool = getPgPool();
-    const { rows } = await pool.query(
-      `SELECT COUNT(*) AS cnt FROM share_log
-       WHERE ip = $1 AND created_at > now() - interval '1 hour'`,
-      [ip]
-    );
-    if (parseInt(rows[0].cnt, 10) >= RATE_LIMIT) {
+    if (await isRateLimited(pool, ip, RATE_LIMIT)) {
       return NextResponse.json({ error: "Too many shares. Try again later." }, { status: 429 });
     }
 
@@ -208,15 +190,9 @@ export async function POST(req: NextRequest) {
     ];
     const text = textParts.join("\n");
 
-    await getResend().emails.send({
-      from: FROM,
-      to: toEmail,
-      subject,
-      html,
-      text,
-    });
+    await sendEmails([toEmail], { subject, html, text });
 
-    await pool.query(`INSERT INTO share_log (ip) VALUES ($1)`, [ip]);
+    await logSend(pool, ip);
     // Prune rows older than 24 hours to keep the table small
     pool.query(`DELETE FROM share_log WHERE created_at < now() - interval '24 hours'`).catch(() => {});
 
