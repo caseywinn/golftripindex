@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "db:smoke": "node scripts/db-smoke-test.mjs"
+    "db:smoke": "node scripts/db-smoke-test.mjs",
+    "verify:clubs": "npx --yes tsx@4 --tsconfig tsconfig.json scripts/verify-club-trips.mts",
+    "verify:clubs:schema": "node scripts/verify-club-trips-schema.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.97.1",
