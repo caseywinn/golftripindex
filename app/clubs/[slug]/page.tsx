@@ -1,4 +1,5 @@
 import { redirect, notFound } from "next/navigation";
+import Link from "next/link";
 import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { getPgPool } from "@/lib/db";
@@ -13,10 +14,13 @@ import {
   countActiveMembers,
   type ClubMember,
 } from "@/lib/clubs";
+import { getCurrentClubTrip, listPastClubTrips, type ClubTrip } from "@/lib/clubTrips";
+import { VOTE_TYPES } from "@/lib/planVote";
 import ClubInvite from "@/components/ClubInvite";
 import ClubJoinRequest from "@/components/ClubJoinRequest";
 import ClubRequests from "@/components/ClubRequests";
 import ClubMemberMenu from "@/components/ClubMemberMenu";
+import ClubTripActions from "@/components/ClubTripActions";
 import styles from "@/styles/clubs.module.css";
 
 export const dynamic = "force-dynamic";
@@ -33,6 +37,93 @@ function initials(name: string | null, email: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (!parts.length) return email[0]?.toUpperCase() ?? "?";
   return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase();
+}
+
+/** The name behind a winning slug, falling back to the slug if it's not in the list. */
+function destName(trip: ClubTrip, slug: string): string {
+  return trip.destinations.find((d) => d.slug === slug)?.name ?? slug;
+}
+
+const STATUS_LABEL: Record<string, string> = {
+  planning: "Planning",
+  live: "On the trip",
+  completed: "Played",
+  archived: "Shelved",
+  draft: "Draft",
+};
+
+function TripCard({ trip, slug, manages }: { trip: ClubTrip; slug: string; manages: boolean }) {
+  const voting = trip.status === "voting" && trip.voteStatus === "open";
+  // The poll closed but named no winner — an exact tie, which deliberately does
+  // not auto-lock (see planPoll.recordClubWinner). The trip is stuck in VOTING
+  // and, since only one trip may be open at a time, it blocks the whole club
+  // until an admin settles it. Say so plainly rather than showing a mute card.
+  const tied = trip.status === "voting" && trip.voteStatus === "closed" && !trip.chosenDestination;
+  const voteLabel = VOTE_TYPES.find((v) => v.key === trip.voteType)?.label ?? null;
+  const pct = trip.roster.size ? (trip.roster.voted / trip.roster.size) * 100 : 0;
+
+  const heading = trip.chosenDestination
+    ? destName(trip, trip.chosenDestination)
+    : trip.title ?? `${trip.destinations.length} trips on the table`;
+
+  return (
+    <div className={styles.tripCard}>
+      <div className={styles.tripCardTop}>
+        <span className={`${styles.tripStatus} ${voting || tied ? "" : styles.tripStatusPlanning}`}>
+          {voting ? "Voting open" : tied ? "Tied" : STATUS_LABEL[trip.status] ?? trip.status}
+        </span>
+        {voteLabel && voting && <span className={styles.tripMeta}>{voteLabel}</span>}
+        {trip.proposedBy && <span className={styles.tripMeta}>Proposed by {trip.proposedBy}</span>}
+      </div>
+
+      <h3 className={styles.tripTitle}>{heading}</h3>
+      <p className={styles.tripDests}>
+        {trip.chosenDestination
+          ? `Chosen from ${trip.destinations.length} options. Dates and who's coming are next.`
+          : trip.destinations.map((d) => d.name).join(" · ")}
+      </p>
+
+      {tied && (
+        <p className={styles.tripTieNote}>
+          The vote ended in a tie, so no winner was picked automatically — and this trip is
+          holding the club&rsquo;s only open slot.{" "}
+          {manages ? "Shelve it and propose again." : "An admin will sort it out."}
+        </p>
+      )}
+
+      {/* Turnout, not results: the poll deliberately hides standings until it
+          closes, and leaking them here would undo that. */}
+      {voting && trip.roster.size > 0 && (
+        <div className={styles.tripTurnout}>
+          <div
+            className={styles.tripBar}
+            role="img"
+            aria-label={`${trip.roster.voted} of ${trip.roster.size} members have voted`}
+          >
+            <div className={styles.tripBarFill} style={{ width: `${pct}%` }} />
+          </div>
+          <span className={styles.tripTurnoutText}>
+            {trip.roster.voted}/{trip.roster.size} voted
+          </span>
+        </div>
+      )}
+
+      {/* A trip with no poll row can't be linked anywhere useful. */}
+      {trip.pollId && (
+        <Link href={`/plan/shared/${trip.pollId}`} className={styles.tripCta}>
+          {voting ? "Vote →" : "See the vote →"}
+        </Link>
+      )}
+
+      {manages && trip.status !== "completed" && trip.status !== "archived" && (
+        <ClubTripActions
+          slug={slug}
+          tripId={trip.id}
+          canComplete={trip.status === "planning" || trip.status === "live"}
+        />
+      )}
+    </div>
+  );
 }
 
 function pillFor(m: ClubMember): { label: string; className: string } {
@@ -78,10 +169,12 @@ export default async function ClubPage({ params }: { params: Promise<{ slug: str
     );
   }
 
-  const [members, seats, requests] = await Promise.all([
+  const [members, seats, requests, currentTrip, pastTrips] = await Promise.all([
     listMembers(club.id, pool),
     countSeats(club, pool),
     canManage(viewer) ? listRequests(club.id, pool) : Promise.resolve([]),
+    getCurrentClubTrip(club.id, pool),
+    listPastClubTrips(club.id, pool),
   ]);
 
   const manages = canManage(viewer);
@@ -106,21 +199,38 @@ export default async function ClubPage({ params }: { params: Promise<{ slug: str
         <main className={styles.main}>
           <section>
             <h2 className={styles.sectionTitle}>Next trip</h2>
-            <div className={styles.empty}>
-              <p className={styles.emptyText}>
-                No trip in the works yet. Proposing and voting on trips is coming next.
-              </p>
-            </div>
+            {currentTrip ? (
+              <TripCard trip={currentTrip} slug={club.slug} manages={manages} />
+            ) : (
+              <div className={styles.empty}>
+                <p className={styles.emptyText}>
+                  {manages
+                    ? "No trip in the works. Shortlist some destinations and let the club vote on them."
+                    : "No trip in the works yet. An admin will put one to a vote."}
+                </p>
+                {manages && (
+                  <Link href={`/plan?club=${club.slug}`} className={styles.emptyAction}>
+                    Propose a trip
+                  </Link>
+                )}
+              </div>
+            )}
           </section>
 
           <section>
             <h2 className={styles.sectionTitle}>Previous trips</h2>
-            <div className={styles.empty}>
-              <p className={styles.emptyText}>
-                No trips played yet. Once you finish one, it lands here with photos, results, and
-                who came.
-              </p>
-            </div>
+            {pastTrips.length ? (
+              pastTrips.map((t) => (
+                <TripCard key={t.id} trip={t} slug={club.slug} manages={manages} />
+              ))
+            ) : (
+              <div className={styles.empty}>
+                <p className={styles.emptyText}>
+                  No trips played yet. Once you finish one, it lands here with photos, results, and
+                  who came.
+                </p>
+              </div>
+            )}
           </section>
         </main>
 

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { buildPollView } from "@/lib/planPoll";
+import { loadPoll } from "@/lib/planPoll";
 import { formatTripWhen, type WhenLike } from "@/lib/planWhen";
 import styles from "@/styles/sharedTrip.module.css";
 import PollClient from "./PollClient";
@@ -23,8 +23,15 @@ export default async function SharedTripPage({ params }: { params: Promise<{ id:
   const session = await auth();
   const viewer = { userId: session?.user?.id ?? null, email: session?.user?.email ?? null };
 
-  const view = await buildPollView(id, viewer);
-  if (!view) notFound();
+  const result = await loadPoll(id, viewer);
+  // A club vote is members-only, so a signed-out viewer is sent to log in rather
+  // than 404'd — they may well be a member. A /plan share never takes this path;
+  // it stays public and votes are cast before signing in.
+  if (!result.ok && result.reason === "login") {
+    redirect(`/login?callbackUrl=${encodeURIComponent(`/plan/shared/${id}`)}`);
+  }
+  if (!result.ok) notFound();
+  const view = result.view;
 
   // Group vote → interactive ballot. Read-only share → the simple list below.
   if (view.vote) {

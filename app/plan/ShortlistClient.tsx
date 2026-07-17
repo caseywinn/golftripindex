@@ -39,16 +39,28 @@ import {
 export type { TripOption };
 
 // Persisted "My Trip" working state, so it survives leaving/returning the page.
+//
+// Scoped per club so a personal shortlist and a club proposal can't bleed into
+// each other: without this, opening /plan?club=x would load your private
+// shortlist into the club's ballot, and proposing would then wipe it.
 const TRIP_STORAGE_KEY = "gti-plan-trip-v1";
+const storageKey = (club: { slug: string } | null) =>
+  club ? `${TRIP_STORAGE_KEY}:club:${club.slug}` : TRIP_STORAGE_KEY;
 
 export default function ShortlistClient({
   trips,
   wishlistSlugs = [],
   isLoggedIn = false,
+  club = null,
 }: {
   trips: TripOption[];
   wishlistSlugs?: string[];
   isLoggedIn?: boolean;
+  /**
+   * Set when proposing to a club (arrived via /plan?club=<slug>). Already
+   * authorized server-side — its presence means the viewer manages this club.
+   */
+  club?: { slug: string; name: string } | null;
 }) {
   const caddie = useCaddie({ trips, wishlistSlugs });
 
@@ -126,7 +138,7 @@ export default function ShortlistClient({
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect -- one-time restore of persisted client state */
     try {
-      const raw = localStorage.getItem(TRIP_STORAGE_KEY);
+      const raw = localStorage.getItem(storageKey(club));
       if (raw) {
         const saved = JSON.parse(raw);
         if (typeof saved.playerCount === "number") setPlayerCount(saved.playerCount);
@@ -139,6 +151,9 @@ export default function ShortlistClient({
     }
     setHydrated(true);
     /* eslint-enable react-hooks/set-state-in-effect */
+    // `club` is a server prop fixed for the page load, so it can't change under
+    // this one-time restore; re-running would clobber the rail with stored state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Persist the trip whenever it changes (only after the initial restore).
@@ -146,13 +161,13 @@ export default function ShortlistClient({
     if (!hydrated) return;
     try {
       localStorage.setItem(
-        TRIP_STORAGE_KEY,
+        storageKey(club),
         JSON.stringify({ playerCount, nightCount, tripWhen, destinations }),
       );
     } catch {
       /* ignore storage write failures (quota, private mode) */
     }
-  }, [hydrated, playerCount, nightCount, tripWhen, destinations]);
+  }, [hydrated, playerCount, nightCount, tripWhen, destinations, club]);
 
   useEffect(() => {
     if (!portalMenu) return;
@@ -216,14 +231,16 @@ export default function ShortlistClient({
     setPlanPopupOpen(false);
   }
 
-  const canShare = destinations.length >= 1;
+  // A club trip is always a vote, so it needs something to vote between.
+  const canShare = club ? destinations.length >= 2 : destinations.length >= 1;
 
   // Entry point from the rail. Logged-out → register. With 2+ trips, let the
   // captain choose a group-vote format first; a single trip shares directly.
   function startShare() {
     setShareError("");
     if (!isLoggedIn) {
-      window.location.href = `/register?callbackUrl=${encodeURIComponent("/plan")}`;
+      const back = club ? `/plan?club=${encodeURIComponent(club.slug)}` : "/plan";
+      window.location.href = `/register?callbackUrl=${encodeURIComponent(back)}`;
       return;
     }
     if (destinations.length >= 2) {
@@ -234,12 +251,18 @@ export default function ShortlistClient({
   }
 
   // Persist the working trip as a shareable plan, optionally as a group vote.
+  //
+  // In club mode this posts to the club's propose route instead, which also
+  // creates the club_trips row and seats the whole active roster. There's no
+  // ShareModal afterward: the club already knows its members, so there are no
+  // emails to collect — we go straight to the vote.
   async function createShare(vote: VoteType | null) {
     if (sharing) return;
     setShareError("");
     setSharing(true);
     try {
-      const res = await fetch("/api/plan/share", {
+      const url = club ? `/api/clubs/${encodeURIComponent(club.slug)}/trips` : "/api/plan/share";
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -250,6 +273,15 @@ export default function ShortlistClient({
       const data = await res.json();
       if (res.ok && data.id) {
         setShareSetupOpen(false);
+        if (club) {
+          // Clear the working shortlist — it now lives on the club trip, and
+          // leaving it in localStorage would offer to propose it a second time.
+          try {
+            localStorage.removeItem(storageKey(club));
+          } catch {}
+          window.location.href = `/plan/shared/${data.id}`;
+          return;
+        }
         setShareInfo({ id: data.id, url: data.url, voteType: vote });
       } else {
         setShareError(data.error || "Could not save your trip.");
@@ -444,6 +476,7 @@ export default function ShortlistClient({
           destinations={destinations} setDestinations={setDestinations}
           canShare={canShare}
           onShare={startShare} sharing={sharing} shareError={shareError}
+          club={club}
         />
 
       </div>
@@ -510,6 +543,7 @@ export default function ShortlistClient({
           destinationCount={destinations.length}
           sharing={sharing}
           error={shareError}
+          club={club}
           onChoose={createShare}
           onClose={() => { setShareSetupOpen(false); setShareError(""); }}
         />
@@ -533,11 +567,12 @@ export default function ShortlistClient({
 // ── Share setup: how should the group decide? ───────────────────────────────────
 
 function ShareSetupModal({
-  destinationCount, sharing, error, onChoose, onClose,
+  destinationCount, sharing, error, club, onChoose, onClose,
 }: {
   destinationCount: number;
   sharing: boolean;
   error: string;
+  club: { slug: string; name: string } | null;
   onChoose: (vote: VoteType | null) => void;
   onClose: () => void;
 }) {
@@ -551,18 +586,26 @@ function ShareSetupModal({
     return () => { document.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
   }, [onClose]);
 
+  // "Just share it" is omitted for a club: proposing a trip to a club IS asking
+  // it to decide, and a read-only club trip would sit in VOTING with no way out.
   const options: { key: VoteType | null; label: string; blurb: string }[] = [
     ...VOTE_TYPES.map((v) => ({ key: v.key as VoteType | null, label: v.label, blurb: v.blurb })),
-    { key: null, label: "Just share it", blurb: "Send the shortlist read-only — no voting, anyone with the link can view." },
+    ...(club
+      ? []
+      : [{ key: null, label: "Just share it", blurb: "Send the shortlist read-only — no voting, anyone with the link can view." }]),
   ];
 
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={`${styles.modalCard} ${styles.shareModalCard}`} onClick={(e) => e.stopPropagation()}>
         <div className={styles.planModalHead}>
-          <h2 className={styles.planModalTitle}>How should the group decide?</h2>
+          <h2 className={styles.planModalTitle}>
+            {club ? `How should ${club.name} decide?` : "How should the group decide?"}
+          </h2>
           <p className={styles.planModalSub}>
-            You&apos;ve shortlisted {destinationCount} trips. Pick how your group picks the winner — voters sign in, and only the people you invite count.
+            {club
+              ? `You've shortlisted ${destinationCount} trips. Pick how the club picks the winner — every active member gets a vote, and nobody needs an invite.`
+              : `You've shortlisted ${destinationCount} trips. Pick how your group picks the winner — voters sign in, and only the people you invite count.`}
           </p>
         </div>
 
@@ -893,6 +936,7 @@ export function MyTripRail({
   destinations, setDestinations,
   canShare,
   onShare, sharing = false, shareError = "",
+  club = null,
 }: {
   playerCount: number; setPlayerCount: React.Dispatch<React.SetStateAction<number>>;
   nightCount: number; setNightCount: React.Dispatch<React.SetStateAction<number>>;
@@ -902,11 +946,12 @@ export function MyTripRail({
   onShare?: () => void;
   sharing?: boolean;
   shareError?: string;
+  club?: { slug: string; name: string } | null;
 }) {
   return (
     <aside className={styles.tripRail}>
       <div className={styles.railHead}>
-        <span className={styles.railTitle}>My Trip</span>
+        <span className={styles.railTitle}>{club ? `Propose to ${club.name}` : "My Trip"}</span>
       </div>
 
       <div className={styles.railBody}>
@@ -966,11 +1011,17 @@ export function MyTripRail({
 
       <div className={styles.railActions}>
         <button className={styles.primaryBtn} disabled={!canShare || sharing} onClick={onShare}>
-          {sharing ? "Saving…" : "Share with group"}
+          {sharing ? "Saving…" : club ? "Propose to the club" : "Share with group"}
         </button>
-        <button className={styles.ghostBtn} disabled={destinations.length !== 1}>Plan this trip →</button>
+        {!club && (
+          <button className={styles.ghostBtn} disabled={destinations.length !== 1}>Plan this trip →</button>
+        )}
         {!canShare ? (
-          <p className={styles.shareHint}>Add at least 1 destination to continue.</p>
+          <p className={styles.shareHint}>
+            {club
+              ? "Add at least 2 destinations for the club to choose between."
+              : "Add at least 1 destination to continue."}
+          </p>
         ) : shareError ? (
           <p className={styles.shareErr}>{shareError}</p>
         ) : null}
