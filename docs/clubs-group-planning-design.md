@@ -452,8 +452,7 @@ owner**. If that default is live, club invites would silently reach nobody.
    Row actions resolved as a **`···` overflow menu**, portalled to `<body>` because
    `.railBody` is a scroll container that would clip an in-flow popover.
 
-**Step 1 is complete.** Next is step 2: propose → vote (hand off to the existing `/plan`
-poll engine, roster seeded from active members, `club_trip_id` on `shared_trips`).
+**Step 1 is complete.** Step 2 (propose → vote) shipped 2026-07-16 — see its own section below.
 
 ### Role management guards (verified 2026-07-16)
 
@@ -573,6 +572,159 @@ one — indistinguishable**, which is the roster-leak defense working.
 4. `POST /api/clubs` + `/clubs/[slug]` page (fork of `/bag`). Now a club exists and renders.
 5. Invite route + email + `/register` email pre-fill. Now the loop closes.
 6. Role/suspend/remove management UI.
+
+---
+
+# Step 2: propose → vote — ✅ SHIPPED 2026-07-16
+
+Ships as: *an admin shortlists destinations, proposes them to the club, every active
+member votes, and the winner locks onto the trip.* No RSVP yet (that's step 3).
+
+## What shipped
+
+| Piece | Where |
+|---|---|
+| Schema | `migrations/add_club_trips.sql` — **applied to prod** |
+| Data access | `lib/clubTrips.ts` — `createClubTrip`, `getCurrentClubTrip`, `listPastClubTrips`, `lockClubTripWinner`, `setClubTripStatus` |
+| Propose route | `POST /api/clubs/[slug]/trips` |
+| Lifecycle route | `POST /api/clubs/[slug]/trips/[tripId]` — `complete` / `archive` |
+| Club-aware poll | `lib/planPoll.ts` — `isPollCaptain`, `canViewPoll`, `loadPoll`, `recordClubWinner`, club context on `PollView` |
+| Propose UI | `/plan?club=<slug>` — `app/plan/page.tsx` + `ShortlistClient.tsx` |
+| Club page | `Next trip` / `Previous trips` render real trips (`TripCard` + `components/ClubTripActions.tsx`) |
+| Poll page | club header, back-to-club footer, club-specific not-on-roster copy |
+
+## Decisions made while building
+
+**Link direction: `shared_trips.club_trip_id` only.** The data-model sketch above had
+`club_trip_id` on `shared_trips` *and* `shared_trip_id` on `club_trips`. Two FKs pointing
+at each other are a chicken-and-egg on insert and can drift apart once written. Only the
+`shared_trips` side exists. It's also the useful direction: `getPollRow` already selects
+from `shared_trips`, so it picks up club context in a query it was making anyway. A partial
+unique index (`WHERE club_trip_id IS NOT NULL`) enforces one poll per trip without the many
+NULL `/plan` shares colliding.
+
+**Captain = club role INSTEAD of the proposer, not in addition** (`isPollCaptain`). A `/plan`
+share has exactly one captain, `shared_trips.user_id`. A club poll replaces that rule
+outright: any owner/admin can close, and the proposer's `user_id` confers *nothing*.
+Checking `user_id` first (the obvious way to write it) would let a demoted or suspended
+admin keep the one power they were demoted out of — closing the vote durably commits a
+destination. `shared_trips.user_id` still records who proposed it, for display only.
+
+**Trips need a way out, or a club is a one-shot** (`setClubTripStatus`, `ClubTripActions`).
+Winning a vote parks a trip in PLANNING; PLANNING is an open status; only one open trip is
+allowed. With no transition out, a club's *first* trip would block every future proposal
+forever and "Previous trips" could never populate. `complete` (played it → the journal) and
+`archive` (shelved) are the exits; `archive` is allowed from any open status because it's
+also the escape hatch for a tie or a mistaken proposal. The UPDATE is scoped by `club_id` as
+well as `id`, since the trip id comes from the client — otherwise an admin of one club could
+shelve another's trip.
+
+**The winner is persisted** (`club_trips.chosen_destination`, via `recordClubWinner`). The
+poll engine persists no winner — `buildPollView` re-tallies the ballots on every read. Fine
+for a share page; useless for a club, where the page must answer "where are we going"
+without re-deriving it, and where the ballots are cascade-deleted with the poll. Closing a
+club poll writes the winner and moves the trip VOTING → PLANNING.
+
+**A club poll is club-private** (`canViewPoll`, `loadPoll`). The `/plan` share page is
+deliberately public — the link *is* the invite, the roster *is* the invitee list, and people
+vote before signing in. A club roster is the opposite: `canView` keeps it private, and the
+club page shows a non-member only name/home-course/count. Inheriting the share page's
+public-by-link model would have handed a club's name, its full member list, who had voted,
+and (once closed) the standings to anyone with the URL — logged out, via `curl`, from an
+unauthenticated route. So a club poll now requires membership. Non-members get `notfound`
+(a 403 would confirm the club exists); logged-*out* viewers get `login`, so a member opening
+the link in a signed-out browser isn't told their own club's vote doesn't exist.
+`buildPollView` gates independently of `loadPoll` so the poll API can't bypass it, and
+`castBallot` re-checks membership on every ballot — a removed member keeps their frozen
+poll seat, so the seat check alone would still let them vote.
+
+**Ties never auto-lock — for any vote type.** `tally()` returns `winners: string[]`, plural
+on an exact tie; only `winners.length === 1` locks. Brackets needed a separate fix and were
+the sharper hazard: `champion()` *always* names a winner because `resolveRound` breaks a tie
+by seed, and seeds come from `shuffle(slugs, Math.random)` at proposal time. So a tied final
+would have committed the club to a destination chosen by a shuffle nobody saw — strictly
+worse than sort order, since it isn't even reproducible. `recordClubWinner` now re-counts the
+final matchup and locks only on a real margin. A 0–0 final counts as a tie, which also stops
+an early "Close & reveal" on a fresh bracket from crowning a random winner.
+
+A tied poll closes with no `chosen_destination` and stays in VOTING. That's a deliberate
+"the club has to settle this" state, not a dead end: the card says so, and **Shelve** frees
+the club. A proper captain tie-break is still worth building.
+
+**The roster is seeded, not emailed.** This is the friction the doc flagged in step 1, and
+it lands here. In `/plan` the only way onto a roster is to be emailed a link — the seat
+insert lives *inside* the email handler (`app/api/plan/share/email/route.ts:71-82`), so a
+Resend failure leaves a phantom voter inflating the auto-close denominator. A club already
+knows its members, so `createClubTrip` seats them directly, in the same transaction, and
+sends nothing. Every seat is pre-bound to a `user_id`, so a club poll needs no
+claim-on-login step at all.
+
+**Who gets seated: `status='active'` only.** Suspended members can't act. An unclaimed
+invite (`status='invited'`) has no `user_id` and *could never cast a ballot* — seating it
+would raise the auto-close denominator to a number the club can never reach, so the poll
+would hang open forever. Verified both are excluded.
+
+**One open trip at a time**, enforced in `createClubTrip` under `SELECT ... FOR UPDATE` on
+the club row, so two admins proposing at once can't land competing votes. Second attempt
+gets a 409.
+
+**`/plan?club=` is authorized server-side** (`app/plan/page.tsx`). The param is untrusted:
+a non-admin or a stranger guessing a slug silently gets the ordinary `/plan` page, which
+also means the param can't be used to probe whether a club exists — same reasoning as the
+404-not-403 rule.
+
+**The club page shows turnout, never standings.** The poll hides results until close to
+avoid bandwagoning; surfacing them on the club page would undo that.
+
+## Verified 2026-07-16
+
+DDL verified in a rolled-back transaction (nothing persisted): bogus status, inverted
+dates, and deleting a proposer (RESTRICT) all reject; a second poll on one trip rejects
+while two `club_trip_id`-NULL shares coexist; deleting a club trip cascades away its poll
+and roster. **All 11 pre-existing `/plan` shares have `club_trip_id` NULL — the migration
+is additive, no backfill.**
+
+Then 43 checks through the real `lib/` code against the live DB (throwaway clubs, deleted
+after, 0 leftovers): the propose → vote → auto-close → lock → play → propose-again cycle;
+the privacy gate (logged-out → login, non-member → 404, `buildPollView` withholding it
+independently, member sees the roster); captain rights (owner closes the admin's trip,
+**demoted proposer loses them**, removed member can't vote); ties locking no winner for both
+approval and bracket, and a zero-ballot bracket close locking nothing; cross-club shelving
+refused; and a regression pass proving a plain `/plan` share is still public to a logged-out
+viewer, carries no club context, and keeps its creator as captain.
+
+### A note on the first verification pass, which was wrong
+
+The first version of that harness ran `UPDATE club_trips SET status = 'completed'` in raw
+SQL and then asserted the club could propose again — and passed. But **no shipped code path
+set `completed`**: the test manufactured the exact state it was verifying, hiding the fact
+that a club was a one-shot and that "Previous trips" was unreachable. A code review caught
+it, not the test.
+
+The harness now drives every transition through `setClubTripStatus`, so a missing transition
+fails instead of being papered over. The general lesson is worth keeping: **a test that
+writes the state it asserts on proves nothing about the code that was supposed to write it.**
+
+## Known gaps (step 2)
+
+- **No captain tie-break.** A tie is survivable (the card explains it, Shelve frees the
+  club) but the club can't resolve it in place — they re-propose.
+- **Nothing tells members a vote has opened.** Proposing sends no email; a member only
+  finds out by visiting the club page. The invite email infra (`lib/email.ts`) is right
+  there — a "the club is voting" send is a small, obvious add, and probably the highest
+  value next thing.
+- **The roster is frozen at proposal time.** Someone suspended or removed mid-vote keeps
+  their seat, so `isRoundComplete`'s denominator never drops and the poll won't auto-close
+  — it sits at "4/5 voted" implying someone is still deciding. An admin can still close it
+  manually. (They can't *vote*, though — `castBallot` re-checks membership.)
+- **Close → lock isn't atomic.** `setVoteStatus` and `recordClubWinner` are separate
+  queries; a crash between them closes the poll with no winner written, and nothing
+  re-derives it on read. Same recoverable state as a tie (Shelve), but worth folding into
+  one transaction.
+- **`chosen_destination` is a bare slug**, resolved against `state.destinations` for display
+  (`destName`). If the poll row is ever deleted the slug survives with no name to show.
+- **Bracket polls advance rounds but the club page shows only round turnout** — correct,
+  but it doesn't say which round.
 
 ## Open questions
 
