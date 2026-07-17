@@ -14,7 +14,12 @@ function useSafeCallbackUrl() {
 
 function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const callbackUrl = useSafeCallbackUrl();
+  // Club invites deep-link here with the invited address. Registering under a
+  // different address silently misses the pending membership, which matches on
+  // email — so pre-filling it is what makes invite → register → bind work.
+  const invitedEmail = searchParams.get("email") ?? "";
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -35,6 +40,16 @@ function RegisterForm() {
     });
 
     if (!res.ok) {
+      // Already registered — most likely an invitee who followed a club invite
+      // to an address they already have an account for. Send them to log in
+      // instead of dead-ending on the error, keeping the callbackUrl so they
+      // still land where the invite pointed.
+      if (res.status === 409) {
+        router.push(
+          `/login?callbackUrl=${encodeURIComponent(callbackUrl)}&email=${encodeURIComponent(email)}`
+        );
+        return;
+      }
       const data = await res.json();
       setError(data.error ?? "Registration failed. Please try again.");
       setLoading(false);
@@ -89,6 +104,7 @@ function RegisterForm() {
               name="email"
               required
               autoComplete="email"
+              defaultValue={invitedEmail}
               className={styles.input}
             />
           </label>

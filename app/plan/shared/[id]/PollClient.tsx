@@ -88,8 +88,16 @@ export default function PollClient({ initial }: { initial: PollView }) {
     <div className={styles.page}>
       <div className={styles.shell}>
         <div className={styles.head}>
-          <p className={styles.eyebrow}>{view.sharedBy ? `${view.sharedBy} wants your vote` : "Vote on the trip"}</p>
-          <h1 className={styles.title}>Where should the group go?</h1>
+          <p className={styles.eyebrow}>
+            {view.club
+              ? `${view.club.name}${view.sharedBy ? ` · proposed by ${view.sharedBy}` : ""}`
+              : view.sharedBy
+                ? `${view.sharedBy} wants your vote`
+                : "Vote on the trip"}
+          </p>
+          <h1 className={styles.title}>
+            {view.club ? "Where should the club go?" : "Where should the group go?"}
+          </h1>
           <div className={styles.meta}>
             <span className={styles.metaPill}>{formatLabel}</span>
             <span className={`${styles.statusPill} ${isOpen ? styles.statusOpen : styles.statusClosed}`}>
@@ -110,11 +118,23 @@ export default function PollClient({ initial }: { initial: PollView }) {
           </div>
         )}
 
-        {/* Logged in but not invited */}
+        {/* Logged in but not invited. A club poll seats every active member at
+            creation, so landing here means they aren't in the club (or joined
+            after the vote started) — "ask to be added" would be wrong advice. */}
         {loggedIn && !onRoster && (
           <div className={styles.notice}>
             <p className={styles.noticeText}>
-              You&apos;re signed in, but not on the invite list for this vote. Ask {view.sharedBy || "the captain"} to add your email.
+              {view.club ? (
+                <>
+                  You&apos;re signed in, but you weren&apos;t on {view.club.name}&apos;s roster when
+                  this vote started, so you can&apos;t vote in it.
+                </>
+              ) : (
+                <>
+                  You&apos;re signed in, but not on the invite list for this vote. Ask{" "}
+                  {view.sharedBy || "the captain"} to add your email.
+                </>
+              )}
             </p>
           </div>
         )}
@@ -178,7 +198,13 @@ export default function PollClient({ initial }: { initial: PollView }) {
         })()}
 
         <div className={styles.footer}>
-          <Link href="/plan" className={styles.cta}>Plan your own golf trip →</Link>
+          {view.club ? (
+            <Link href={`/clubs/${view.club.slug}`} className={styles.cta}>
+              ← Back to {view.club.name}
+            </Link>
+          ) : (
+            <Link href="/plan" className={styles.cta}>Plan your own golf trip →</Link>
+          )}
         </div>
       </div>
     </div>

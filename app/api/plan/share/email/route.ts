@@ -1,26 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Resend } from "resend";
 import { auth } from "@/auth";
 import { getPgPool } from "@/lib/db";
 import { SITE_URL, SITE_NAME } from "@/lib/seo";
 import { formatTripWhen } from "@/lib/planWhen";
+import {
+  isValidEmail,
+  escapeHtml,
+  sendEmails,
+  getClientIp,
+  isRateLimited,
+  logSend,
+} from "@/lib/email";
 
 const RATE_LIMIT = 20; // max share emails per IP per hour
 const MAX_RECIPIENTS = 15;
-const FROM = process.env.SHARE_FROM_EMAIL || "onboarding@resend.dev";
 
-function getResend() {
-  return new Resend(process.env.RESEND_API_KEY);
-}
-function isValidEmail(e: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
-}
 function dollars(n: number | null | undefined): string {
   if (!n || n < 1) return "";
   return "$".repeat(Math.min(5, Math.max(1, n)));
-}
-function escapeHtml(s: string): string {
-  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 }
 
 type Dest = { slug: string; name: string; overallRating?: number | null; costTier?: number | null };
@@ -85,15 +82,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Rate limit by IP.
-    const ip =
-      req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
-      req.headers.get("x-real-ip") ||
-      "unknown";
-    const rl = await pool.query(
-      `SELECT COUNT(*) AS cnt FROM share_log WHERE ip = $1 AND created_at > now() - interval '1 hour'`,
-      [ip]
-    );
-    if (parseInt(rl.rows[0].cnt, 10) >= RATE_LIMIT) {
+    const ip = getClientIp(req);
+    if (await isRateLimited(pool, ip, RATE_LIMIT)) {
       return NextResponse.json({ error: "Too many shares. Try again later." }, { status: 429 });
     }
 
@@ -156,14 +146,10 @@ export async function POST(req: NextRequest) {
     ];
     const text = textLines.join("\n");
 
-    const resend = getResend();
-    // Send individually so recipients don't see each other.
-    const results = await Promise.allSettled(
-      recipients.map((to) => resend.emails.send({ from: FROM, to, subject, html, text }))
-    );
-    const sent = results.filter((r) => r.status === "fulfilled").length;
+    // Sends individually so recipients don't see each other.
+    const { sent } = await sendEmails(recipients, { subject, html, text });
 
-    await pool.query(`INSERT INTO share_log (ip) VALUES ($1)`, [ip]);
+    await logSend(pool, ip);
 
     if (sent === 0) {
       return NextResponse.json({ error: "Could not send. Try again." }, { status: 502 });

@@ -2,6 +2,8 @@ import NextAuth, { type DefaultSession } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import { getPgPool } from "@/lib/db";
+import { upsertUserByEmail } from "@/lib/users";
+import { claimClubInvites } from "@/lib/clubMembers";
 import bcrypt from "bcryptjs";
 
 declare module "next-auth" {
@@ -30,6 +32,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         );
         const user = rows[0];
         if (!user) return null;
+        // OAuth-only account (no password set). Reject explicitly rather than
+        // relying on bcrypt.compare(pw, null) happening to return false.
+        if (!user.password_hash) return null;
         const valid = await bcrypt.compare(credentials.password as string, user.password_hash);
         if (!valid) return null;
         return { id: String(user.id), name: user.name, email: user.email };
@@ -37,6 +42,52 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
+    // Accounts are linked by email: a Google sign-in resolves to the existing
+    // users row with that address, password or not. That makes an unverified
+    // provider email an account-takeover path, so require the claim to be
+    // explicitly true rather than merely not-false. Google's ID token always
+    // carries email_verified when the email scope is granted; if this ever
+    // rejects a legitimate user, the warning below is the thread to pull.
+    signIn({ account, profile }) {
+      if (account?.provider === "google") {
+        if (!profile?.email || profile.email_verified !== true) {
+          console.warn("[auth] rejected google sign-in: email_verified not true", {
+            hasEmail: !!profile?.email,
+            emailVerified: profile?.email_verified,
+          });
+          return false;
+        }
+      }
+      return true;
+    },
+    // Runs only on initial sign-in (account is set then), not on token refresh.
+    async jwt({ token, user, account }) {
+      if (!account || !user?.email) return token;
+      const email = user.email.toLowerCase();
+
+      // Google sign-in writes no users row of its own, so token.sub would
+      // otherwise be Google's subject string rather than a users.id — an
+      // identity that joins to nothing and can't hold a billable seat. Pin
+      // token.sub to the local row so session.user.id means the same thing for
+      // every provider. Credentials already returns a real users.id.
+      const localId =
+        account.provider === "google"
+          ? await upsertUserByEmail(email, user.name)
+          : String(user.id);
+      token.sub = localId;
+
+      // Claim any club invites sent to this address. Must happen after the
+      // normalization above, or a Google member would bind their seat to a
+      // Google subject. Never block sign-in on this: a failed bind should cost
+      // someone a roster row, not their ability to log into the site at all.
+      try {
+        await claimClubInvites(localId, email);
+      } catch (err) {
+        console.error("[auth] claimClubInvites failed", { email, err });
+      }
+
+      return token;
+    },
     session({ session, token }) {
       if (token.sub) session.user.id = token.sub;
       return session;

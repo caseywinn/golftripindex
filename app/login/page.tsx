@@ -14,7 +14,11 @@ function useSafeCallbackUrl() {
 
 function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const callbackUrl = useSafeCallbackUrl();
+  // Carried over from a club invite, or from /register when the address already
+  // has an account.
+  const prefillEmail = searchParams.get("email") ?? "";
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -75,6 +79,7 @@ function LoginForm() {
               name="email"
               required
               autoComplete="email"
+              defaultValue={prefillEmail}
               className={styles.input}
             />
           </label>

@@ -3,6 +3,7 @@ import ShortlistClient from "./ShortlistClient";
 import { getPublishedTrips } from "@/lib/airtable";
 import { auth } from "@/auth";
 import { getPgPool } from "@/lib/db";
+import { getClubBySlug, getClubViewer, canManage } from "@/lib/clubs";
 
 export const metadata: Metadata = {
   title: "Plan a Golf Trip | GolfTripIndex",
@@ -10,8 +11,26 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
-export default async function PlanPage() {
-  const [raw, session] = await Promise.all([getPublishedTrips(), auth()]);
+export default async function PlanPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ club?: string }>;
+}) {
+  const [raw, session, sp] = await Promise.all([getPublishedTrips(), auth(), searchParams]);
+
+  // ?club=<slug> puts the page in "propose to a club" mode, arriving from the
+  // club page's Propose a trip button. Resolved and authorized here rather than
+  // trusted from the query string — anyone can type it, so a non-admin (or a
+  // stranger guessing a slug) silently gets the ordinary /plan page back, which
+  // also means the param can't be used to probe whether a club exists.
+  let club: { slug: string; name: string } | null = null;
+  if (sp?.club && session?.user?.id) {
+    const pool = getPgPool();
+    const c = await getClubBySlug(sp.club, pool);
+    if (c && canManage(await getClubViewer(c.id, session.user.id, pool))) {
+      club = { slug: c.slug, name: c.name };
+    }
+  }
 
   let wishlistSlugs: string[] = [];
   if (session?.user?.id) {
@@ -43,5 +62,12 @@ export default async function PlanPage() {
     currentRanking: t.currentRanking ?? null,
   }));
 
-  return <ShortlistClient trips={trips} wishlistSlugs={wishlistSlugs} isLoggedIn={!!session?.user?.id} />;
+  return (
+    <ShortlistClient
+      trips={trips}
+      wishlistSlugs={wishlistSlugs}
+      isLoggedIn={!!session?.user?.id}
+      club={club}
+    />
+  );
 }
