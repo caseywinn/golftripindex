@@ -136,7 +136,7 @@ export function getFilterMeta(
 
 type FilterableTrip = Pick<
   GolfTrip,
-  "region" | "state" | "costTier" | "durationMinDays" | "stayType" | "seasons" | "top100Count"
+  "region" | "state" | "costTier" | "durationMaxDays" | "stayType" | "seasons" | "top100Count"
 >;
 
 export function filterTrips<T extends FilterableTrip>(
@@ -160,10 +160,12 @@ export function filterTrips<T extends FilterableTrip>(
     case "duration": {
       const def = DURATION_RANGES.find((d) => d.slug === filterValue);
       if (!def) return [];
+      // Bucket a trip by its longest length (durationMaxDays), so "6+ days"
+      // keeps any trip that can run 6+ days even if its shorter option is less.
       return trips.filter(
         (t) =>
-          (t.durationMinDays ?? 0) >= def.minDays &&
-          (t.durationMinDays ?? 0) <= def.maxDays
+          (t.durationMaxDays ?? 0) >= def.minDays &&
+          (t.durationMaxDays ?? 0) <= def.maxDays
       );
     }
     case "type": {

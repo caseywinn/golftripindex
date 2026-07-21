@@ -209,7 +209,7 @@ export default async function ClubPage({ params }: { params: Promise<{ slug: str
                     : "No trip in the works yet. An admin will put one to a vote."}
                 </p>
                 {manages && (
-                  <Link href={`/plan?club=${club.slug}`} className={styles.emptyAction}>
+                  <Link href={`/plan?club=${club.slug}&page=1`} className={styles.emptyAction}>
                     Propose a trip
                   </Link>
                 )}

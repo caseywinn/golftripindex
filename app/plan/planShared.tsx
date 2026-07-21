@@ -24,6 +24,7 @@ export type TripOption = {
   leadTime?: string;
   driving?: string;
   currentRanking?: number | null;
+  courseNames?: string[]; // for search-by-course; not shown on the card
 };
 
 export type DateWindow = {
@@ -235,11 +236,17 @@ export function applyFilters(pool: TripOption[], fs: FilterState): TripOption[] 
     result = result.filter((t) =>
       fs.duration.some((s) => {
         const def = DURATION_RANGES.find((d) => d.slug === s);
-        return def ? t.durationMinDays >= def.minDays && t.durationMinDays <= def.maxDays : false;
+        // Bucket a trip by its longest length: "6+ days" keeps any trip that can
+        // run 6+ days, even if its shorter option dips below (e.g. a 4–7 trip).
+        return def ? t.durationMaxDays >= def.minDays && t.durationMaxDays <= def.maxDays : false;
       })
     );
   if (fs.vibe.length > 0)
-    result = result.filter((t) => fs.vibe.every((v) => t.vibe?.includes(v)));
+    // OR-match: a trip carrying ANY selected vibe tag qualifies. Matches the
+    // Caddie's vibe semantics, and lets an intake mood that expands to several
+    // tags (e.g. "bachelor" → Bachelor Party / Party Atmosphere) be preselected
+    // without the grid collapsing to trips that carry every one of them.
+    result = result.filter((t) => fs.vibe.some((v) => t.vibe?.includes(v)));
   if (fs.season.length > 0)
     result = result.filter((t) =>
       fs.season.some((s) => {
@@ -259,8 +266,10 @@ export function applyFilters(pool: TripOption[], fs: FilterState): TripOption[] 
 export type SortKey = "ranking" | "rating" | "name" | "cost-asc" | "cost-desc";
 
 export const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  // "Top rated" (overallRating desc) was dropped as duplicative of Ranking — the
+  // two are near-identical orderings. sortTrips still handles "rating" for any
+  // internal caller; it's just not offered in the sort dropdown.
   { key: "ranking", label: "Ranking" },
-  { key: "rating", label: "Top rated" },
   { key: "name", label: "Name (A–Z)" },
   { key: "cost-asc", label: "Price (low–high)" },
   { key: "cost-desc", label: "Price (high–low)" },
@@ -558,16 +567,34 @@ export function useCaddie({
   // by orderGridTrips at render time, not here.
   const [currentTrips, setCurrentTrips] = useState<TripOption[]>(() => [...trips]);
 
-  // True once the Caddie has narrowed to a specific recommendation set
-  // (vs. the broad seed / wishlist). Lets layouts show a "browse all" affordance.
-  const [isCaddiePicks, setIsCaddiePicks] = useState(false);
+  // Non-null once the grid has been narrowed to a specific set: "caddie" for a
+  // chat recommendation, "intake" for the step-1 questionnaire. Drives both the
+  // "browse all" affordance and the (source-specific) banner copy. Either way
+  // orderGridTrips preserves the incoming match order.
+  const [picksSource, setPicksSource] = useState<null | "caddie" | "intake">(null);
 
   const [sending, setSending] = useState(false);
   const [input, setInput] = useState("");
 
+  // Map a slug list to trips, preserving the incoming order and dropping any
+  // slug not in the catalog. Shared by the chat and the intake entry points.
+  function pickTrips(slugs: string[]): TripOption[] {
+    const bySlug = new Map(trips.map((t) => [t.slug, t]));
+    return slugs.map((s) => bySlug.get(s)).filter((t): t is TripOption => t !== undefined);
+  }
+
   function resetToAll() {
     setCurrentTrips([...trips]);
-    setIsCaddiePicks(false);
+    setPicksSource(null);
+  }
+
+  // Narrow the grid to an explicit, pre-ordered slug list — e.g. the intake
+  // questionnaire's server-side runFilter result. No conversation, no prose.
+  // Set even when empty, so an over-constrained answer shows the "no matches,
+  // reset" empty state rather than silently leaving the full catalog.
+  function showPicks(slugs: string[], source: "caddie" | "intake" = "intake") {
+    setCurrentTrips(pickTrips(slugs));
+    setPicksSource(source);
   }
 
   async function sendQuery(msg: string, filteredSlugs: string[] | null) {
@@ -595,14 +622,10 @@ export function useCaddie({
       setMessages((prev) => [...prev, { id: makeid(), role: "assistant", content: text }]);
 
       if (slugs !== null) {
-        const validSlugSet = new Set(trips.map((t) => t.slug));
-        const resultTrips = (slugs as string[])
-          .filter((s) => validSlugSet.has(s))
-          .map((s) => trips.find((t) => t.slug === s))
-          .filter((t): t is TripOption => t !== undefined);
+        const resultTrips = pickTrips(slugs as string[]);
         if (resultTrips.length > 0) {
           setCurrentTrips(resultTrips);
-          setIsCaddiePicks(true);
+          setPicksSource("caddie");
         }
       }
       // General Q&A (slugs === null): leave the current grid as-is.
@@ -621,11 +644,13 @@ export function useCaddie({
   return {
     messages,
     currentTrips,
-    isCaddiePicks,
+    isCaddiePicks: picksSource !== null,
+    picksSource,
     sending,
     input,
     setInput,
     sendQuery,
+    showPicks,
     resetToAll,
     lastAssistant,
     hasWishlist,

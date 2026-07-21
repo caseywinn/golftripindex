@@ -2137,6 +2137,7 @@
   white-space: nowrap;
 }
 
+/* Sort dropdown (still used by the /plan2 variant). */
 .sortControl {
   display: inline-flex;
   align-items: center;
@@ -2168,6 +2169,33 @@
 
 .sortSelect:focus {
   border-color: #0488db;
+}
+
+/* Sort: an icon-only trigger that opens the shared portal menu (/plan). */
+.sortIconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: #f5f7fa;
+  border: 1px solid #e2e7f0;
+  border-radius: 8px;
+  color: #5b6475;
+  cursor: pointer;
+  outline: none;
+  flex-shrink: 0;
+  transition: border-color 0.12s, color 0.12s, background 0.12s;
+}
+
+.sortIconBtn:hover {
+  border-color: #c8d5e8;
+  color: #374151;
+}
+
+.sortIconBtn:focus-visible {
+  border-color: #0488db;
+  color: #0488db;
 }
 
 /* Drop-down variant of the portal menu (shadow below) */
@@ -2770,5 +2798,345 @@
   .browseToolbarRight {
     width: 100%;
     justify-content: space-between;
+  }
+}
+
+/* ── Step-1 intake gate ──────────────────────────────────── */
+
+.intakePage {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+}
+
+/* Neutral one-tick placeholder shown while the gate resolves from storage. */
+.intakeLoading {
+  min-height: calc(100vh - 200px);
+}
+
+.intakeCard {
+  background: white;
+  border: 1px solid #eef1f6;
+  border-radius: 16px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+  overflow: hidden;
+}
+
+.intakeHead {
+  padding: 28px 32px 20px;
+  border-bottom: 1px solid #f0f2f6;
+}
+
+.intakeTitle {
+  margin: 0 0 6px;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #1a2233;
+  font-family: var(--font-ui);
+}
+
+.intakeSub {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #6b7280;
+  font-family: var(--font-ui);
+}
+
+.intakeBody {
+  padding: 20px 32px 24px;
+  min-height: 168px;
+}
+
+.intakeQ {
+  padding: 18px 0;
+  border-bottom: 1px solid #f4f6f9;
+}
+
+.intakeQ:last-child {
+  border-bottom: none;
+}
+
+.intakeQHead {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.intakeQLabel {
+  font-size: 15px;
+  font-weight: 700;
+  color: #26303f;
+  font-family: var(--font-ui);
+}
+
+.intakeQHint {
+  font-size: 12px;
+  font-weight: 500;
+  color: #9aa3b2;
+  font-family: var(--font-ui);
+}
+
+.intakeChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.intakeChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f5f7fa;
+  border: 1px solid #e2e7f0;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #4b5563;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: var(--font-ui);
+  transition: border-color 0.12s, color 0.12s, background 0.12s;
+}
+
+.intakeChip:hover {
+  border-color: #c8d5e8;
+  color: #26303f;
+}
+
+.intakeChipActive {
+  background: #edf6ff;
+  border-color: #0488db;
+  color: #0488db;
+}
+
+.intakeChipSub {
+  font-size: 11.5px;
+  font-weight: 500;
+  opacity: 0.7;
+}
+
+.intakeFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 32px 24px;
+  border-top: 1px solid #f0f2f6;
+  background: #fafbfc;
+}
+
+.intakeFootLeft {
+  display: flex;
+  align-items: center;
+  min-width: 64px;
+}
+
+.intakeFootRight {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* ── Wizard progress ─────────────────────────────────────── */
+
+.intakeProgress {
+  margin-bottom: 16px;
+}
+
+.intakeStepCount {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #9aa3b2;
+  margin-bottom: 8px;
+  font-family: var(--font-ui);
+}
+
+.intakeProgressBar {
+  height: 5px;
+  border-radius: 999px;
+  background: #eef1f6;
+  overflow: hidden;
+}
+
+.intakeProgressFill {
+  height: 100%;
+  border-radius: 999px;
+  background: #0488db;
+  transition: width 0.25s ease;
+}
+
+.intakeBack {
+  background: none;
+  border: none;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 6px 2px;
+  font-family: var(--font-ui);
+  transition: color 0.1s;
+}
+
+.intakeBack:hover:not(:disabled) {
+  color: #26303f;
+}
+
+.intakeBack:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.intakePrimary {
+  padding: 11px 28px;
+  background: #0488db;
+  color: white;
+  border: none;
+  border-radius: 9px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  box-shadow: 0 2px 6px rgba(4, 136, 219, 0.28);
+  transition: background 0.12s, box-shadow 0.12s;
+}
+
+.intakePrimary:hover:not(:disabled) {
+  background: #0374c4;
+  box-shadow: 0 4px 12px rgba(4, 136, 219, 0.32);
+}
+
+.intakePrimary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.intakeSkip {
+  background: none;
+  border: none;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.intakeSkip:hover:not(:disabled) {
+  color: #26303f;
+}
+
+.intakeSkip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Reopen-the-questionnaire button in the browse toolbar. */
+.intakeReopenBtn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0488db;
+  cursor: pointer;
+  padding: 5px 4px;
+  font-family: var(--font-ui);
+  white-space: nowrap;
+  transition: color 0.1s;
+}
+
+.intakeReopenBtn:hover {
+  color: #0374c4;
+}
+
+@media (max-width: 640px) {
+  .intakeHead,
+  .intakeBody,
+  .intakeFoot {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .intakeFoot {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .intakeFootRight {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .intakeFootLeft {
+    justify-content: center;
+  }
+
+  .intakePrimary,
+  .intakeSkip {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+/* ── Browse search box (trips + courses) ─────────────────── */
+
+.searchBox {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: white;
+  border: 1px solid #e2e7f0;
+  border-radius: 999px;
+  padding: 0 12px;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+
+.searchBox:focus-within {
+  border-color: #0488db;
+  box-shadow: 0 0 0 3px rgba(4, 136, 219, 0.12);
+}
+
+.searchIcon {
+  font-size: 15px;
+  color: #9aa3b2;
+  line-height: 1;
+}
+
+.searchInput {
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 7px 0;
+  width: 190px;
+  max-width: 46vw;
+  font-size: 13px;
+  color: #26303f;
+  font-family: var(--font-ui);
+}
+
+.searchInput::placeholder {
+  color: #9aa3b2;
+}
+
+@media (max-width: 640px) {
+  .searchBox {
+    flex: 1 1 100%;
+    order: -1;
+  }
+
+  .searchInput {
+    width: 100%;
+    max-width: none;
   }
 }

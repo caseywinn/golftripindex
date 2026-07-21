@@ -2,6 +2,7 @@
 
 import { useState, useRef, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -12,6 +13,8 @@ import {
   DURATION_RANGES,
 } from "@/lib/filters";
 import { VOTE_TYPES, type VoteType } from "@/lib/planVote";
+import IntakeWizard, { INTAKE_STEP_COUNT } from "./IntakeWizard";
+import { VIBE_CHOICES, type IntakeAnswers } from "@/lib/intake";
 import {
   type TripOption,
   type Destination,
@@ -47,6 +50,32 @@ const TRIP_STORAGE_KEY = "gti-plan-trip-v1";
 const storageKey = (club: { slug: string } | null) =>
   club ? `${TRIP_STORAGE_KEY}:club:${club.slug}` : TRIP_STORAGE_KEY;
 
+// Remembers that a visitor has passed the step-1 intake (answered or skipped),
+// so returning visitors aren't re-gated. Club-propose mode bypasses the gate.
+const INTAKE_DONE_KEY = "gti-plan-intake-done-v1";
+
+// Reflect the wizard's answers onto the browse filter chips, so after "View
+// recommendations" the toolbar shows what was applied. Chips are shown but do
+// NOT re-filter until the user touches one (the `intakePreset` guard) — the
+// server result stays authoritative for the initial view, since the chips use
+// coarser client-side semantics than the runFilter engine. Vibe expands to its
+// underlying catalog tags (OR-matched).
+//
+// Only maps dimensions that have a toolbar chip. Season and golf-ambition (sort)
+// have no chip in this layout, so they shape the server result but aren't
+// mirrored — preselecting a chip that doesn't exist would be an invisible,
+// unclearable filter once the preset guard lifts.
+function filterStateFromAnswers(a: IntakeAnswers): FilterState {
+  return {
+    region: a.regions ?? [],
+    budget: a.budget ? [a.budget] : [],
+    duration: a.length ? [a.length] : [],
+    season: [],
+    vibe: (a.vibes ?? []).flatMap((slug) => VIBE_CHOICES.find((v) => v.slug === slug)?.tags ?? []),
+    top100: a.ambition === "bucket-list" ? 1 : 0,
+  };
+}
+
 export default function ShortlistClient({
   trips,
   wishlistSlugs = [],
@@ -64,9 +93,68 @@ export default function ShortlistClient({
 }) {
   const caddie = useCaddie({ trips, wishlistSlugs });
 
+  // Step-1 intake gate, driven by the ?page= query param so the browser
+  // Back/Forward buttons step through the wizard (page=1 → page=2 → … → results).
+  //
+  //  - `?page=N` (1-based) shows question N. This covers a first visit, the
+  //    "Preferences" reopen, hitting Back from the results view, and the club
+  //    "Propose a trip" link (which arrives at ?page=1).
+  //  - No `?page=` in club-propose mode → straight to the shortlist (a club
+  //    proposal without an explicit page skips the questionnaire).
+  //  - No `?page=` and the personal intake already finished → results.
+  //  - No `?page=` on a first personal visit → we redirect to `?page=1` so every
+  //    question lives in history and Back works from the very start.
+  //
+  // `doneFlag` (whether the visitor has finished the intake before) is read from
+  // localStorage in a mount effect — SSR and the first client render leave it
+  // null ("pending" placeholder) so there's no hydration mismatch.
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const pageParam = searchParams.get("page");
+  const [doneFlag, setDoneFlag] = useState<boolean | null>(null);
+  const [intakeSubmitting, setIntakeSubmitting] = useState(false);
+
+  // Current 0-based question index from ?page=, clamped to a real step; null when
+  // the param is absent or not a valid question number.
+  const wizardStep = useMemo(() => {
+    if (!pageParam) return null;
+    const n = Number.parseInt(pageParam, 10);
+    if (!Number.isFinite(n)) return null;
+    return Math.min(Math.max(n - 1, 0), INTAKE_STEP_COUNT - 1);
+  }, [pageParam]);
+
+  // Resolve the gate: an explicit page param always shows the wizard (personal or
+  // club-propose); otherwise club-propose goes straight to the shortlist, and a
+  // personal visit waits for storage, then results (finished) or wizard (first).
+  const intakeState: "pending" | "wizard" | "done" =
+    wizardStep !== null
+      ? "wizard"
+      : club
+        ? "done"
+        : doneFlag === null
+          ? "pending"
+          : doneFlag
+            ? "done"
+            : "wizard";
+
+  // History helpers that preserve club-propose mode across the ?page= changes —
+  // dropping ?club= mid-wizard would silently kick a club proposal back to a
+  // personal shortlist.
+  const clubQuery = club ? `club=${encodeURIComponent(club.slug)}&` : "";
+  const goToPage = (n: number) => router.push(`${pathname}?${clubQuery}page=${n}`);
+  const finishIntake = () =>
+    router.push(clubQuery ? `${pathname}?${clubQuery.replace(/&$/, "")}` : pathname);
+
   // Filters
   const [filterState, setFilterState] = useState<FilterState>(EMPTY_FILTERS);
   const [sortKey, setSortKey] = useState<SortKey>("ranking");
+  // Free-text search over trip names + course names (composes with the filters).
+  const [searchQuery, setSearchQuery] = useState("");
+  // True right after the wizard: chips mirror the answers but the grid stays the
+  // untouched server result. Cleared the moment the user edits any filter, after
+  // which the chips filter normally.
+  const [intakePreset, setIntakePreset] = useState(false);
   const hasAnyFilter = hasActiveFilters(filterState);
   const wishlistSet = useMemo(() => new Set(wishlistSlugs), [wishlistSlugs]);
 
@@ -106,11 +194,22 @@ export default function ShortlistClient({
   }, [trips]);
 
   // Derived grid: filters narrow the live set, then order it (wishlist-pinned
-  // ranking by default; explicit sorts otherwise).
-  const gridTrips = useMemo(
-    () => orderGridTrips(applyFilters(caddie.currentTrips, filterState), sortKey, wishlistSlugs, caddie.isCaddiePicks),
-    [caddie.currentTrips, filterState, sortKey, wishlistSlugs, caddie.isCaddiePicks]
-  );
+  // ranking by default; explicit sorts otherwise). While `intakePreset` holds,
+  // the preselected chips are a preview only — the server's runFilter result is
+  // shown unfiltered so its richer logic (e.g. season month-timing) isn't
+  // re-narrowed by the coarser client filters.
+  const gridTrips = useMemo(() => {
+    const base = intakePreset ? caddie.currentTrips : applyFilters(caddie.currentTrips, filterState);
+    const q = searchQuery.trim().toLowerCase();
+    const searched = q
+      ? base.filter(
+          (t) =>
+            t.name.toLowerCase().includes(q) ||
+            t.courseNames?.some((c) => c.toLowerCase().includes(q))
+        )
+      : base;
+    return orderGridTrips(searched, sortKey, wishlistSlugs, caddie.isCaddiePicks);
+  }, [caddie.currentTrips, filterState, sortKey, wishlistSlugs, caddie.isCaddiePicks, intakePreset, searchQuery]);
 
   useEffect(() => {
     if (threadOpen && threadRef.current) threadRef.current.scrollTop = threadRef.current.scrollHeight;
@@ -169,6 +268,25 @@ export default function ShortlistClient({
     }
   }, [hydrated, playerCount, nightCount, tripWhen, destinations, club]);
 
+  // Resolve the intake gate on mount from localStorage (see intakeState above).
+  // A first-time visitor with no ?page= is redirected to ?page=1 so the wizard's
+  // very first question already has a history entry — Back works from the start.
+  useEffect(() => {
+    if (club) return;
+    let done = false;
+    try {
+      done = !!localStorage.getItem(INTAKE_DONE_KEY);
+    } catch {
+      /* storage unavailable (private mode) — treat as first visit */
+    }
+    setDoneFlag(done);
+    if (!done && !pageParam) router.replace(`${pathname}?page=1`);
+    // `club` is a fixed server prop; this runs once to decide the gate. pageParam
+    // is only read for the initial redirect decision, so it's intentionally not a
+    // dependency (later param changes are handled by the derived intakeState).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (!portalMenu) return;
     const onDown = (e: MouseEvent) => {
@@ -182,6 +300,7 @@ export default function ShortlistClient({
   // ── Filter handlers ─────────────────────────────────────────────────────────
 
   function toggleFilter(key: Exclude<keyof FilterState, "top100">, value: string) {
+    setIntakePreset(false); // editing a chip switches from preview to live filtering
     setFilterState((prev) => {
       const arr = prev[key];
       return { ...prev, [key]: arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value] };
@@ -189,9 +308,16 @@ export default function ShortlistClient({
   }
 
   function resetAll() {
+    setIntakePreset(false);
     setFilterState(EMPTY_FILTERS);
+    setSearchQuery("");
     setSortKey("ranking");
     caddie.resetToAll();
+  }
+
+  function setTop100(n: number) {
+    setIntakePreset(false);
+    setFilterState((p) => ({ ...p, top100: p.top100 === n ? 0 : n }));
   }
 
   function openFilterMenu(id: string, e: React.MouseEvent<HTMLButtonElement>, rightAlign = false) {
@@ -295,10 +421,100 @@ export default function ShortlistClient({
 
   function submit() {
     setThreadOpen(true);
-    caddie.sendQuery(caddie.input, hasAnyFilter ? applyFilters(trips, filterState).map((t) => t.slug) : null);
+    // While the intake preset is pristine, the chips aren't filtering yet — scope
+    // the Caddie to the server result set the user is actually looking at.
+    const poolSlugs = intakePreset
+      ? caddie.currentTrips.map((t) => t.slug)
+      : hasAnyFilter
+        ? applyFilters(trips, filterState).map((t) => t.slug)
+        : null;
+    caddie.sendQuery(caddie.input, poolSlugs);
+  }
+
+  // ── Intake gate handlers ──────────────────────────────────────────────────
+
+  function markIntakeDone() {
+    try {
+      localStorage.setItem(INTAKE_DONE_KEY, "1");
+    } catch {
+      /* ignore storage write failures */
+    }
+  }
+
+  // Submit the questionnaire: the server maps answers → runFilter → slugs, and
+  // we narrow the grid to them (server order preserved). On any failure we still
+  // let the user into the page against the full catalog rather than trapping
+  // them at the gate. "View recommendations" with nothing chosen is just
+  // browse-all — skip the round-trip and the misleading "matched" banner.
+  async function submitIntake(answers: IntakeAnswers) {
+    const empty =
+      !answers.budget && !answers.length && !answers.ambition &&
+      !answers.seasons?.length && !answers.regions?.length && !answers.vibes?.length;
+    if (empty) {
+      skipIntake();
+      return;
+    }
+    setIntakeSubmitting(true);
+    try {
+      const res = await fetch("/api/plan/intake", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answers }),
+      });
+      const data = await res.json();
+      if (res.ok && Array.isArray(data.slugs)) {
+        caddie.showPicks(data.slugs, "intake");
+        setFilterState(filterStateFromAnswers(answers)); // mirror answers onto the chips
+        setIntakePreset(true); // …but keep them a preview over the server result
+      }
+    } catch {
+      /* fall through to browse-all */
+    } finally {
+      markIntakeDone();
+      setDoneFlag(true);
+      setIntakeSubmitting(false);
+      finishIntake(); // drop ?page= → results (Back returns to the last question)
+    }
+  }
+
+  function skipIntake() {
+    // Clean browse-all from any state (first visit, or reopening then finishing
+    // with no preferences) — clear any preset chips left from an earlier pass.
+    setIntakePreset(false);
+    setFilterState(EMPTY_FILTERS);
+    caddie.resetToAll();
+    markIntakeDone();
+    setDoneFlag(true);
+    finishIntake();
+  }
+
+  function reopenIntake() {
+    goToPage(1);
   }
 
   // ── Render ──────────────────────────────────────────────────────────────────
+
+  // Gate: hold the page behind the step-1 intake until it's answered or skipped.
+  // "pending" is the pre-mount state (avoids a hydration mismatch) — render a
+  // neutral placeholder for the one tick before the mount effect resolves it.
+  if (intakeState !== "done") {
+    const step = wizardStep ?? 0;
+    return (
+      <div className={styles.planPage}>
+        {intakeState === "wizard" ? (
+          <IntakeWizard
+            step={step}
+            onNext={() => goToPage(step + 2)} // step is 0-based; page is 1-based
+            onBack={() => router.back()}
+            onSubmit={submitIntake}
+            submitting={intakeSubmitting}
+          />
+        ) : (
+          <div className={styles.intakeLoading} aria-hidden="true" />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className={styles.planPage}>
@@ -311,6 +527,17 @@ export default function ShortlistClient({
             {/* Filter toolbar */}
             <div className={styles.browseToolbar}>
               <div className={styles.browseFilters}>
+                <div className={styles.searchBox}>
+                  <span className={styles.searchIcon} aria-hidden="true">⌕</span>
+                  <input
+                    type="search"
+                    className={styles.searchInput}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search trips or courses…"
+                    aria-label="Search trips or courses"
+                  />
+                </div>
                 <FilterPill label="Region" count={filterState.region.length}
                   single={REGIONS.find((r) => r.slug === filterState.region[0])?.label}
                   onClick={(e) => openFilterMenu("region", e)} />
@@ -333,8 +560,13 @@ export default function ShortlistClient({
                   {filterState.top100 > 0 ? `Top 100: ${filterState.top100}+` : "Top 100"}
                   <span className={styles.filterCaret}>▾</span>
                 </button>
-                {(hasAnyFilter || caddie.isCaddiePicks) && (
+                {(hasAnyFilter || caddie.isCaddiePicks || searchQuery.trim()) && (
                   <button className={styles.filterClearBtn} onClick={resetAll}>Reset</button>
+                )}
+                {!club && (
+                  <button className={styles.intakeReopenBtn} onClick={reopenIntake} title="Answer the trip questions again">
+                    Preferences
+                  </button>
                 )}
               </div>
 
@@ -342,22 +574,25 @@ export default function ShortlistClient({
                 <span className={styles.browseCount}>
                   {gridTrips.length} {gridTrips.length === 1 ? "trip" : "trips"}
                 </span>
-                <label className={styles.sortControl}>
-                  <span className={styles.sortLabel}>Sort</span>
-                  <select
-                    className={styles.sortSelect}
-                    value={sortKey}
-                    onChange={(e) => setSortKey(e.target.value as SortKey)}
-                  >
-                    {SORT_OPTIONS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
-                  </select>
-                </label>
+                <button
+                  data-filter-trigger
+                  className={styles.sortIconBtn}
+                  onClick={(e) => openFilterMenu("sort", e, true)}
+                  title={`Sort: ${SORT_OPTIONS.find((o) => o.key === sortKey)?.label ?? ""}`}
+                  aria-label={`Sort: ${SORT_OPTIONS.find((o) => o.key === sortKey)?.label ?? ""}`}
+                >
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M2.5 4.5h9M2.5 8h6M2.5 11.5h3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                </button>
               </div>
             </div>
 
             {caddie.isCaddiePicks && (
               <div className={styles.picksBanner}>
-                Showing the Caddie&apos;s picks for your request.
+                {caddie.picksSource === "intake"
+                  ? "Showing trips matched to your preferences."
+                  : "Showing the Caddie's picks for your request."}
                 <button className={styles.picksBannerLink} onClick={resetAll}>Browse all trips</button>
               </div>
             )}
@@ -509,8 +744,16 @@ export default function ShortlistClient({
             <MenuItem
               key={n}
               active={filterState.top100 === n}
-              onClick={() => setFilterState((p) => ({ ...p, top100: p.top100 === n ? 0 : n }))}
+              onClick={() => setTop100(n)}
               label={`${n}+`}
+            />
+          ))}
+          {portalMenu.id === "sort" && SORT_OPTIONS.map((o) => (
+            <MenuItem
+              key={o.key}
+              active={sortKey === o.key}
+              onClick={() => { setSortKey(o.key); setPortalMenu(null); }}
+              label={o.label}
             />
           ))}
         </div>,

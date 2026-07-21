@@ -761,3 +761,51 @@ writes the state it asserts on proves nothing about the code that was supposed t
 - Landing page template: `app/bag/page.tsx`, `components/BagCarousels.tsx`, `components/SaveButton.tsx`, `lib/userItems.tsx`
 - Voting engine: `lib/planPoll.ts`, `lib/planVoteEngine.ts`, `lib/planBracket.ts`, `app/plan/shared/[id]/PollClient.tsx`, `app/api/plan/share/*`, `app/api/plan/shared/[id]/*`
 - Existing migrations to mirror: `migrations/add_user_items.sql`, `migrations/add_shared_trips.sql`, `migrations/add_trip_polls.sql`
+
+---
+
+# Step 4 photojournal — photo source decided 2026-07-17: self-host, don't proxy
+
+Question raised: can the photojournal pull photos from Google Photos / iPhoto instead of
+hosting them? Researched the current API state (verified 2026-07-17). **Answer: self-hosting
+via Supabase Storage is the correct architecture, not a fallback.** Neither service can *be*
+the host for a persistent journal; at most they *feed* our storage.
+
+**Google Photos — an importer at best, never a CDN.**
+- The **Library API's read scopes were shut off March 31, 2025** (`photoslibrary.readonly`
+  / `sharing` now return `403 PERMISSION_DENIED`). You can no longer browse a user's library;
+  the Library API only reaches media *your own app uploaded*.
+- The sanctioned replacement is the **Picker API**: user opens a Google-hosted picker, picks
+  specific photos, you get back `baseUrl`s. But those `baseUrl`s **expire in ~60 minutes**,
+  require an OAuth bearer on every fetch, and Google's best-practices doc explicitly says
+  **don't store `baseUrl`s and don't cache the media longer than 60 minutes.** So they can't
+  back a durable journal — you'd have to **download the bytes at import and store them in
+  Supabase anyway**. Net: a "Import from Google Photos" button is possible but is pure
+  convenience on top of self-hosting, plus real OAuth + session-polling work → **v2 nicety,
+  not v1.**
+
+**iPhoto / Apple Photos — no.** iPhoto was discontinued in 2015; there is **no web API into
+iCloud Photos at all** (not via CloudKit web, nothing official). Only paths are a native
+iOS/macOS app (PhotoKit, on-device) or brittle shared-album scraping. Neither fits a web app.
+
+**The insight that makes this a non-problem: the mobile file picker already IS the Apple
+integration.** A plain `<input type="file" accept="image/*" multiple>` opens straight into
+the iPhone Photos app on Safari and into the camera roll on Android; drag-and-drop on desktop.
+That covers the actual need (members uploading trip photos) for everyone, with **zero OAuth,
+zero API-terms risk, and no third-party dependency that can be deprecated** (which Google just
+did to the entire ecosystem).
+
+**Step 4 photo plan (decided):**
+1. **Supabase Storage is the host / source of truth** — unchanged; this research confirms it.
+2. **Primary uploader = native file picker** (drag-drop desktop, camera-roll on mobile). Don't
+   build an Apple integration — iOS provides it.
+3. **Optional later: "Import from Google Photos"** via the Picker API that downloads selected
+   items into Supabase at import time. Additive convenience for Google users; does not change
+   the storage model.
+4. **No Apple-specific integration.**
+
+Sources (verified 2026-07-17): [Google Photos API updates](https://developers.google.com/photos/support/updates),
+[Picker API launch / Library API changes](https://developers.googleblog.com/en/google-photos-picker-api-launch-and-library-api-updates/),
+[Picker media items — 60-min baseUrl expiry](https://developers.google.com/photos/picker/guides/media-items),
+[Google Photos best practices — no >60-min caching](https://developers.google.com/photos/overview/best-practices),
+[Apple: no iCloud Photos web API](https://developer.apple.com/forums/thread/74434).

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import ShortlistClient from "./ShortlistClient";
 import { getPublishedTrips } from "@/lib/airtable";
+import { getCaddieData } from "@/lib/caddieData";
 import { auth } from "@/auth";
 import { getPgPool } from "@/lib/db";
 import { getClubBySlug, getClubViewer, canManage } from "@/lib/clubs";
@@ -16,7 +17,18 @@ export default async function PlanPage({
 }: {
   searchParams: Promise<{ club?: string }>;
 }) {
-  const [raw, session, sp] = await Promise.all([getPublishedTrips(), auth(), searchParams]);
+  const [raw, caddieTrips, session, sp] = await Promise.all([
+    getPublishedTrips(),
+    getCaddieData(), // cached catalog; used here only for per-trip course names (search)
+    auth(),
+    searchParams,
+  ]);
+
+  // slug → course names, so the browse grid can be searched by course as well as
+  // by trip. Pulled from the already-cached Caddie catalog (no extra Airtable hit).
+  const courseNamesBySlug = new Map<string, string[]>(
+    caddieTrips.map((t) => [t.slug, t.courses.map((c) => c.course.name).filter(Boolean)])
+  );
 
   // ?club=<slug> puts the page in "propose to a club" mode, arriving from the
   // club page's Propose a trip button. Resolved and authorized here rather than
@@ -60,6 +72,7 @@ export default async function PlanPage({
     leadTime: t.leadTime,
     driving: t.driving,
     currentRanking: t.currentRanking ?? null,
+    courseNames: courseNamesBySlug.get(t.slug) ?? [],
   }));
 
   return (
