@@ -11,3 +11,8 @@ ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 
 -- user_items: managed by NextAuth session + direct PG; block all PostgREST access.
 ALTER TABLE public.user_items ENABLE ROW LEVEL SECURITY;
+
+-- club_trip_photos: written by the trip photo routes over direct PG. The photo
+-- files themselves live in a public Storage bucket, but the rows that tie a photo
+-- to a trip and an uploader are server-only.
+ALTER TABLE public.club_trip_photos ENABLE ROW LEVEL SECURITY;
