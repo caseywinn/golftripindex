@@ -497,6 +497,33 @@ export async function getPublishedCourses(): Promise<GolfCourse[]> {
 }
 
 /**
+ * Every course in the catalog (not just the Top 100), as a lightweight
+ * name/slug/state list for autocomplete pickers. Skips rows missing a slug or
+ * name rather than throwing — a picker shouldn't fail on one bad record.
+ */
+export async function getAllCoursesForPicker(): Promise<
+  Array<{ slug: string; name: string; state?: string }>
+> {
+  const base = getBase();
+
+  const records = await base(COURSES_TABLE)
+    .select({
+      fields: ["Slug", "Name", "State"],
+      sort: [{ field: "Name", direction: "asc" }],
+      maxRecords: 5000,
+    })
+    .all();
+
+  return records
+    .map((r) => ({
+      slug: (r.fields["Slug"] as string) || "",
+      name: (r.fields["Name"] as string) || "",
+      state: (r.fields["State"] as string) || undefined,
+    }))
+    .filter((c) => c.slug && c.name);
+}
+
+/**
  * New: For a given trip slug, compute Top 100 courses using Airtable's
  * GolfCourses["Consolidated Ranking"] as the source of truth.
  *

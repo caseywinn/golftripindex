@@ -20,6 +20,453 @@
 }
 
 /* ========================
+   TOP: PROFILE HERO + MY CLUBS
+   ======================== */
+
+/* ── Player-card profile hero ── */
+
+.profileHero {
+  background: #fff;
+  border: 1px solid #e8edf5;
+  border-radius: 16px;
+  padding: 24px 26px;
+  margin-bottom: 40px;
+}
+
+.heroMain {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.avatarLg {
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0488db;
+  color: #fff;
+  font-size: 23px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.heroIdent {
+  min-width: 0;
+  flex: 1;
+}
+
+.heroName {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0b0f1a;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.heroEmail {
+  margin-top: 3px;
+  font-size: 13px;
+  color: #9aa3b2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editBtn {
+  flex-shrink: 0;
+  align-self: flex-start;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #64708a;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.editBtn:hover {
+  border-color: #cfd8e3;
+  color: #0b0f1a;
+}
+
+/* Stat tiles (view mode) */
+
+.statTiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.statTile {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #f6f8fb;
+  text-decoration: none;
+}
+
+.statTileLink:hover {
+  background: #eef4fb;
+}
+
+.statLabel {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #9aa3b2;
+}
+
+.statValue {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0b0f1a;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.statTileLink .statValue {
+  color: #0372b4;
+}
+
+.statValueEmpty {
+  color: #b0bac9;
+  font-weight: 700;
+}
+
+/* Edit form (edit mode) */
+
+.editForm {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #eef1f6;
+}
+
+.editActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.profileGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.fieldWide {
+  grid-column: 1 / -1;
+}
+
+.fieldLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #64708a;
+}
+
+.optional {
+  margin-left: 6px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #b0bac9;
+}
+
+.input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid #d0d4da;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #0b0f1a;
+  background: #fff;
+  outline: none;
+}
+
+.input:focus {
+  border-color: #0b0f1a;
+}
+
+/* Favorite-trip typeahead */
+
+.autoWrap {
+  position: relative;
+}
+
+.autoList {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(11, 15, 26, 0.12);
+  max-height: 224px;
+  overflow-y: auto;
+}
+
+.autoItem {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border: none;
+  background: none;
+  font-size: 14px;
+  color: #0b0f1a;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.autoItem:hover {
+  background: #f2f6fb;
+}
+
+.saveBtn {
+  border: none;
+  background: #0b0f1a;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.saveBtn:hover:not(:disabled) {
+  background: #1a2234;
+}
+
+.saveBtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.ghostBtn {
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #64708a;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.ghostBtn:hover:not(:disabled) {
+  border-color: #cfd8e3;
+  color: #0b0f1a;
+}
+
+.fieldError {
+  font-size: 12.5px;
+  color: #c0392b;
+}
+
+/* ── My Clubs (full-width tiles) ── */
+
+.clubsSection {
+  margin-bottom: 48px;
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #0b0f1a;
+  margin: 0 0 14px;
+}
+
+.sectionCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #0b0f1a;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.clubsEmpty {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: #9aa3b2;
+  line-height: 1.6;
+}
+
+.clubGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.clubCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 94px;
+  padding: 16px;
+  border: 1px solid #e8edf5;
+  border-radius: 12px;
+  background: #fff;
+  text-decoration: none;
+}
+
+.clubCard:hover {
+  border-color: #cfe0ef;
+  background: #f8fbfe;
+}
+
+.clubCardName {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0b0f1a;
+  line-height: 1.25;
+  padding-right: 58px; /* clear the role pill */
+}
+
+.clubCardMeta {
+  font-size: 12px;
+  color: #9aa3b2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Current-trip flag, pinned to the bottom of the tile so cards align. */
+.clubStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 8px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.clubStatusDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.clubStatusVoting {
+  color: #0372b4;
+}
+
+.clubStatusVoting .clubStatusDot {
+  background: #0488db;
+  box-shadow: 0 0 0 3px rgba(4, 136, 219, 0.16);
+}
+
+.clubStatusPlanning {
+  color: #1c7a43;
+}
+
+.clubStatusPlanning .clubStatusDot {
+  background: #1c7a43;
+  box-shadow: 0 0 0 3px rgba(28, 122, 67, 0.16);
+}
+
+.clubRolePill {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #eef2f7;
+  color: #64708a;
+}
+
+.createTile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 94px;
+  border: 1px dashed #cfd8e3;
+  border-radius: 12px;
+  background: #fff;
+  color: #0488db;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.createTile:hover {
+  border-color: #0488db;
+  background: #f8fbfe;
+}
+
+.createTilePlus {
+  font-size: 22px;
+  line-height: 1;
+  font-weight: 400;
+}
+
+.createForm {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid #e9edf3;
+  border-radius: 10px;
+  background: #fbfcfe;
+}
+
+.createActions {
+  display: flex;
+  gap: 10px;
+}
+
+/* ========================
    CAROUSELS
    ======================== */
 
@@ -183,6 +630,16 @@
 @media (max-width: 860px) {
   .bagCard {
     flex: 0 0 calc((100% - 32px) / 2.2);
+  }
+}
+
+@media (max-width: 560px) {
+  .profileGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .heroName {
+    font-size: 20px;
   }
 }
 

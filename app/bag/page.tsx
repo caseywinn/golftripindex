@@ -3,7 +3,11 @@ import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { getPgPool } from "@/lib/db";
 import { getPublishedTrips, getPublishedJourneys } from "@/lib/airtable";
+import { getUserProfile } from "@/lib/users";
+import { listClubsForUser } from "@/lib/clubs";
 import BagCarousels, { type BagItem } from "@/components/BagCarousels";
+import ProfileEditor from "@/components/ProfileEditor";
+import MyClubs from "@/components/MyClubs";
 import styles from "@/styles/bag.module.css";
 
 export const dynamic = "force-dynamic";
@@ -28,10 +32,17 @@ export default async function BagPage() {
     [session.user.id]
   );
 
-  const [trips, journeys] = await Promise.all([
+  const [trips, journeys, profile, clubs] = await Promise.all([
     getPublishedTrips(),
     getPublishedJourneys(),
+    getUserProfile(session.user.id, pool),
+    listClubsForUser(session.user.id, pool),
   ]);
+
+  // Trip options for the "favorite trip" picker — slug + name, ranked order.
+  const tripOptions = [...trips]
+    .sort((a, b) => (a.currentRanking ?? Infinity) - (b.currentRanking ?? Infinity))
+    .map((t) => ({ slug: t.slug, name: t.name }));
 
   const tripMap = new Map(trips.map((t) => [t.slug, t]));
   const journeyMap = new Map(journeys.map((j) => [j.slug, j.name]));
@@ -65,14 +76,9 @@ export default async function BagPage() {
 
   return (
     <main className={styles.page}>
-      <header className={styles.hero}>
-        <div className={styles.heroInner}>
-          <h1>My Bag</h1>
-          {session.user.name && (
-            <p className={styles.sub}>{session.user.name}</p>
-          )}
-        </div>
-      </header>
+      {profile && <ProfileEditor profile={profile} trips={tripOptions} />}
+      <MyClubs clubs={clubs} />
+
       <BagCarousels items={items} />
     </main>
   );

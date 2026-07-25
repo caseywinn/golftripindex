@@ -1990,8 +1990,28 @@
 
 .shareTextarea:focus,
 .shareChips:focus-within,
-.shareLinkInput:focus {
+.shareLinkInput:focus,
+.tripNameInput:focus {
   border-color: #0488db;
+}
+
+/* Captain's optional trip name, in the club propose (ShareSetup) modal. Padded
+   to line up with the modal head and the vote-option list above/below it. */
+.tripNameField {
+  padding: 4px 24px 2px;
+}
+
+.tripNameInput {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1.5px solid #dde3ef;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-family: var(--font-ui);
+  color: #0b0f1a;
+  background: #fff;
+  outline: none;
 }
 
 .shareErr {

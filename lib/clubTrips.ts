@@ -9,8 +9,18 @@ import { getPgPool } from "@/lib/db";
 import { coerceVoteConfig } from "@/lib/planVote";
 import type { PollDest } from "@/lib/planPoll";
 import type { VoteStatus, VoteType } from "@/lib/planVote";
+import { formatTripWhen, type WhenLike } from "@/lib/planWhen";
 
 export type ClubTripStatus = "draft" | "voting" | "planning" | "live" | "completed" | "archived";
+
+/** One course a club played. `slug` links to the catalog when picked from it. */
+export type TripCourse = { slug: string | null; name: string };
+
+/** One attendee. `userId` is set for a club member, null for a typed-in guest. */
+export type TripAttendee = { userId: string | null; name: string };
+
+/** Who may see a trip: every club member, or only the people who came. */
+export type TripVisibility = "club" | "attendees";
 
 /** Statuses that mean "this trip is still ahead of us" — at most one at a time. */
 const OPEN_STATUSES: ClubTripStatus[] = ["draft", "voting", "planning", "live"];
@@ -20,6 +30,9 @@ export type ClubTrip = {
   status: ClubTripStatus;
   title: string | null;
   chosenDestination: string | null;
+  /** Optional GolfTrips slug linking this trip to a catalog destination, so its
+   *  courses can feed the recap picker. Separate from chosenDestination's text. */
+  destinationSlug: string | null;
   startDate: Date | null;
   endDate: Date | null;
   createdAt: Date;
@@ -30,6 +43,14 @@ export type ClubTrip = {
   destinations: PollDest[];
   voteType: VoteType | null;
   voteStatus: VoteStatus | null;
+  /** The proposer's chosen window ("Fall", "March 2026"), or "" if none set. */
+  whenLabel: string;
+  /** Courses the club played, for the recap page. Empty until filled in. */
+  courses: TripCourse[];
+  /** Who came, for the recap page. Empty until filled in. */
+  attendees: TripAttendee[];
+  /** Who may see the trip. 'club' by default. */
+  visibility: TripVisibility;
   /** Turnout for the poll's current round. */
   roster: { size: number; voted: number };
 };
@@ -39,12 +60,16 @@ type TripRow = {
   status: ClubTripStatus;
   title: string | null;
   chosen_destination: string | null;
+  destination_slug: string | null;
   start_date: Date | null;
   end_date: Date | null;
   created_at: Date;
   proposed_by: string | null;
   poll_id: string | null;
-  state: { destinations?: PollDest[]; vote?: unknown } | null;
+  state: { destinations?: PollDest[]; vote?: unknown; when?: WhenLike } | null;
+  courses: TripCourse[] | null;
+  attendees: TripAttendee[] | null;
+  visibility: TripVisibility | null;
   roster_size: number;
   voted: number;
 };
@@ -56,6 +81,7 @@ function toClubTrip(r: TripRow): ClubTrip {
     status: r.status,
     title: r.title,
     chosenDestination: r.chosen_destination,
+    destinationSlug: r.destination_slug ?? null,
     startDate: r.start_date,
     endDate: r.end_date,
     createdAt: r.created_at,
@@ -64,6 +90,10 @@ function toClubTrip(r: TripRow): ClubTrip {
     destinations: Array.isArray(r.state?.destinations) ? r.state!.destinations! : [],
     voteType: vote?.type ?? null,
     voteStatus: vote?.status ?? null,
+    whenLabel: formatTripWhen(r.state?.when),
+    courses: Array.isArray(r.courses) ? r.courses : [],
+    attendees: Array.isArray(r.attendees) ? r.attendees : [],
+    visibility: r.visibility === "attendees" ? "attendees" : "club",
     roster: { size: r.roster_size ?? 0, voted: r.voted ?? 0 },
   };
 }
@@ -72,8 +102,9 @@ function toClubTrip(r: TripRow): ClubTrip {
 // state.vote defines — a bracket's round 2 shouldn't show round 1's ballots as
 // votes already in. COALESCE to 1 covers approval/ranked and any legacy blob.
 const TRIP_SELECT = `
-  SELECT t.id, t.status, t.title, t.chosen_destination, t.start_date, t.end_date,
-         t.created_at, u.name AS proposed_by,
+  SELECT t.id, t.status, t.title, t.chosen_destination, t.destination_slug,
+         t.start_date, t.end_date,
+         t.created_at, t.courses, t.attendees, t.visibility, u.name AS proposed_by,
          s.id AS poll_id, s.state,
          (SELECT COUNT(*)::int FROM trip_poll_voters v WHERE v.shared_trip_id = s.id)
            AS roster_size,
@@ -99,6 +130,136 @@ export async function getCurrentClubTrip(clubId: string, poolArg?: pg.Pool): Pro
     [clubId, OPEN_STATUSES]
   );
   return rows.length ? toClubTrip(rows[0] as TripRow) : null;
+}
+
+/** A single club trip by id, scoped to its club (for the trip detail page). */
+export async function getClubTripById(
+  clubId: string,
+  tripId: string,
+  poolArg?: pg.Pool
+): Promise<ClubTrip | null> {
+  const pool = poolArg ?? getPgPool();
+  const { rows } = await pool.query(
+    `${TRIP_SELECT} WHERE t.id = $1 AND t.club_id = $2 LIMIT 1`,
+    [tripId, clubId]
+  );
+  return rows.length ? toClubTrip(rows[0] as TripRow) : null;
+}
+
+/**
+ * Update a trip's recap fields — any subset of courses / attendees / visibility.
+ * Scoped by club_id so a manager of one club can't edit another's trip. Only the
+ * provided fields are written.
+ */
+export async function updateClubTripRecap(
+  clubId: string,
+  tripId: string,
+  patch: {
+    courses?: TripCourse[];
+    attendees?: TripAttendee[];
+    visibility?: TripVisibility;
+    destinationSlug?: string | null;
+  },
+  poolArg?: pg.Pool
+): Promise<{ ok: boolean }> {
+  const sets: string[] = [];
+  const vals: unknown[] = [tripId, clubId];
+  if (patch.courses !== undefined) {
+    sets.push(`courses = $${vals.length + 1}::jsonb`);
+    vals.push(JSON.stringify(patch.courses));
+  }
+  if (patch.attendees !== undefined) {
+    sets.push(`attendees = $${vals.length + 1}::jsonb`);
+    vals.push(JSON.stringify(patch.attendees));
+  }
+  if (patch.visibility !== undefined) {
+    sets.push(`visibility = $${vals.length + 1}`);
+    vals.push(patch.visibility);
+  }
+  if (patch.destinationSlug !== undefined) {
+    sets.push(`destination_slug = $${vals.length + 1}`);
+    vals.push(patch.destinationSlug);
+  }
+  if (sets.length === 0) return { ok: false };
+
+  const pool = poolArg ?? getPgPool();
+  const { rowCount } = await pool.query(
+    `UPDATE club_trips SET ${sets.join(", ")} WHERE id = $1 AND club_id = $2`,
+    vals
+  );
+  return { ok: (rowCount ?? 0) > 0 };
+}
+
+// ── Trip photos ──────────────────────────────────────────────────────────────
+
+export type TripPhoto = {
+  id: string;
+  url: string;
+  path: string;
+  uploadedBy: string | null;
+  createdAt: Date;
+};
+
+/** Photos for a trip, oldest first (upload order). */
+export async function listTripPhotos(clubTripId: string, poolArg?: pg.Pool): Promise<TripPhoto[]> {
+  const pool = poolArg ?? getPgPool();
+  const { rows } = await pool.query(
+    `SELECT id, url, path, uploaded_by, created_at
+       FROM club_trip_photos WHERE club_trip_id = $1 ORDER BY created_at ASC`,
+    [clubTripId]
+  );
+  return rows.map((r) => ({
+    id: String(r.id),
+    url: r.url,
+    path: r.path,
+    uploadedBy: r.uploaded_by ? String(r.uploaded_by) : null,
+    createdAt: r.created_at,
+  }));
+}
+
+export async function addTripPhoto(
+  clubTripId: string,
+  path: string,
+  url: string,
+  uploadedBy: string,
+  poolArg?: pg.Pool
+): Promise<TripPhoto> {
+  const pool = poolArg ?? getPgPool();
+  const { rows } = await pool.query(
+    `INSERT INTO club_trip_photos (club_trip_id, path, url, uploaded_by)
+     VALUES ($1, $2, $3, $4) RETURNING id, url, path, uploaded_by, created_at`,
+    [clubTripId, path, url, uploadedBy]
+  );
+  const r = rows[0];
+  return {
+    id: String(r.id),
+    url: r.url,
+    path: r.path,
+    uploadedBy: r.uploaded_by ? String(r.uploaded_by) : null,
+    createdAt: r.created_at,
+  };
+}
+
+/**
+ * Delete a photo row, scoped to its club and trip so a manager of one club can't
+ * remove another's. Returns the storage path so the caller can delete the object,
+ * or null if nothing matched.
+ */
+export async function deleteTripPhoto(
+  clubId: string,
+  tripId: string,
+  photoId: string,
+  poolArg?: pg.Pool
+): Promise<{ path: string } | null> {
+  const pool = poolArg ?? getPgPool();
+  const { rows } = await pool.query(
+    `DELETE FROM club_trip_photos p
+       USING club_trips t
+      WHERE p.id = $1 AND p.club_trip_id = t.id AND t.id = $2 AND t.club_id = $3
+      RETURNING p.path`,
+    [photoId, tripId, clubId]
+  );
+  return rows.length ? { path: rows[0].path } : null;
 }
 
 /** Trips the club has finished, newest first — the photojournal's backing list. */
@@ -243,6 +404,54 @@ export async function lockClubTripWinner(
       WHERE id = $1 AND status = 'voting'`,
     [clubTripId, destinationSlug]
   );
+}
+
+/**
+ * Manually record a trip the club already took, for its history — the case where
+ * a trip never went through a vote (it happened before the club used the app, or
+ * off-platform). It lands straight in COMPLETED with no poll, so it never counts
+ * as the club's one open trip and shows only under "Previous trips".
+ *
+ * chosen_destination holds the free-text place (there's no poll to resolve a slug
+ * against); the card renders it as a detail line rather than a vote result.
+ */
+export async function createManualClubTrip(
+  opts: {
+    clubId: string;
+    createdBy: string;
+    title: string;
+    destination: string | null;
+    /** GolfTrips slug if the destination was picked from the catalog, else null. */
+    destinationSlug: string | null;
+    startDate: string | null; // "YYYY-MM-DD"
+    endDate: string | null;
+  },
+  poolArg?: pg.Pool
+): Promise<{ ok: true; tripId: string } | { ok: false; status: number; error: string }> {
+  const title = opts.title.trim();
+  if (!title) return { ok: false, status: 400, error: "Give the trip a name." };
+  // Honour the club_trips CHECK (end_date >= start_date) with a friendly message
+  // rather than letting the DB raise.
+  if (opts.startDate && opts.endDate && opts.endDate < opts.startDate) {
+    return { ok: false, status: 400, error: "The end date can't be before the start date." };
+  }
+
+  const pool = poolArg ?? getPgPool();
+  const { rows } = await pool.query(
+    `INSERT INTO club_trips
+       (club_id, status, title, chosen_destination, destination_slug, start_date, end_date, created_by)
+     VALUES ($1, 'completed', $2, $3, $4, $5, $6, $7) RETURNING id`,
+    [
+      opts.clubId,
+      title.slice(0, 120),
+      opts.destination?.trim().slice(0, 120) || null,
+      opts.destinationSlug || null,
+      opts.startDate || null,
+      opts.endDate || null,
+      opts.createdBy,
+    ]
+  );
+  return { ok: true, tripId: String(rows[0].id) };
 }
 
 export type TripAction = "complete" | "archive";

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import styles from "@/styles/plan.module.css";
@@ -84,6 +84,20 @@ export const TOP_100_MINS = [1, 2, 3, 4];
 
 export function makeid() {
   return Math.random().toString(36).slice(2, 10);
+}
+
+// Standard modal wiring: Escape closes it, and page scroll is locked while it's
+// open. Call this from inside a modal component that's mounted only when open —
+// "mounted" then means "open", so the effect runs on open and, on unmount,
+// removes the key listener and restores scrolling. Pass a close handler stable
+// enough not to churn (identity changes only re-arm the same listener, harmless).
+export function useModalDismiss(onClose: () => void) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => { document.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
+  }, [onClose]);
 }
 
 export function dollars(n: number | null): string {
@@ -413,18 +427,15 @@ export function HoverTip({
   );
 }
 
-// ── Timing picker (Season / Month / Specific dates — pick one) ─────────────────
+// ── Timing picker (Season / Month — pick one) ─────────────────────────────────
+// The "Specific dates" mode and year refinements were removed from the input UI;
+// the underlying TripWhen fields (startDate, seasonYear, monthYear) and the
+// helpers that format them are kept so already-saved plans still render.
 
 const WHEN_TABS: { mode: WhenMode; label: string }[] = [
   { mode: "season", label: "Season" },
   { mode: "month", label: "Month" },
-  { mode: "dates", label: "Specific dates" },
 ];
-
-const YEARS = (() => {
-  const y = new Date().getFullYear();
-  return [y, y + 1, y + 2];
-})();
 
 const MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const MONTH_NAMES = [
@@ -432,35 +443,18 @@ const MONTH_NAMES = [
   "July", "August", "September", "October", "November", "December",
 ];
 
-function YearPills({ value, onPick }: { value: string; onPick: (y: string) => void }) {
-  return (
-    <div className={styles.whenYears}>
-      {YEARS.map((y) => {
-        const ys = String(y);
-        return (
-          <button
-            key={y}
-            type="button"
-            className={`${styles.whenChip} ${value === ys ? styles.whenChipActive : ""}`}
-            onClick={() => onPick(value === ys ? "" : ys)}
-          >
-            {y}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 export function WhenPicker({
   value,
   onChange,
-  nights,
 }: {
   value: TripWhen;
   onChange: (w: TripWhen) => void;
-  nights?: number;
 }) {
+  // Only Season and Month are selectable. A stale "dates" mode (old localStorage
+  // or a previously shared plan) falls back to Season so the body never renders
+  // empty; the season/month chips also re-assert `mode` so whenIsSet stays valid.
+  const mode: "season" | "month" = value.mode === "month" ? "month" : "season";
+
   return (
     <div className={styles.whenPicker}>
       <div className={styles.whenTabs}>
@@ -468,7 +462,7 @@ export function WhenPicker({
           <button
             key={t.mode}
             type="button"
-            className={`${styles.whenTab} ${value.mode === t.mode ? styles.whenTabActive : ""}`}
+            className={`${styles.whenTab} ${mode === t.mode ? styles.whenTabActive : ""}`}
             onClick={() => onChange({ ...value, mode: t.mode })}
           >
             {t.label}
@@ -476,66 +470,37 @@ export function WhenPicker({
         ))}
       </div>
 
-      {value.mode === "season" && (
-        <>
-          <div className={styles.whenSeasons}>
-            {SEASONS.map((s) => (
-              <button
-                key={s.slug}
-                type="button"
-                className={`${styles.whenChip} ${value.season === s.label ? styles.whenChipActive : ""}`}
-                onClick={() => onChange({ ...value, season: value.season === s.label ? "" : s.label })}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
-          <YearPills value={value.seasonYear} onPick={(y) => onChange({ ...value, seasonYear: y })} />
-        </>
+      {mode === "season" && (
+        <div className={styles.whenSeasons}>
+          {SEASONS.map((s) => (
+            <button
+              key={s.slug}
+              type="button"
+              className={`${styles.whenChip} ${value.season === s.label ? styles.whenChipActive : ""}`}
+              onClick={() => onChange({ ...value, mode: "season", season: value.season === s.label ? "" : s.label })}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
       )}
 
-      {value.mode === "month" && (
-        <>
-          <div className={styles.whenMonths}>
-            {MONTH_ABBR.map((m, i) => {
-              const mn = String(i + 1);
-              return (
-                <button
-                  key={mn}
-                  type="button"
-                  className={`${styles.whenChip} ${value.monthNum === mn ? styles.whenChipActive : ""}`}
-                  onClick={() => onChange({ ...value, monthNum: value.monthNum === mn ? "" : mn })}
-                >
-                  {m}
-                </button>
-              );
-            })}
-          </div>
-          <YearPills value={value.monthYear} onPick={(y) => onChange({ ...value, monthYear: y })} />
-        </>
-      )}
-
-      {value.mode === "dates" && (
-        <>
-          <input
-            type="date"
-            className={styles.whenInput}
-            value={value.startDate}
-            onChange={(e) => onChange({ ...value, startDate: e.target.value })}
-          />
-          {value.startDate ? (
-            <div className={styles.whenSummaryRow}>
-              <span className={styles.whenSummary}>{formatWhen(value, nights)}</span>
+      {mode === "month" && (
+        <div className={styles.whenMonths}>
+          {MONTH_ABBR.map((m, i) => {
+            const mn = String(i + 1);
+            return (
               <button
+                key={mn}
                 type="button"
-                className={styles.whenClear}
-                onClick={() => onChange({ ...value, startDate: "" })}
+                className={`${styles.whenChip} ${value.monthNum === mn ? styles.whenChipActive : ""}`}
+                onClick={() => onChange({ ...value, mode: "month", monthNum: value.monthNum === mn ? "" : mn })}
               >
-                Clear
+                {m}
               </button>
-            </div>
-          ) : null}
-        </>
+            );
+          })}
+        </div>
       )}
     </div>
   );
@@ -670,6 +635,7 @@ export function TripModal({
   onAdd: () => void;
   onClose: () => void;
 }) {
+  useModalDismiss(onClose);
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={styles.modalCard} onClick={(e) => e.stopPropagation()}>

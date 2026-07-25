@@ -60,8 +60,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       return true;
     },
-    // Runs only on initial sign-in (account is set then), not on token refresh.
-    async jwt({ token, user, account }) {
+    // Runs on initial sign-in (account is set then), on token refresh, and when
+    // a client calls useSession().update(...). The update path lets the bag page
+    // push an edited Handle back into the session so the header updates without a
+    // re-login; everything else falls through to the sign-in logic below.
+    async jwt({ token, user, account, trigger, session }) {
+      if (trigger === "update" && typeof session?.name === "string" && session.name) {
+        token.name = session.name;
+        return token;
+      }
       if (!account || !user?.email) return token;
       const email = user.email.toLowerCase();
 

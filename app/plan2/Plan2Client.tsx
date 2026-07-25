@@ -67,13 +67,8 @@ export default function Plan2Client({
     if (caddieOpen && threadRef.current) threadRef.current.scrollTop = threadRef.current.scrollHeight;
   }, [caddie.messages, caddieOpen]);
 
-  useEffect(() => {
-    if (!modalTrip) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setModalTrip(null); };
-    document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => { document.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
-  }, [modalTrip]);
+  // The trip detail modal (TripModal) manages its own Escape-to-close + scroll
+  // lock via useModalDismiss.
 
   function toggleFilter(key: Exclude<keyof FilterState, "top100">, value: string) {
     setFilterState((prev) => {

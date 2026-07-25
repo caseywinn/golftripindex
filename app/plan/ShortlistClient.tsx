@@ -37,6 +37,7 @@ import {
   WhenPicker,
   assessTiming,
   TimingBadge,
+  useModalDismiss,
 } from "./planShared";
 
 export type { TripOption };
@@ -215,21 +216,8 @@ export default function ShortlistClient({
     if (threadOpen && threadRef.current) threadRef.current.scrollTop = threadRef.current.scrollHeight;
   }, [caddie.messages, threadOpen]);
 
-  useEffect(() => {
-    if (!modalTrip) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setModalTrip(null); };
-    document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => { document.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
-  }, [modalTrip]);
-
-  useEffect(() => {
-    if (!planPopupOpen) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setPlanPopupOpen(false); };
-    document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => { document.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
-  }, [planPopupOpen]);
+  // Trip detail modal (TripModal) and the first-add planning popup (PlanStartModal)
+  // handle their own Escape-to-close + scroll lock via useModalDismiss.
 
   // Restore the saved trip on mount. Deliberately a mount effect (not a lazy
   // initializer) so SSR renders defaults and the client hydrates from storage
@@ -373,7 +361,7 @@ export default function ShortlistClient({
       setShareSetupOpen(true);
       return;
     }
-    createShare(null);
+    createShare(null, null);
   }
 
   // Persist the working trip as a shareable plan, optionally as a group vote.
@@ -382,7 +370,7 @@ export default function ShortlistClient({
   // creates the club_trips row and seats the whole active roster. There's no
   // ShareModal afterward: the club already knows its members, so there are no
   // emails to collect — we go straight to the vote.
-  async function createShare(vote: VoteType | null) {
+  async function createShare(vote: VoteType | null, title: string | null) {
     if (sharing) return;
     setShareError("");
     setSharing(true);
@@ -394,6 +382,7 @@ export default function ShortlistClient({
         body: JSON.stringify({
           state: { destinations, golfers: playerCount, nights: nightCount, when: tripWhen },
           vote: vote ? { type: vote } : null,
+          title: title?.trim() || null,
         }),
       });
       const data = await res.json();
@@ -488,10 +477,6 @@ export default function ShortlistClient({
     finishIntake();
   }
 
-  function reopenIntake() {
-    goToPage(1);
-  }
-
   // ── Render ──────────────────────────────────────────────────────────────────
 
   // Gate: hold the page behind the step-1 intake until it's answered or skipped.
@@ -562,11 +547,6 @@ export default function ShortlistClient({
                 </button>
                 {(hasAnyFilter || caddie.isCaddiePicks || searchQuery.trim()) && (
                   <button className={styles.filterClearBtn} onClick={resetAll}>Reset</button>
-                )}
-                {!club && (
-                  <button className={styles.intakeReopenBtn} onClick={reopenIntake} title="Answer the trip questions again">
-                    Preferences
-                  </button>
                 )}
               </div>
 
@@ -816,18 +796,17 @@ function ShareSetupModal({
   sharing: boolean;
   error: string;
   club: { slug: string; name: string } | null;
-  onChoose: (vote: VoteType | null) => void;
+  onChoose: (vote: VoteType | null, title: string | null) => void;
   onClose: () => void;
 }) {
   // null = just share (read-only, no vote); otherwise a vote format.
   const [choice, setChoice] = useState<VoteType | null>("approval");
+  // Optional trip name the captain gives the proposal. Only surfaced (and only
+  // stored) for a club trip, whose card headlines this instead of "N trips on
+  // the table".
+  const [name, setName] = useState("");
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => { document.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
-  }, [onClose]);
+  useModalDismiss(onClose);
 
   // "Just share it" is omitted for a club: proposing a trip to a club IS asking
   // it to decide, and a read-only club trip would sit in VOTING with no way out.
@@ -852,6 +831,22 @@ function ShareSetupModal({
           </p>
         </div>
 
+        {club && (
+          <div className={styles.tripNameField}>
+            <label className={styles.shareLabel} htmlFor="club-trip-name">
+              Name this trip <span className={styles.optionalBadge}>Optional</span>
+            </label>
+            <input
+              id="club-trip-name"
+              className={styles.tripNameInput}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Fall Bandon Run, Guys' Trip 2026…"
+              maxLength={120}
+            />
+          </div>
+        )}
+
         <div className={styles.voteOptList}>
           {options.map((o) => {
             const active = choice === o.key;
@@ -875,7 +870,7 @@ function ShareSetupModal({
         {error && <p className={styles.shareErr}>{error}</p>}
 
         <div className={styles.planModalActions}>
-          <button className={styles.planModalPrimary} onClick={() => onChoose(choice)} disabled={sharing}>
+          <button className={styles.planModalPrimary} onClick={() => onChoose(choice, club ? name : null)} disabled={sharing}>
             {sharing ? "Saving…" : "Continue"}
           </button>
           <button className={styles.planModalSecondary} onClick={onClose} disabled={sharing}>Cancel</button>
@@ -905,12 +900,7 @@ function ShareModal({
   const [sentCount, setSentCount] = useState(0);
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => { document.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
-  }, [onClose]);
+  useModalDismiss(onClose);
 
   function addEmail(raw: string) {
     const e = raw.trim().replace(/,$/, "");
@@ -1034,6 +1024,7 @@ function PlanStartModal({
   onAddMore: () => void;
   onClose: () => void;
 }) {
+  useModalDismiss(onClose);
   const meta = [trip.region, dollars(trip.costTier)].filter(Boolean).join(" · ");
   const duration = formatDuration(trip.durationMinDays, trip.durationMaxDays);
 
@@ -1225,7 +1216,7 @@ export function MyTripRail({
               When <span className={styles.optionalBadge}>Optional</span>
             </div>
           </div>
-          <WhenPicker value={tripWhen} onChange={setTripWhen} nights={nightCount} />
+          <WhenPicker value={tripWhen} onChange={setTripWhen} />
         </div>
 
         <div className={styles.railSection}>

@@ -15,12 +15,14 @@ import {
   type ClubMember,
 } from "@/lib/clubs";
 import { getCurrentClubTrip, listPastClubTrips, type ClubTrip } from "@/lib/clubTrips";
+import { getPublishedTrips } from "@/lib/airtable";
 import { VOTE_TYPES } from "@/lib/planVote";
 import ClubInvite from "@/components/ClubInvite";
 import ClubJoinRequest from "@/components/ClubJoinRequest";
 import ClubRequests from "@/components/ClubRequests";
 import ClubMemberMenu from "@/components/ClubMemberMenu";
 import ClubTripActions from "@/components/ClubTripActions";
+import AddPastTrip from "@/components/AddPastTrip";
 import styles from "@/styles/clubs.module.css";
 
 export const dynamic = "force-dynamic";
@@ -44,6 +46,17 @@ function destName(trip: ClubTrip, slug: string): string {
   return trip.destinations.find((d) => d.slug === slug)?.name ?? slug;
 }
 
+/** Month/year label for a recorded trip's dates, e.g. "Sep 2023" or "Sep – Oct 2023". */
+function formatTripDates(start: Date | null, end: Date | null): string | null {
+  if (!start) return null;
+  const opts: Intl.DateTimeFormatOptions = { month: "short", year: "numeric" };
+  const s = start.toLocaleDateString("en-US", opts);
+  if (!end) return s;
+  const sameMonth =
+    start.getUTCFullYear() === end.getUTCFullYear() && start.getUTCMonth() === end.getUTCMonth();
+  return sameMonth ? s : `${s} – ${end.toLocaleDateString("en-US", opts)}`;
+}
+
 const STATUS_LABEL: Record<string, string> = {
   planning: "Planning",
   live: "On the trip",
@@ -52,7 +65,18 @@ const STATUS_LABEL: Record<string, string> = {
   draft: "Draft",
 };
 
-function TripCard({ trip, slug, manages }: { trip: ClubTrip; slug: string; manages: boolean }) {
+function TripCard({
+  trip,
+  slug,
+  manages,
+  featured = false,
+}: {
+  trip: ClubTrip;
+  slug: string;
+  manages: boolean;
+  /** The open trip gets an image hero; past trips stay as flat cards. */
+  featured?: boolean;
+}) {
   const voting = trip.status === "voting" && trip.voteStatus === "open";
   // The poll closed but named no winner — an exact tie, which deliberately does
   // not auto-lock (see planPoll.recordClubWinner). The trip is stuck in VOTING
@@ -61,67 +85,139 @@ function TripCard({ trip, slug, manages }: { trip: ClubTrip; slug: string; manag
   const tied = trip.status === "voting" && trip.voteStatus === "closed" && !trip.chosenDestination;
   const voteLabel = VOTE_TYPES.find((v) => v.key === trip.voteType)?.label ?? null;
   const pct = trip.roster.size ? (trip.roster.voted / trip.roster.size) * 100 : 0;
+  const chosen = trip.chosenDestination;
+  // A trip with no poll row was added by hand for the club's history, not voted
+  // on — its chosen_destination is a free-text place, not a vote winner.
+  const manual = !trip.pollId;
+  const votedChosen = !!chosen && !manual;
 
-  const heading = trip.chosenDestination
-    ? destName(trip, trip.chosenDestination)
-    : trip.title ?? `${trip.destinations.length} trips on the table`;
+  // A voted winner headlines the destination; a manual entry headlines its name;
+  // an unnamed vote asks the question directly. The chosen window (season/month),
+  // if set, rides along under a vote as a subtitle.
+  const heading = votedChosen
+    ? destName(trip, chosen!)
+    : trip.title ?? (voting ? "Where should the club go?" : `${trip.destinations.length} trips on the table`);
+  const showWhen = !chosen && !!trip.whenLabel;
+
+  // Past-trip detail line: the place (for a manual entry) and when it happened.
+  const dateLabel = formatTripDates(trip.startDate, trip.endDate);
+  const pastMeta = !featured
+    ? [manual ? chosen : null, dateLabel].filter(Boolean).join(" · ")
+    : "";
+
+  // Hero imagery: one big tile for a locked winner, else a collage of the first
+  // few options on the table. Background-image (not <img>) so a missing photo
+  // degrades to the tile's fill colour rather than a broken-image icon.
+  const chosenDest = chosen ? trip.destinations.find((d) => d.slug === chosen) : null;
+  const heroDests = chosen ? (chosenDest ? [chosenDest] : []) : trip.destinations.slice(0, 4);
+  const badge = voting
+    ? { text: "Voting open", cls: "" }
+    : tied
+      ? { text: "Tied", cls: styles.tripHeroBadgeTied }
+      : { text: STATUS_LABEL[trip.status] ?? trip.status, cls: styles.tripHeroBadgePlanning };
 
   return (
-    <div className={styles.tripCard}>
-      <div className={styles.tripCardTop}>
-        <span className={`${styles.tripStatus} ${voting || tied ? "" : styles.tripStatusPlanning}`}>
-          {voting ? "Voting open" : tied ? "Tied" : STATUS_LABEL[trip.status] ?? trip.status}
-        </span>
-        {voteLabel && voting && <span className={styles.tripMeta}>{voteLabel}</span>}
-        {trip.proposedBy && <span className={styles.tripMeta}>Proposed by {trip.proposedBy}</span>}
-      </div>
-
-      <h3 className={styles.tripTitle}>{heading}</h3>
-      <p className={styles.tripDests}>
-        {trip.chosenDestination
-          ? `Chosen from ${trip.destinations.length} options. Dates and who's coming are next.`
-          : trip.destinations.map((d) => d.name).join(" · ")}
-      </p>
-
-      {tied && (
-        <p className={styles.tripTieNote}>
-          The vote ended in a tie, so no winner was picked automatically — and this trip is
-          holding the club&rsquo;s only open slot.{" "}
-          {manages ? "Shelve it and propose again." : "An admin will sort it out."}
-        </p>
-      )}
-
-      {/* Turnout, not results: the poll deliberately hides standings until it
-          closes, and leaking them here would undo that. */}
-      {voting && trip.roster.size > 0 && (
-        <div className={styles.tripTurnout}>
-          <div
-            className={styles.tripBar}
-            role="img"
-            aria-label={`${trip.roster.voted} of ${trip.roster.size} members have voted`}
-          >
-            <div className={styles.tripBarFill} style={{ width: `${pct}%` }} />
-          </div>
-          <span className={styles.tripTurnoutText}>
-            {trip.roster.voted}/{trip.roster.size} voted
-          </span>
+    <div className={`${styles.tripCard} ${featured ? styles.tripCardFeatured : ""}`}>
+      {featured && heroDests.length > 0 && (
+        <div
+          className={`${styles.tripHero} ${chosen ? styles.tripHeroSingle : styles.tripHeroGrid}`}
+          data-count={heroDests.length}
+        >
+          {heroDests.map((d) => (
+            <div
+              key={d.slug}
+              className={styles.tripTile}
+              style={{ backgroundImage: `url(/images/trips/${d.slug}.jpg)` }}
+            >
+              <span className={styles.tripTileScrim} aria-hidden="true" />
+              <span className={styles.tripTileName}>{d.name}</span>
+            </div>
+          ))}
+          <span className={`${styles.tripHeroBadge} ${badge.cls}`}>{badge.text}</span>
+          {chosen && chosenDest?.overallRating != null && (
+            <span className={styles.tripHeroRating}>{chosenDest.overallRating.toFixed(2)}</span>
+          )}
         </div>
       )}
 
-      {/* A trip with no poll row can't be linked anywhere useful. */}
-      {trip.pollId && (
-        <Link href={`/plan/shared/${trip.pollId}`} className={styles.tripCta}>
-          {voting ? "Vote →" : "See the vote →"}
-        </Link>
-      )}
+      <div className={featured ? styles.tripCardBody : undefined}>
+        {featured ? (
+          (voteLabel && voting) || trip.proposedBy ? (
+            <div className={styles.tripCardMeta}>
+              {voteLabel && voting && <span className={styles.tripMeta}>{voteLabel}</span>}
+              {trip.proposedBy && <span className={styles.tripMeta}>Proposed by {trip.proposedBy}</span>}
+            </div>
+          ) : null
+        ) : (
+          <div className={styles.tripCardTop}>
+            <span className={`${styles.tripStatus} ${voting || tied ? "" : styles.tripStatusPlanning}`}>
+              {voting ? "Voting open" : tied ? "Tied" : STATUS_LABEL[trip.status] ?? trip.status}
+            </span>
+            {voteLabel && voting && <span className={styles.tripMeta}>{voteLabel}</span>}
+            {trip.proposedBy && <span className={styles.tripMeta}>Proposed by {trip.proposedBy}</span>}
+          </div>
+        )}
 
-      {manages && trip.status !== "completed" && trip.status !== "archived" && (
-        <ClubTripActions
-          slug={slug}
-          tripId={trip.id}
-          canComplete={trip.status === "planning" || trip.status === "live"}
-        />
-      )}
+        {/* A featured chosen trip already shows the winner's name big on the hero,
+            so the heading below would just repeat it. */}
+        {!(featured && chosen) && <h3 className={styles.tripTitle}>{heading}</h3>}
+        {showWhen && <p className={styles.tripWhen}>{trip.whenLabel}</p>}
+        {/* Upcoming winner: prompt the next steps. Past trip: show the place it
+            went (for a manual entry) and when. Featured voting names its options
+            on the hero tiles, so nothing extra here. */}
+        {featured && chosen ? (
+          <p className={styles.tripDests}>
+            Chosen from {trip.destinations.length} options. Dates and who&rsquo;s coming are next.
+          </p>
+        ) : !featured && pastMeta ? (
+          <p className={styles.tripDests}>{pastMeta}</p>
+        ) : null}
+
+        {tied && (
+          <p className={styles.tripTieNote}>
+            The vote ended in a tie, so no winner was picked automatically — and this trip is
+            holding the club&rsquo;s only open slot.{" "}
+            {manages ? "Shelve it and propose again." : "An admin will sort it out."}
+          </p>
+        )}
+
+        {/* Turnout, not results: the poll deliberately hides standings until it
+            closes, and leaking them here would undo that. */}
+        {voting && trip.roster.size > 0 && (
+          <div className={styles.tripTurnout}>
+            <div
+              className={styles.tripBar}
+              role="img"
+              aria-label={`${trip.roster.voted} of ${trip.roster.size} members have voted`}
+            >
+              <div className={styles.tripBarFill} style={{ width: `${pct}%` }} />
+            </div>
+            <span className={styles.tripTurnoutText}>
+              {trip.roster.voted}/{trip.roster.size} voted
+            </span>
+          </div>
+        )}
+
+        <div className={styles.tripCtaRow}>
+          <Link href={`/clubs/${slug}/trips/${trip.id}`} className={styles.tripCta}>
+            View trip →
+          </Link>
+          {/* A trip with no poll row can't be linked to a vote. */}
+          {trip.pollId && (
+            <Link href={`/plan/shared/${trip.pollId}`} className={styles.tripCta}>
+              {voting ? "Vote →" : "See the vote →"}
+            </Link>
+          )}
+        </div>
+
+        {manages && trip.status !== "completed" && trip.status !== "archived" && (
+          <ClubTripActions
+            slug={slug}
+            tripId={trip.id}
+            canComplete={trip.status === "planning" || trip.status === "live"}
+          />
+        )}
+      </div>
     </div>
   );
 }
@@ -169,15 +265,28 @@ export default async function ClubPage({ params }: { params: Promise<{ slug: str
     );
   }
 
-  const [members, seats, requests, currentTrip, pastTrips] = await Promise.all([
+  const [members, seats, requests, currentTrip, pastTrips, tripsCatalog] = await Promise.all([
     listMembers(club.id, pool),
     countSeats(club, pool),
     canManage(viewer) ? listRequests(club.id, pool) : Promise.resolve([]),
     getCurrentClubTrip(club.id, pool),
     listPastClubTrips(club.id, pool),
+    // Only managers see "Add a past trip" (and its destination autocomplete).
+    canManage(viewer)
+      ? getPublishedTrips().then((ts) => ts.map((t) => ({ slug: t.slug, name: t.name })))
+      : Promise.resolve([] as { slug: string; name: string }[]),
   ]);
 
   const manages = canManage(viewer);
+
+  // Respect each trip's visibility: an 'attendees'-only trip is hidden from
+  // members who didn't come (managers always see the trips they record).
+  const viewerId = session.user.id;
+  const canSeeTrip = (t: ClubTrip) =>
+    t.visibility === "club" || manages || t.attendees.some((a) => a.userId === viewerId);
+  const visibleCurrent = currentTrip && canSeeTrip(currentTrip) ? currentTrip : null;
+  const visiblePast = pastTrips.filter(canSeeTrip);
+
   const used = seats.active + seats.pending;
   const remaining = Math.max(0, seats.limit - used);
   const activePct = Math.min(100, (seats.active / seats.limit) * 100);
@@ -199,8 +308,8 @@ export default async function ClubPage({ params }: { params: Promise<{ slug: str
         <main className={styles.main}>
           <section>
             <h2 className={styles.sectionTitle}>Next trip</h2>
-            {currentTrip ? (
-              <TripCard trip={currentTrip} slug={club.slug} manages={manages} />
+            {visibleCurrent ? (
+              <TripCard trip={visibleCurrent} slug={club.slug} manages={manages} featured />
             ) : (
               <div className={styles.empty}>
                 <p className={styles.emptyText}>
@@ -218,16 +327,20 @@ export default async function ClubPage({ params }: { params: Promise<{ slug: str
           </section>
 
           <section>
-            <h2 className={styles.sectionTitle}>Previous trips</h2>
-            {pastTrips.length ? (
-              pastTrips.map((t) => (
+            <div className={styles.sectionHead}>
+              <h2 className={styles.sectionTitleBare}>Previous trips</h2>
+              {manages && <AddPastTrip slug={club.slug} trips={tripsCatalog} />}
+            </div>
+            {visiblePast.length ? (
+              visiblePast.map((t) => (
                 <TripCard key={t.id} trip={t} slug={club.slug} manages={manages} />
               ))
             ) : (
               <div className={styles.empty}>
                 <p className={styles.emptyText}>
-                  No trips played yet. Once you finish one, it lands here with photos, results, and
-                  who came.
+                  {manages
+                    ? "No trips here yet. Finish a vote, or add a trip the club has already taken."
+                    : "No trips played yet. Once you finish one, it lands here with photos, results, and who came."}
                 </p>
               </div>
             )}

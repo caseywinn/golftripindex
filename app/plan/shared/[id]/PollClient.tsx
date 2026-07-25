@@ -7,6 +7,7 @@ import remarkGfm from "remark-gfm";
 import { VOTE_TYPES } from "@/lib/planVote";
 import { roundMatchups, isVotable, roundLabel, champion, type Bracket, type Matchup } from "@/lib/planBracket";
 import type { PollView } from "@/lib/planPoll";
+import { useModalDismiss } from "../../planShared";
 import styles from "@/styles/sharedTrip.module.css";
 
 function dollars(n: number | null | undefined): string {
@@ -646,12 +647,7 @@ function CompareModal({
   const [error, setError] = useState("");
   const [phase, setPhase] = useState(0);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => { document.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
-  }, [onClose]);
+  useModalDismiss(onClose);
 
   useEffect(() => {
     if (!loading) return;
@@ -757,12 +753,7 @@ function TripPreviewModal({ slug, name, onClose }: { slug: string; name: string;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => { document.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
-  }, [onClose]);
+  useModalDismiss(onClose);
 
   useEffect(() => {
     let cancelled = false;

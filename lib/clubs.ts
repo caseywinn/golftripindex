@@ -180,3 +180,140 @@ export async function countSeats(
   );
   return { active: rows[0].active, pending: rows[0].pending, limit: club.seatLimit };
 }
+
+// ── The clubs a user belongs to (My Clubs, on the bag page) ──────────────────
+
+/**
+ * A club's current-trip state, for the My Clubs badge:
+ *  - "voting"   → a proposal is open for the club to vote on right now
+ *  - "planning" → the next trip's destination is decided (won its vote / live)
+ *  - null       → nothing in the works
+ */
+export type ClubTripState = "voting" | "planning" | null;
+
+/** One row of a user's club list. */
+export type UserClub = {
+  name: string;
+  slug: string;
+  homeCourse: string | null;
+  role: ClubRole;
+  tripState: ClubTripState;
+};
+
+/**
+ * Every club the user can see, owner/admins-first then by name. Mirrors the
+ * per-club `canView` predicate: active or suspended memberships list; invited,
+ * requested, and removed do not.
+ *
+ * Each row carries its newest open trip's status so the UI can flag a club that's
+ * mid-vote or has a decided next trip. A 'draft' (proposed, not yet a live vote)
+ * is intentionally not surfaced — there's nothing for a member to act on yet.
+ */
+export async function listClubsForUser(userId: string, poolArg?: pg.Pool): Promise<UserClub[]> {
+  const pool = poolArg ?? getPgPool();
+  const { rows } = await pool.query(
+    `SELECT c.name, c.slug, c.home_course, m.role,
+            (SELECT t.status FROM club_trips t
+              WHERE t.club_id = c.id
+                AND t.status IN ('draft', 'voting', 'planning', 'live')
+              ORDER BY t.created_at DESC LIMIT 1) AS trip_status
+       FROM clubs c
+       JOIN club_members m ON m.club_id = c.id
+      WHERE m.user_id = $1 AND m.status IN ('active', 'suspended')
+      ORDER BY CASE m.role WHEN 'owner' THEN 0 WHEN 'admin' THEN 1 ELSE 2 END, c.name ASC`,
+    [userId]
+  );
+  return rows.map((r) => ({
+    name: r.name,
+    slug: r.slug,
+    homeCourse: r.home_course ?? null,
+    role: r.role,
+    tripState:
+      r.trip_status === "voting"
+        ? "voting"
+        : r.trip_status === "planning" || r.trip_status === "live"
+          ? "planning"
+          : null,
+  }));
+}
+
+// ── Creating a club ──────────────────────────────────────────────────────────
+
+// Seats granted per tier. Denormalized onto clubs.seat_limit at create time so a
+// club can later be granted extra seats without changing its tier (see the
+// schema note on seat_limit in migrations/add_clubs.sql).
+const TIER_SEATS: Record<Club["tier"], number> = { small: 8, large: 24 };
+
+/** Turn a club name into a URL slug: lowercase, alphanumerics, hyphen-joined. */
+function slugifyName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+}
+
+export type CreateClubResult =
+  | { ok: true; slug: string }
+  | { ok: false; status: number; error: string };
+
+/**
+ * Create a club and seat its creator as the active owner, atomically.
+ *
+ * NOTE ON BILLING: the schema treats a club as a paid, provisioned object (see
+ * migrations/add_clubs.sql — both tiers are paid, there is no free state). This
+ * self-serve path deliberately creates one anyway on the 'small' tier; gating it
+ * behind payment is a later concern. Until that lands, creating a club hands out
+ * the paid product for free.
+ */
+export async function createClub(
+  opts: { ownerId: string; ownerEmail: string; name: string; homeCourse: string | null },
+  poolArg?: pg.Pool
+): Promise<CreateClubResult> {
+  const pool = poolArg ?? getPgPool();
+  const name = opts.name.trim();
+  if (!name) return { ok: false, status: 400, error: "Give your club a name." };
+  const base = slugifyName(name);
+  if (!base) {
+    return { ok: false, status: 400, error: "That name needs some letters or numbers to make a link." };
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    // First free slug: base, base-2, base-3, … The UNIQUE(slug) constraint is
+    // the real guard against a concurrent creator taking the same slug between
+    // this check and the insert; the loop just keeps the common case tidy.
+    let slug = base;
+    for (let n = 2; n <= 99; n += 1) {
+      const { rows } = await client.query(`SELECT 1 FROM clubs WHERE slug = $1`, [slug]);
+      if (!rows.length) break;
+      slug = `${base}-${n}`;
+    }
+
+    const tier: Club["tier"] = "small";
+    const { rows: clubRows } = await client.query(
+      `INSERT INTO clubs (name, slug, home_course, owner_id, tier, seat_limit)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+      [name, slug, opts.homeCourse?.trim() || null, opts.ownerId, tier, TIER_SEATS[tier]]
+    );
+    const clubId = String(clubRows[0].id);
+
+    // Seat the creator as the active owner. status 'active' + a real user_id
+    // satisfies club_members_active_has_user; joined_at marks the bind.
+    await client.query(
+      `INSERT INTO club_members (club_id, email, user_id, role, status, joined_at)
+       VALUES ($1, lower($2), $3, 'owner', 'active', now())`,
+      [clubId, opts.ownerEmail, opts.ownerId]
+    );
+
+    await client.query("COMMIT");
+    return { ok: true, slug };
+  } catch (err) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw err;
+  } finally {
+    client.release();
+  }
+}

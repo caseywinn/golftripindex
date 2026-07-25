@@ -651,6 +651,167 @@
   background: #0372b4;
 }
 
+/* ── Add a past trip (manual history) ────────────────────── */
+
+/* Section header that carries a right-aligned action beside the title. */
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 0 0 0 4px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #e9edf3;
+}
+
+.sectionTitleBare {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #0b0f1a;
+}
+
+/* The trigger sits at the right end of the header; the form drops below it. */
+.pastAdd {
+  position: relative;
+  margin-left: auto;
+}
+
+.pastAddLink {
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  color: #0488db;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.pastAddLink:hover {
+  text-decoration: underline;
+}
+
+.pastPanel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 30;
+  width: 340px;
+  max-width: 86vw;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(11, 15, 26, 0.14);
+}
+
+.pastField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pastLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #64708a;
+}
+
+.pastOptional {
+  margin-left: 6px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #b0bac9;
+}
+
+.pastInput {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid #d0d4da;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #0b0f1a;
+  background: #fff;
+  outline: none;
+}
+
+.pastInput:focus {
+  border-color: #0b0f1a;
+}
+
+.pastAutoWrap {
+  position: relative;
+}
+
+.pastSuggest {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 40;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(11, 15, 26, 0.16);
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.pastSuggestItem {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border: none;
+  background: none;
+  font-size: 13.5px;
+  color: #0b0f1a;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.pastSuggestItem:hover {
+  background: #f2f6fb;
+}
+
+.pastLinkedNote {
+  display: block;
+  margin-top: 6px;
+  font-size: 11.5px;
+  color: #1c7a43;
+}
+
+.pastDates {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.pastActions {
+  display: flex;
+  gap: 8px;
+}
+
+.pastErr {
+  margin: 0;
+  font-size: 12.5px;
+  color: #b4232a;
+}
+
 /* ── Trip card ───────────────────────────────────────────── */
 
 /* A div, not a link: it holds admin buttons, which can't nest inside an <a>. */
@@ -667,6 +828,138 @@
   align-items: center;
   gap: 10px;
   margin-bottom: 12px;
+}
+
+/* ── Featured (open) trip: image hero ────────────────────── */
+
+/* The open trip pops off the flat past-trip cards: no card padding (the hero is
+   full-bleed), a soft lift, and a body block that supplies the inner padding. */
+.tripCardFeatured {
+  padding: 0;
+  overflow: hidden;
+  border-color: #e2e8f0;
+  box-shadow: 0 6px 22px rgba(11, 15, 26, 0.08);
+}
+
+.tripCardBody {
+  padding: 18px 22px 20px;
+}
+
+.tripCardMeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.tripHero {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  background: #dfe5ee; /* shows through the gap + backs a missing photo */
+}
+
+/* One big tile for a locked winner. */
+.tripHeroSingle {
+  grid-template-columns: 1fr;
+}
+
+.tripHeroSingle .tripTile {
+  min-height: 208px;
+}
+
+.tripHeroSingle .tripTileName {
+  font-size: 17px;
+  font-weight: 800;
+  padding: 14px 16px;
+}
+
+/* Collage of the options on the table, evenly split by how many there are. */
+.tripHeroGrid[data-count="1"] {
+  grid-template-columns: 1fr;
+}
+.tripHeroGrid[data-count="2"] {
+  grid-template-columns: 1fr 1fr;
+}
+.tripHeroGrid[data-count="3"] {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+.tripHeroGrid[data-count="4"] {
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+}
+
+.tripTile {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  min-height: 150px;
+  background-color: #cdd6e2;
+  background-size: cover;
+  background-position: center;
+}
+
+.tripTileScrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(6, 10, 20, 0.78) 0%,
+    rgba(6, 10, 20, 0.18) 46%,
+    rgba(6, 10, 20, 0) 72%
+  );
+}
+
+.tripTileName {
+  position: relative;
+  z-index: 1;
+  max-width: 100%;
+  padding: 8px 10px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tripHeroBadge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 2;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #0372b4;
+  box-shadow: 0 2px 8px rgba(6, 10, 20, 0.28);
+}
+
+.tripHeroBadgePlanning {
+  color: #1c7a43;
+}
+
+.tripHeroBadgeTied {
+  color: #8a6420;
+}
+
+.tripHeroRating {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 4px 9px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #0b0f1a;
+  box-shadow: 0 2px 8px rgba(6, 10, 20, 0.28);
 }
 
 .tripStatus {
@@ -703,6 +996,14 @@
   font-size: 13px;
   color: #64708a;
   line-height: 1.6;
+}
+
+/* Proposer's chosen window, under the title on a voting card. */
+.tripWhen {
+  margin: 3px 0 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #0372b4;
 }
 
 .tripTurnout {
@@ -749,6 +1050,13 @@
 
 .tripCta:hover {
   text-decoration: underline;
+}
+
+.tripCtaRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 18px;
 }
 
 .tripActions {
@@ -838,5 +1146,13 @@
 
   .heroTitle {
     font-size: 23px;
+  }
+
+  .tripTile {
+    min-height: 116px;
+  }
+
+  .tripHeroSingle .tripTile {
+    min-height: 168px;
   }
 }
