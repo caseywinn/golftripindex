@@ -3,17 +3,24 @@ import { auth } from "@/auth";
 import { getPgPool } from "@/lib/db";
 import { getClubBySlug, getClubViewer, canManage } from "@/lib/clubs";
 import { getClubTripById, addTripPhoto } from "@/lib/clubTrips";
-import { isStorageConfigured, uploadObject } from "@/lib/storage";
+import { isStorageConfigured, objectExists, publicUrl } from "@/lib/storage";
+import { UUID_RE, MAX_FILES, isOwnPhotoPath } from "./limits";
 
-// Buffer + a large multipart body need the Node runtime, not edge.
 export const runtime = "nodejs";
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const EXT: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
-const MAX_BYTES = 10 * 1024 * 1024; // 10 MB per photo
-const MAX_FILES = 20;
-
-/** Upload one or more photos to a trip's recap. Owner/admin only. */
+/**
+ * Step 2 of the photo upload: record objects the browser has already uploaded.
+ *
+ * This route used to take the files themselves as multipart. It doesn't anymore —
+ * Vercel rejects a body over ~4.5 MB before the function runs, which killed any
+ * batch of two or three phone photos while working locally. The bytes now go
+ * straight to Supabase via a signed URL (see ../photos/upload-url) and only the
+ * resulting paths land here.
+ *
+ * Because the client supplies the paths, each one is checked twice: it must look
+ * like a path we minted for this trip, and the object must actually be in the
+ * bucket. Owner/admin only.
+ */
 export async function POST(req: Request, ctx: { params: Promise<{ slug: string; tripId: string }> }) {
   try {
     const { slug, tripId } = await ctx.params;
@@ -38,32 +45,32 @@ export async function POST(req: Request, ctx: { params: Promise<{ slug: string; 
       );
     }
 
-    const form = await req.formData();
-    const files = form.getAll("files").filter((f): f is File => f instanceof File && f.size > 0);
-    if (files.length === 0) {
+    const body = (await req.json().catch(() => null)) as { paths?: unknown } | null;
+    const paths = Array.isArray(body?.paths) ? body.paths : null;
+    if (!paths || paths.length === 0) {
       return NextResponse.json({ error: "Choose at least one photo." }, { status: 400 });
     }
-    if (files.length > MAX_FILES) {
+    if (paths.length > MAX_FILES) {
       return NextResponse.json({ error: `Up to ${MAX_FILES} photos at a time.` }, { status: 400 });
+    }
+    if (!paths.every((p) => isOwnPhotoPath(p, tripId))) {
+      return NextResponse.json({ error: "Not found." }, { status: 404 });
     }
 
     const created = [];
-    for (const file of files) {
-      const ext = EXT[file.type];
-      if (!ext) {
-        return NextResponse.json({ error: `"${file.name}" must be a JPG, PNG, or WebP.` }, { status: 400 });
+    for (const path of paths as string[]) {
+      if (!(await objectExists(path))) {
+        return NextResponse.json(
+          { error: "That upload didn't finish. Try again." },
+          { status: 409 }
+        );
       }
-      if (file.size > MAX_BYTES) {
-        return NextResponse.json({ error: `"${file.name}" is over 10 MB.` }, { status: 400 });
-      }
-      const path = `${tripId}/${crypto.randomUUID()}.${ext}`;
-      const { url } = await uploadObject(path, await file.arrayBuffer(), file.type);
-      created.push(await addTripPhoto(tripId, path, url, session.user.id, pool));
+      created.push(await addTripPhoto(tripId, path, publicUrl(path), session.user.id, pool));
     }
 
     return NextResponse.json({ photos: created }, { status: 201 });
   } catch (err) {
-    console.error("[clubs/trips/:id/photos] upload error:", err);
-    return NextResponse.json({ error: "Could not upload. Try again." }, { status: 500 });
+    console.error("[clubs/trips/:id/photos] record error:", err);
+    return NextResponse.json({ error: "Could not save the photos. Try again." }, { status: 500 });
   }
 }

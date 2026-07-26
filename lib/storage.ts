@@ -33,35 +33,68 @@ export function publicUrl(path: string): string {
   return `${env.url}/storage/v1/object/public/${TRIP_PHOTO_BUCKET}/${path}`;
 }
 
-/** Upload bytes to the bucket and return the object's path + public URL. */
-export async function uploadObject(
-  path: string,
-  body: ArrayBuffer,
-  contentType: string
-): Promise<{ path: string; url: string }> {
+/**
+ * Mint a short-lived URL the browser can upload one object to directly.
+ *
+ * This is what keeps photo bytes out of the serverless function. Vercel caps a
+ * function request body at ~4.5 MB — well under this bucket's 10 MB limit — and
+ * rejects anything larger at the edge with FUNCTION_PAYLOAD_TOO_LARGE before the
+ * route runs. Phone photos average ~3 MB, so routing them through the app failed
+ * on a batch of two or three while working fine against `next dev`, which has no
+ * such cap. The browser now PUTs straight to Supabase instead.
+ *
+ * The returned URL carries its own scoped token, so no service key reaches the
+ * client and the token is good only for this exact object path.
+ */
+export async function createSignedUploadUrl(path: string): Promise<string> {
   const env = storageEnv();
   if (!env) throw new Error("STORAGE_NOT_CONFIGURED");
 
   const res = await fetch(
-    `${env.url}/storage/v1/object/${TRIP_PHOTO_BUCKET}/${encodeURI(path)}`,
+    `${env.url}/storage/v1/object/upload/sign/${TRIP_PHOTO_BUCKET}/${encodeURI(path)}`,
     {
       method: "POST",
       headers: {
         Authorization: `Bearer ${env.key}`,
         apikey: env.key,
-        "Content-Type": contentType,
-        "x-upsert": "true",
+        "Content-Type": "application/json",
       },
-      // Blob is a universally-accepted BodyInit (a raw Node Buffer is not).
-      body: new Blob([body], { type: contentType }),
+      body: "{}",
     }
   );
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
-    throw new Error(`STORAGE_UPLOAD_FAILED ${res.status} ${detail}`);
+    throw new Error(`STORAGE_SIGN_FAILED ${res.status} ${detail}`);
   }
-  return { path, url: publicUrl(path) };
+  // Supabase returns a path-relative URL, e.g. "/object/upload/sign/<bucket>/<path>?token=…".
+  const { url } = (await res.json()) as { url?: string };
+  if (!url) throw new Error("STORAGE_SIGN_NO_URL");
+  return `${env.url}/storage/v1${url}`;
 }
+
+/**
+ * Whether an object actually landed in the bucket.
+ *
+ * The browser uploads on its own now, so the record step has to confirm the
+ * object exists rather than take the client's word for it — otherwise a crafted
+ * request could write a photo row pointing at nothing.
+ */
+export async function objectExists(path: string): Promise<boolean> {
+  const env = storageEnv();
+  if (!env) return false;
+  try {
+    const res = await fetch(
+      `${env.url}/storage/v1/object/authenticated/${TRIP_PHOTO_BUCKET}/${encodeURI(path)}`,
+      { method: "HEAD", headers: { Authorization: `Bearer ${env.key}`, apikey: env.key } }
+    );
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+// Note: there is deliberately no server-side upload helper here. Sending photo
+// bytes through the app was the bug — see createSignedUploadUrl above.
 
 /** Best-effort delete of an object; swallows failures (row is already gone). */
 export async function deleteObject(path: string): Promise<void> {

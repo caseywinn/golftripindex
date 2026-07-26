@@ -5,6 +5,35 @@ import { createPortal } from "react-dom";
 import styles from "@/styles/tripDetail.module.css";
 import type { TripPhoto } from "@/lib/clubTrips";
 
+type ApiJson = {
+  error?: string;
+  uploads?: { path: string; signedUrl: string }[];
+  photos?: TripPhoto[];
+};
+
+/** Parse a JSON body, tolerating the plain-text bodies that edge errors return. */
+async function readJson(res: Response): Promise<ApiJson | null> {
+  try {
+    return (await res.json()) as ApiJson;
+  } catch {
+    return null;
+  }
+}
+
+/** PUT one file to its signed Supabase URL. The token is in the URL; no headers to add. */
+async function putObject(signedUrl: string, file: File): Promise<boolean> {
+  try {
+    const res = await fetch(signedUrl, {
+      method: "PUT",
+      headers: { "Content-Type": file.type },
+      body: file,
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export default function TripPhotos({
   slug,
   tripId,
@@ -18,6 +47,7 @@ export default function TripPhotos({
 }) {
   const [photos, setPhotos] = useState<TripPhoto[]>(initialPhotos);
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState("");
   const [error, setError] = useState("");
   const [lightbox, setLightbox] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -37,25 +67,77 @@ export default function TripPhotos({
     return () => { document.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
   }, [lightbox, count]);
 
+  /**
+   * Upload in three steps: ask the server for one signed URL per file, PUT the
+   * bytes straight to Supabase Storage, then tell the server what landed.
+   *
+   * The photos deliberately never pass through our own API. A Vercel function
+   * rejects a request body over ~4.5 MB at the edge, so the old single multipart
+   * POST failed on any batch of two or three phone photos — and failed with a
+   * plain-text 413 that res.json() choked on, which is why every error read
+   * "Could not upload. Try again." regardless of cause.
+   */
   async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+    const picked = e.target.files;
+    if (!picked || picked.length === 0) return;
+    const files = Array.from(picked);
     setUploading(true);
     setError("");
-    const fd = new FormData();
-    Array.from(files).forEach((f) => fd.append("files", f));
+    setProgress("");
     try {
-      const res = await fetch(`/api/clubs/${encodeURIComponent(slug)}/trips/${tripId}/photos`, {
+      const base = `/api/clubs/${encodeURIComponent(slug)}/trips/${tripId}/photos`;
+
+      const signRes = await fetch(`${base}/upload-url`, {
         method: "POST",
-        body: fd,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          files: files.map((f) => ({ name: f.name, type: f.type, size: f.size })),
+        }),
       });
-      const data = await res.json();
-      if (res.ok) setPhotos((prev) => [...prev, ...(data.photos ?? [])]);
-      else setError(data.error || "Could not upload.");
+      const signData = await readJson(signRes);
+      if (!signRes.ok) {
+        setError(signData?.error || "Could not start the upload. Try again.");
+        return;
+      }
+
+      const uploads = signData?.uploads ?? [];
+      const done: string[] = [];
+      const failed: string[] = [];
+      for (let i = 0; i < uploads.length; i++) {
+        setProgress(`Uploading ${i + 1} of ${uploads.length}…`);
+        const ok = await putObject(uploads[i].signedUrl, files[i]);
+        if (ok) done.push(uploads[i].path);
+        else failed.push(files[i].name);
+      }
+
+      // Record whatever made it, so one bad file doesn't discard the rest.
+      if (done.length > 0) {
+        setProgress("Saving…");
+        const res = await fetch(base, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ paths: done }),
+        });
+        const data = await readJson(res);
+        if (res.ok) setPhotos((prev) => [...prev, ...(data?.photos ?? [])]);
+        else {
+          setError(data?.error || "Could not save the photos. Try again.");
+          return;
+        }
+      }
+
+      if (failed.length > 0) {
+        setError(
+          failed.length === 1
+            ? `"${failed[0]}" didn't upload. Try again.`
+            : `${failed.length} photos didn't upload. Try again.`
+        );
+      }
     } catch {
-      setError("Could not upload. Try again.");
+      setError("Could not upload. Check your connection and try again.");
     } finally {
       setUploading(false);
+      setProgress("");
       if (inputRef.current) inputRef.current.value = "";
     }
   }
@@ -120,7 +202,7 @@ export default function TripPhotos({
             disabled={uploading}
           />
           <label htmlFor="trip-photo-input" className={styles.photoUploadBtn} aria-disabled={uploading}>
-            {uploading ? "Uploading…" : count ? "Add more photos" : "Upload photos"}
+            {uploading ? progress || "Uploading…" : count ? "Add more photos" : "Upload photos"}
           </label>
           <span className={styles.photoHint}>JPG, PNG, or WebP · up to 10 MB each</span>
         </div>
