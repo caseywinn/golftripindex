@@ -5,6 +5,7 @@ import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { VOTE_TYPES } from "@/lib/planVote";
+import { formatTripWhen, type WhenLike } from "@/lib/planWhen";
 import { roundMatchups, isVotable, roundLabel, champion, type Bracket, type Matchup } from "@/lib/planBracket";
 import type { PollView } from "@/lib/planPoll";
 import { useModalDismiss } from "../../planShared";
@@ -35,6 +36,13 @@ export default function PollClient({ initial }: { initial: PollView }) {
   const vote = view.vote!; // PollClient is only rendered when voting is on
   const formatLabel = VOTE_TYPES.find((v) => v.key === vote.type)?.label ?? "Vote";
   const isOpen = vote.status === "open";
+  // A named trip headlines its own name; an unnamed one still has to ask the
+  // question. The window ("Fall", "March 2026", or a date range) rides along
+  // either way when the proposer set one — it is part of what people vote on.
+  // nights is passed so a dates-mode window shows its end, matching how the
+  // read-only share renders it in page.tsx.
+  const tripTitle = view.club?.tripTitle ?? null;
+  const whenLabel = formatTripWhen(view.when as WhenLike | null, view.nights ?? 0);
   const loginUrl = `/login?callbackUrl=${encodeURIComponent(`/plan/shared/${view.id}`)}`;
 
   // Poll for live "who voted" updates while the vote is open.
@@ -97,9 +105,10 @@ export default function PollClient({ initial }: { initial: PollView }) {
                 : "Vote on the trip"}
           </p>
           <h1 className={styles.title}>
-            {view.club ? "Where should the club go?" : "Where should the group go?"}
+            {tripTitle ?? (view.club ? "Where should the club go?" : "Where should the group go?")}
           </h1>
           <div className={styles.meta}>
+            {whenLabel && <span className={styles.metaPill}>{whenLabel}</span>}
             <span className={styles.metaPill}>{formatLabel}</span>
             <span className={`${styles.statusPill} ${isOpen ? styles.statusOpen : styles.statusClosed}`}>
               {isOpen ? "Voting open" : "Voting closed"}

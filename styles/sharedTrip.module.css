@@ -507,6 +507,33 @@ button.ballotItem {
   flex-grow: 3;
 }
 
+/* On a phone there is no room for a preview of a round nobody can vote on yet.
+   Dropping it gives the current round the whole width — and on round 1, where
+   there is no previous column either, that is the full card.
+
+   Done in CSS rather than by omitting the column in PollClient: the columns are
+   built during render, and deciding from the viewport there would either need a
+   client-side width check (hydration mismatch) or a guess at the device. */
+@media (max-width: 640px) {
+  .bColNext,
+  .bColChamp {
+    display: none;
+  }
+
+  /* The current column still carries .bColOut, since the next column exists in
+     the markup — without this its connectors would point at nothing. Scoped to
+     .bColCurrent so the previous-to-current lines survive. */
+  .bColCurrent.bColOut .bSlot {
+    padding-right: 0;
+  }
+
+  .bColCurrent.bColOut .bSlot::after,
+  .bColCurrent.bColOut .bSlotTop::before,
+  .bColCurrent.bColOut .bSlotBottom::before {
+    display: none;
+  }
+}
+
 .bColTag {
   font-size: 9px;
   font-weight: 800;

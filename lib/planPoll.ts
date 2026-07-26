@@ -44,8 +44,14 @@ export type PollView = {
   when: unknown;
   sharedBy: string | null;
   vote: VoteConfig | null;
-  /** Set when this poll belongs to a club trip; null for a /plan share. */
-  club: { slug: string; name: string } | null;
+  /**
+   * Set when this poll belongs to a club trip; null for a /plan share.
+   *
+   * tripTitle is the trip's own name if the proposer gave it one. The poll page
+   * headlines it instead of the generic "Where should the club go?", so a club
+   * running several votes can tell them apart.
+   */
+  club: { slug: string; name: string; tripTitle: string | null } | null;
   viewer: { loggedIn: boolean; onRoster: boolean; isCaptain: boolean };
   roster: { size: number; voted: number };
   voters: PollVoter[];
@@ -61,6 +67,8 @@ type PollRow = {
   club_id: string | null;
   club_slug: string | null;
   club_name: string | null;
+  /** club_trips.title — the trip's own name, null until someone sets one. */
+  trip_title: string | null;
 };
 
 /** Load the raw shared_trips row, or null for a bad id / missing row. */
@@ -71,7 +79,8 @@ export async function getPollRow(pool: pg.Pool, id: string): Promise<PollRow | n
   // role without a second round-trip.
   const { rows } = await pool.query(
     `SELECT s.user_id, s.state, s.club_trip_id,
-            c.id AS club_id, c.slug AS club_slug, c.name AS club_name
+            c.id AS club_id, c.slug AS club_slug, c.name AS club_name,
+            t.title AS trip_title
        FROM shared_trips s
        LEFT JOIN club_trips t ON t.id = s.club_trip_id
        LEFT JOIN clubs c      ON c.id = t.club_id
@@ -181,7 +190,10 @@ export async function buildPollView(id: string, viewer: Viewer, poolArg?: pg.Poo
     when: state.when ?? null,
     sharedBy: state.sharedBy ?? null,
     vote,
-    club: row.club_slug && row.club_name ? { slug: row.club_slug, name: row.club_name } : null,
+    club:
+      row.club_slug && row.club_name
+        ? { slug: row.club_slug, name: row.club_name, tripTitle: row.trip_title?.trim() || null }
+        : null,
     viewer: {
       loggedIn: !!viewer.userId,
       onRoster: false,
