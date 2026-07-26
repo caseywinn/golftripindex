@@ -985,18 +985,22 @@
   padding: 14px 16px;
 }
 
-/* Collage of the options on the table, evenly split by how many there are. */
+/* Collage of the options on the table, evenly split by how many there are.
+   minmax(0, 1fr) rather than a bare 1fr: 1fr means minmax(auto, 1fr), and an
+   auto minimum refuses to shrink a track below its content's min-content width.
+   The tile names are white-space: nowrap, so four long destinations pushed the
+   grid wider than the card and scrolled the whole page sideways on a phone. */
 .tripHeroGrid[data-count="1"] {
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
 }
 .tripHeroGrid[data-count="2"] {
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 .tripHeroGrid[data-count="3"] {
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 .tripHeroGrid[data-count="4"] {
-  grid-template-columns: 1fr 1fr 1fr 1fr;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .tripTile {
@@ -1265,5 +1269,20 @@
 
   .tripHeroSingle .tripTile {
     min-height: 168px;
+  }
+
+  /* Drop the destination names from the voting collage on a phone. At four
+     across there is no room to read them anyway, and they were what forced the
+     card wider than the screen. Scoped to the collage on purpose: a locked
+     winner (.tripHeroSingle) is one full-width tile and keeps its name, which
+     is the only place the chosen destination is written on this card. The
+     options are still named in the vote itself. */
+  .tripHeroGrid .tripTileName {
+    display: none;
+  }
+
+  /* Without the names the scrim is shading nothing. */
+  .tripHeroGrid .tripTileScrim {
+    display: none;
   }
 }
