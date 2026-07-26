@@ -1242,6 +1242,17 @@
     flex-direction: column;
   }
 
+  /* .layout sets align-items: flex-start for the desktop row, where it keeps the
+     rail from stretching to the main column's height. Once this becomes a column
+     that same value stops the children filling the width — they shrink to their
+     content instead, and flex: 1 on .main governs the main axis, which is now
+     vertical, so it does not help. .rail already opts out with width: 100%;
+     without the same here the trip cards sat at their content width (271px at
+     every viewport, ~65% of a phone) while the roster card looked correct. */
+  .main {
+    width: 100%;
+  }
+
   .rail {
     width: 100%;
     position: static;
