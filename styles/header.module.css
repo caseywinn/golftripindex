@@ -140,6 +140,34 @@
   margin-top: 0px;
 }
 
+/*
+  Auth links inside the hamburger menu. Hidden on desktop, where .cta carries
+  them; shown in the drawer on mobile, where .cta is display:none.
+*/
+.menuAuth {
+  display: none;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  width: 100%;
+  padding-top: 14px;
+  border-top: 1px solid #e9edf3;
+}
+
+/* Matches .navLink so "SIGN OUT" sits flush with the links above it. */
+.menuAuthBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: inherit;
+  color: inherit;
+  text-align: left;
+}
+
 /* Instagram link styling inside the hamburger menu */
 .menuInstagram {
   margin-top: auto; /* pushes it to the bottom */
@@ -205,6 +233,11 @@
 
   /* Instagram link styling inside the hamburger menu */
   .menuInstagram {
+    display: flex;
+  }
+
+  /* Auth links live in the drawer on mobile since .cta is hidden below */
+  .menuAuth {
     display: flex;
   }
 

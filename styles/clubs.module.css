@@ -6,10 +6,15 @@
 
 /* ── Hero ────────────────────────────────────────────────── */
 
+/*
+  1200px / 28px gutters matches .bodyLayout in designTrip.module.css, the content
+  container on the public trip detail page (/trips/[slug]). The hero tracks the
+  layout below it so the two stay flush at the same edges.
+*/
 .heroWrap {
-  max-width: 1280px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 30px 24px 0;
+  padding: 30px 28px 0;
 }
 
 .heroTop {
@@ -54,12 +59,12 @@
 /* ── Layout shell ────────────────────────────────────────── */
 
 .layout {
-  max-width: 1280px;
+  max-width: 1200px;
   margin: 0 auto;
   display: flex;
   gap: 24px;
   align-items: flex-start;
-  padding: 24px 24px 80px;
+  padding: 24px 28px 80px;
 }
 
 .main {

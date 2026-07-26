@@ -53,6 +53,40 @@ export default function SiteHeader() {
             HOW WE RATE
           </Link>
 
+          {/*
+            Auth links, mobile only. The .cta block below is display:none under
+            760px, so without these the drawer offers no way to register or sign
+            in on a phone at all.
+          */}
+          <div className={styles.menuAuth}>
+            {session ? (
+              <>
+                <Link href="/bag" className={styles.navLink} onClick={() => setOpen(false)}>
+                  MY BAG
+                </Link>
+                <button
+                  type="button"
+                  className={styles.menuAuthBtn}
+                  onClick={() => {
+                    setOpen(false);
+                    signOut({ callbackUrl: "/" });
+                  }}
+                >
+                  SIGN OUT
+                </button>
+              </>
+            ) : (
+              <>
+                <Link href="/login" className={styles.navLink} onClick={() => setOpen(false)}>
+                  SIGN IN
+                </Link>
+                <Link href="/register" className={styles.navLink} onClick={() => setOpen(false)}>
+                  REGISTER
+                </Link>
+              </>
+            )}
+          </div>
+
           {/* Instagram moved to bottom of hamburger menu */}
           <a
             href="https://instagram.com/golftripindex"

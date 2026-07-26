@@ -1,7 +1,14 @@
+/*
+  Matches .bodyLayout in designTrip.module.css, which is the content container on
+  the public trip detail page (/trips/[slug]) — same 1200px cap and 28px gutters,
+  so a club's trip recap reads at the same width as a published trip. The public
+  page spends part of that width on a TOC rail; this one has no rail, so the
+  content simply fills it.
+*/
 .page {
-  max-width: 720px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 28px 20px 80px;
+  padding: 44px 28px 80px;
 }
 
 .back {
