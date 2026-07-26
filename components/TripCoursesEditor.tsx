@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import stringify from "fast-json-stable-stringify";
 import styles from "@/styles/tripDetail.module.css";
 import type { TripCourse } from "@/lib/clubTrips";
 
@@ -32,8 +33,13 @@ export default function TripCoursesEditor({
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
 
+  // Stable stringify for the same reason as TripAttendeesEditor: courses live in
+  // a jsonb column, so Postgres hands back {name, slug} for the {slug, name} we
+  // sent. Here it only bit after the first edit — the initial state IS the server
+  // value, so it matched until a newly added course introduced client key order —
+  // but from then on dirty never cleared and the save was never confirmed.
   const dirty = useMemo(
-    () => JSON.stringify(courses) !== JSON.stringify(initialCourses),
+    () => stringify(courses) !== stringify(initialCourses),
     [courses, initialCourses]
   );
 
@@ -186,8 +192,13 @@ export default function TripCoursesEditor({
 
           <div className={styles.saveRow}>
             <button className={styles.saveBtn} onClick={save} disabled={saving || !dirty}>
-              {saving ? "Saving…" : saved && !dirty ? "Saved ✓" : "Save courses"}
+              {saving ? "Saving…" : "Save courses"}
             </button>
+            {saved && !dirty && (
+              <span className={styles.saveNote} role="status">
+                Saved ✓
+              </span>
+            )}
           </div>
         </>
       )}

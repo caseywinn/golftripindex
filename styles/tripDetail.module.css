@@ -716,6 +716,19 @@
 
 .saveRow {
   margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Confirmation that a save landed. Deliberately separate from the button: the
+   old cue was the button relabelling itself to "Saved ✓" and greying out, which
+   reads as "disabled" more than "done". */
+.saveNote {
+  font-size: 13px;
+  font-weight: 700;
+  color: #15803d;
 }
 
 .saveBtn {

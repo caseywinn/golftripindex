@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import stringify from "fast-json-stable-stringify";
 import styles from "@/styles/tripDetail.module.css";
 import type { TripAttendee, TripVisibility } from "@/lib/clubTrips";
 
@@ -47,10 +48,14 @@ export default function TripAttendeesEditor({
     return [...members, ...guests];
   }, [roster, memberIds, guests]);
 
+  // Stable stringify, not JSON.stringify: attendees are stored in a jsonb column,
+  // and Postgres normalizes object key order on the way out. We send
+  // {userId, name} and read back {name, userId}, so a plain stringify compare
+  // never matched even when nothing had changed — dirty was stuck true, which
+  // left the Save button permanently enabled and meant the saved confirmation
+  // (gated on !dirty) could never appear at all.
   const dirty = useMemo(
-    () =>
-      JSON.stringify(attendees) !== JSON.stringify(initialAttendees) ||
-      visibility !== initialVisibility,
+    () => stringify(attendees) !== stringify(initialAttendees) || visibility !== initialVisibility,
     [attendees, initialAttendees, visibility, initialVisibility]
   );
 
@@ -205,10 +210,19 @@ export default function TripAttendeesEditor({
 
       {error && <p className={styles.sectionErr}>{error}</p>}
 
+      {/* The confirmation is its own element rather than the button's label: a
+          button that relabels itself and greys out is easy to miss, and a
+          role="status" node is announced to screen readers. It clears on the next
+          edit, since every mutator resets `saved`. */}
       <div className={styles.saveRow}>
         <button className={styles.saveBtn} onClick={save} disabled={saving || !dirty}>
-          {saving ? "Saving…" : saved && !dirty ? "Saved ✓" : "Save"}
+          {saving ? "Saving…" : "Save"}
         </button>
+        {saved && !dirty && (
+          <span className={styles.saveNote} role="status">
+            Saved ✓
+          </span>
+        )}
       </div>
     </div>
   );
