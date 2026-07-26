@@ -3,11 +3,12 @@ import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { getPgPool } from "@/lib/db";
 import { getPublishedTrips, getPublishedJourneys } from "@/lib/airtable";
-import { getUserProfile } from "@/lib/users";
+import { getUserProfile, userHasPassword } from "@/lib/users";
 import { listClubsForUser } from "@/lib/clubs";
 import BagCarousels, { type BagItem } from "@/components/BagCarousels";
 import ProfileEditor from "@/components/ProfileEditor";
 import MyClubs from "@/components/MyClubs";
+import PasswordCard from "@/components/PasswordCard";
 import styles from "@/styles/bag.module.css";
 
 export const dynamic = "force-dynamic";
@@ -32,11 +33,14 @@ export default async function BagPage() {
     [session.user.id]
   );
 
-  const [trips, journeys, profile, clubs] = await Promise.all([
+  const [trips, journeys, profile, clubs, hasPassword] = await Promise.all([
     getPublishedTrips(),
     getPublishedJourneys(),
     getUserProfile(session.user.id, pool),
     listClubsForUser(session.user.id, pool),
+    // Drives which half of the password card renders — a Google-only account has
+    // no current password to check, so it gets the by-email route instead.
+    userHasPassword(session.user.id, pool),
   ]);
 
   // Trip options for the "favorite trip" picker — slug + name, ranked order.
@@ -80,6 +84,8 @@ export default async function BagPage() {
       <MyClubs clubs={clubs} />
 
       <BagCarousels items={items} />
+
+      <PasswordCard hasPassword={hasPassword} />
     </main>
   );
 }

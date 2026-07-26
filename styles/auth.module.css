@@ -163,3 +163,30 @@
   height: 1px;
   background: #e6e8ee;
 }
+
+/* Sits directly under .footer ("No account? Create one") — same type, tighter
+   gap, so the pair reads as one stack of secondary links rather than two. */
+.footerAlt {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* Confirmation / explanatory copy on the reset screens, where there's no form
+   to carry the message. */
+.notice {
+  margin: 0 0 4px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* .button on its own (no flex form to stretch it) — e.g. the "Sign in" CTA on
+   the reset-complete screen. */
+.buttonBlock {
+  display: block;
+  width: 100%;
+  margin-top: 18px;
+}

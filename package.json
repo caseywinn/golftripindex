@@ -9,7 +9,8 @@
     "lint": "eslint",
     "db:smoke": "node scripts/db-smoke-test.mjs",
     "verify:clubs": "npx --yes tsx@4 --tsconfig tsconfig.json scripts/verify-club-trips.mts",
-    "verify:clubs:schema": "node scripts/verify-club-trips-schema.mjs"
+    "verify:clubs:schema": "node scripts/verify-club-trips-schema.mjs",
+    "verify:password": "npx --yes tsx@4 --tsconfig tsconfig.json scripts/verify-password-reset.mts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.97.1",

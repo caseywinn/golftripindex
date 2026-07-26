@@ -21,6 +21,9 @@ function LoginForm() {
   const prefillEmail = searchParams.get("email") ?? "";
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  // Tracked only so "Forgot password?" can carry whatever address is already in
+  // the field — the form itself still reads from the DOM on submit.
+  const [email, setEmail] = useState(prefillEmail);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -80,6 +83,7 @@ function LoginForm() {
               required
               autoComplete="email"
               defaultValue={prefillEmail}
+              onChange={(e) => setEmail(e.target.value)}
               className={styles.input}
             />
           </label>
@@ -104,6 +108,15 @@ function LoginForm() {
           No account?{" "}
           <Link href={`/register?callbackUrl=${encodeURIComponent(callbackUrl)}`} className={styles.footerLink}>
             Create one
+          </Link>
+        </p>
+
+        <p className={styles.footerAlt}>
+          <Link
+            href={email ? `/forgot-password?email=${encodeURIComponent(email)}` : "/forgot-password"}
+            className={styles.footerLink}
+          >
+            Forgot password?
           </Link>
         </p>
       </div>

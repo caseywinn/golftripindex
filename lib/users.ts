@@ -36,6 +36,43 @@ export async function localUserIdByEmail(email: string): Promise<string | null> 
   return rows.length ? String(rows[0].id) : null;
 }
 
+// ── Password ─────────────────────────────────────────────────────────────────
+
+/**
+ * Whether this account has a password at all.
+ *
+ * A NULL password_hash means OAuth-only (see upsertUserByEmail above), and the
+ * bag page keys the change-password card off this: there is no current password
+ * to verify for a Google-only golfer, so the card would be unanswerable. Those
+ * accounts get a password through the emailed reset link instead, which proves
+ * control of the address — see lib/passwordReset.ts.
+ */
+export async function userHasPassword(userId: string, poolArg?: pg.Pool): Promise<boolean> {
+  const pool = poolArg ?? getPgPool();
+  const { rows } = await pool.query(
+    `SELECT password_hash IS NOT NULL AS has FROM users WHERE id = $1`,
+    [userId]
+  );
+  return rows.length ? Boolean(rows[0].has) : false;
+}
+
+/** The stored bcrypt hash, or null for an OAuth-only account. */
+export async function getPasswordHash(userId: string, poolArg?: pg.Pool): Promise<string | null> {
+  const pool = poolArg ?? getPgPool();
+  const { rows } = await pool.query(`SELECT password_hash FROM users WHERE id = $1`, [userId]);
+  return rows.length ? (rows[0].password_hash ?? null) : null;
+}
+
+/** Write an already-hashed password. Callers hash; this only stores. */
+export async function setPasswordHash(
+  userId: string,
+  hash: string,
+  poolArg?: pg.Pool
+): Promise<void> {
+  const pool = poolArg ?? getPgPool();
+  await pool.query(`UPDATE users SET password_hash = $2 WHERE id = $1`, [userId, hash]);
+}
+
 // ── Profile (edited from the My Bag page) ────────────────────────────────────
 
 export type UserProfile = {
