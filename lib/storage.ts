@@ -52,6 +52,39 @@ export class StorageSignError extends Error {
 }
 
 /**
+ * The request to Storage never got an answer at all.
+ *
+ * Distinct from StorageSignError, which means Supabase replied and said no. This
+ * is fetch itself throwing — DNS failure, a paused project, or a SUPABASE_URL
+ * that isn't a URL. isStorageConfigured() only checks the variable is non-empty,
+ * so a malformed one gets all the way here and used to surface as the same blank
+ * "Try again." as everything else.
+ */
+export class StorageUnreachableError extends Error {
+  constructor(
+    readonly url: string,
+    cause: unknown
+  ) {
+    super(`STORAGE_UNREACHABLE ${url}: ${cause instanceof Error ? cause.message : String(cause)}`);
+    this.name = "StorageUnreachableError";
+  }
+}
+
+/**
+ * Turn a storage failure into something worth showing, or null if it isn't one.
+ *
+ * Keeps the route from having to know the error taxonomy: anything this declines
+ * to explain is a genuine surprise and belongs in the generic message.
+ */
+export function describeStorageFailure(err: unknown): string | null {
+  if (err instanceof StorageSignError) return describeSignFailure(err.code);
+  if (err instanceof StorageUnreachableError) {
+    return `Storage never answered at ${err.url}. This site's Supabase URL may be wrong, or the project paused.`;
+  }
+  return null;
+}
+
+/**
  * What to show someone whose upload died because this deployment is misconfigured.
  *
  * The code is in the text on purpose. Every cause used to read "Could not start
@@ -109,18 +142,24 @@ export async function createSignedUploadUrl(path: string): Promise<string> {
   const env = storageEnv();
   if (!env) throw new Error("STORAGE_NOT_CONFIGURED");
 
-  const res = await fetch(
-    `${env.url}/storage/v1/object/upload/sign/${TRIP_PHOTO_BUCKET}/${encodeURI(path)}`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${env.key}`,
-        apikey: env.key,
-        "Content-Type": "application/json",
-      },
-      body: "{}",
-    }
-  );
+  let res: Response;
+  try {
+    res = await fetch(
+      `${env.url}/storage/v1/object/upload/sign/${TRIP_PHOTO_BUCKET}/${encodeURI(path)}`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${env.key}`,
+          apikey: env.key,
+          "Content-Type": "application/json",
+        },
+        body: "{}",
+      }
+    );
+  } catch (cause) {
+    // No response to read a status from — a bad URL fails here, not above.
+    throw new StorageUnreachableError(env.url, cause);
+  }
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
     throw new StorageSignError(res.status, detail);

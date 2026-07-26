@@ -3,12 +3,7 @@ import { auth } from "@/auth";
 import { getPgPool } from "@/lib/db";
 import { getClubBySlug, getClubViewer, canManage } from "@/lib/clubs";
 import { getClubTripById } from "@/lib/clubTrips";
-import {
-  isStorageConfigured,
-  createSignedUploadUrl,
-  StorageSignError,
-  describeSignFailure,
-} from "@/lib/storage";
+import { isStorageConfigured, createSignedUploadUrl, describeStorageFailure } from "@/lib/storage";
 import { UUID_RE, EXT, MAX_BYTES, MAX_FILES, photoPath } from "../limits";
 
 export const runtime = "nodejs";
@@ -77,11 +72,11 @@ export async function POST(req: Request, ctx: { params: Promise<{ slug: string; 
     return NextResponse.json({ uploads });
   } catch (err) {
     console.error("[clubs/trips/:id/photos/upload-url] error:", err);
-    // A refusal from Supabase is a deployment problem, not a blip — say which,
-    // so it can be diagnosed from the page instead of the host's logs.
-    if (err instanceof StorageSignError) {
-      return NextResponse.json({ error: describeSignFailure(err.code) }, { status: 502 });
-    }
+    // A storage failure is a deployment problem, not a blip — say which, so it
+    // can be diagnosed from the page instead of the host's logs. Covers both a
+    // refusal (Supabase answered no) and no answer at all (bad or dead URL).
+    const explained = describeStorageFailure(err);
+    if (explained) return NextResponse.json({ error: explained }, { status: 502 });
     return NextResponse.json({ error: "Could not start the upload. Try again." }, { status: 500 });
   }
 }
