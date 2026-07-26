@@ -40,6 +40,14 @@
   color: #9aa3b2;
 }
 
+/* Holds the Private pill alongside the owner's preview control. */
+.heroBadges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .privacyPill {
   display: inline-flex;
   align-items: center;
@@ -54,6 +62,48 @@
   padding: 5px 10px;
   border-radius: 999px;
   white-space: nowrap;
+}
+
+/* Same pill geometry as .privacyPill, in the accent colour, so "you are not
+   seeing the real page" reads at a glance rather than being inferred from
+   missing buttons. */
+.previewPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #0488db;
+  border: 1px solid #cfe8fb;
+  background: #f2f9fe;
+  padding: 5px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.previewLink,
+.previewExit {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #6b7280;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  white-space: nowrap;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.previewLink:hover,
+.previewExit:hover {
+  color: #0488db;
+  border-bottom-color: #0488db;
+}
+
+.previewExit {
+  color: #0488db;
 }
 
 /* ── Layout shell ────────────────────────────────────────── */
@@ -826,6 +876,62 @@
   border: 1px solid #e9edf3;
   border-radius: 14px;
   background: #fff;
+}
+
+/* ── Past trip with a gallery thumbnail ──────────────────── */
+
+/* Media down the left edge, same treatment as the /trips list card (cover fill,
+   grey placeholder behind it, gentle zoom on hover) at a size that suits these
+   much shorter cards. The card drops its own padding and the body supplies it,
+   so the image reaches the card's edges. */
+.tripCardWithMedia {
+  padding: 0;
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  overflow: hidden;
+}
+
+.tripMediaLink {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.tripMedia {
+  position: relative;
+  display: block;
+  height: 100%;
+  min-height: 150px;
+  background-color: #e9edf3;
+  overflow: hidden;
+}
+
+.tripMediaImage {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  transition: transform 0.3s ease;
+}
+
+.tripCardWithMedia:hover .tripMediaImage {
+  transform: scale(1.03);
+}
+
+/* Padding the flat card would have carried itself. */
+.tripCardPad {
+  padding: 20px 22px;
+}
+
+@media (max-width: 700px) {
+  .tripCardWithMedia {
+    grid-template-columns: 1fr;
+  }
+
+  .tripMedia {
+    min-height: 170px;
+  }
 }
 
 .tripCardTop {

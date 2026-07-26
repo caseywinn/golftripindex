@@ -217,6 +217,32 @@ export async function listTripPhotos(clubTripId: string, poolArg?: pg.Pool): Pro
   }));
 }
 
+/**
+ * The first photo of each trip, for the club page's past-trip card thumbnails.
+ *
+ * One query for the whole list rather than listTripPhotos per card: the club page
+ * renders every past trip at once, so per-trip calls would be a round trip each.
+ * DISTINCT ON takes the oldest photo per trip, matching listTripPhotos' order, so
+ * the thumbnail is the same photo that leads the gallery.
+ *
+ * Trips with no photos are simply absent from the map; the caller falls back.
+ */
+export async function firstPhotoByTrip(
+  clubTripIds: string[],
+  poolArg?: pg.Pool
+): Promise<Map<string, string>> {
+  if (clubTripIds.length === 0) return new Map();
+  const pool = poolArg ?? getPgPool();
+  const { rows } = await pool.query(
+    `SELECT DISTINCT ON (club_trip_id) club_trip_id, url
+       FROM club_trip_photos
+      WHERE club_trip_id = ANY($1::uuid[])
+      ORDER BY club_trip_id, created_at ASC`,
+    [clubTripIds]
+  );
+  return new Map(rows.map((r) => [String(r.club_trip_id), r.url as string]));
+}
+
 export async function addTripPhoto(
   clubTripId: string,
   path: string,

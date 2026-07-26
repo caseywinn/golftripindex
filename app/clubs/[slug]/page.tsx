@@ -14,7 +14,12 @@ import {
   countActiveMembers,
   type ClubMember,
 } from "@/lib/clubs";
-import { getCurrentClubTrip, listPastClubTrips, type ClubTrip } from "@/lib/clubTrips";
+import {
+  getCurrentClubTrip,
+  listPastClubTrips,
+  firstPhotoByTrip,
+  type ClubTrip,
+} from "@/lib/clubTrips";
 import { getPublishedTrips } from "@/lib/airtable";
 import { VOTE_TYPES } from "@/lib/planVote";
 import ClubInvite from "@/components/ClubInvite";
@@ -70,12 +75,15 @@ function TripCard({
   slug,
   manages,
   featured = false,
+  coverUrl = null,
 }: {
   trip: ClubTrip;
   slug: string;
   manages: boolean;
   /** The open trip gets an image hero; past trips stay as flat cards. */
   featured?: boolean;
+  /** First photo from this trip's gallery, shown down the card's left edge. */
+  coverUrl?: string | null;
 }) {
   const voting = trip.status === "voting" && trip.voteStatus === "open";
   // The poll closed but named no winner — an exact tie, which deliberately does
@@ -116,8 +124,31 @@ function TripCard({
       ? { text: "Tied", cls: styles.tripHeroBadgeTied }
       : { text: STATUS_LABEL[trip.status] ?? trip.status, cls: styles.tripHeroBadgePlanning };
 
+  // Only past cards take a gallery thumbnail — the featured card already leads
+  // with its own destination hero.
+  const cover = !featured ? coverUrl : null;
+
   return (
-    <div className={`${styles.tripCard} ${featured ? styles.tripCardFeatured : ""}`}>
+    <div
+      className={`${styles.tripCard} ${featured ? styles.tripCardFeatured : ""} ${
+        cover ? styles.tripCardWithMedia : ""
+      }`}
+    >
+      {cover && (
+        <Link
+          href={`/clubs/${slug}/trips/${trip.id}`}
+          className={styles.tripMediaLink}
+          aria-label={`View trip: ${heading}`}
+        >
+          <span className={styles.tripMedia}>
+            <span
+              className={styles.tripMediaImage}
+              style={{ backgroundImage: `url(${cover})` }}
+            />
+          </span>
+        </Link>
+      )}
+
       {featured && heroDests.length > 0 && (
         <div
           className={`${styles.tripHero} ${chosen ? styles.tripHeroSingle : styles.tripHeroGrid}`}
@@ -140,7 +171,9 @@ function TripCard({
         </div>
       )}
 
-      <div className={featured ? styles.tripCardBody : undefined}>
+      <div
+        className={featured ? styles.tripCardBody : cover ? styles.tripCardPad : undefined}
+      >
         {featured ? (
           (voteLabel && voting) || trip.proposedBy ? (
             <div className={styles.tripCardMeta}>
@@ -198,17 +231,26 @@ function TripCard({
           </div>
         )}
 
-        <div className={styles.tripCtaRow}>
-          <Link href={`/clubs/${slug}/trips/${trip.id}`} className={styles.tripCta}>
-            View trip →
-          </Link>
-          {/* A trip with no poll row can't be linked to a vote. */}
-          {trip.pollId && (
-            <Link href={`/plan/shared/${trip.pollId}`} className={styles.tripCta}>
-              {voting ? "Vote →" : "See the vote →"}
-            </Link>
-          )}
-        </div>
+        {/* While the vote is open, "Vote" is the only action worth offering: the
+            trip page has no destination, dates, or attendees to show until the
+            poll picks a winner, so "View trip" just leads somewhere empty. It
+            returns once the vote closes — including on a tie, which is still
+            worth opening. */}
+        {(!voting || trip.pollId) && (
+          <div className={styles.tripCtaRow}>
+            {!voting && (
+              <Link href={`/clubs/${slug}/trips/${trip.id}`} className={styles.tripCta}>
+                View trip →
+              </Link>
+            )}
+            {/* A trip with no poll row can't be linked to a vote. */}
+            {trip.pollId && (
+              <Link href={`/plan/shared/${trip.pollId}`} className={styles.tripCta}>
+                {voting ? "Vote →" : "See the vote →"}
+              </Link>
+            )}
+          </div>
+        )}
 
         {manages && trip.status !== "completed" && trip.status !== "archived" && (
           <ClubTripActions
@@ -230,8 +272,15 @@ function pillFor(m: ClubMember): { label: string; className: string } {
   return { label: "Member", className: "" };
 }
 
-export default async function ClubPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function ClubPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ preview?: string }>;
+}) {
   const { slug } = await params;
+  const { preview } = await searchParams;
   const session = await auth();
   if (!session?.user?.id) {
     redirect(`/register?callbackUrl=/clubs/${encodeURIComponent(slug)}`);
@@ -265,27 +314,47 @@ export default async function ClubPage({ params }: { params: Promise<{ slug: str
     );
   }
 
+  // "Preview page" shows an owner or admin the club as a rank-and-file member
+  // sees it. It only ever REMOVES privileges — a plain member who adds the
+  // parameter gains nothing, since previewing requires being a manager first —
+  // so this is presentation, not access control. Manager-only data isn't even
+  // fetched while previewing, which keeps it out of the payload.
+  const isManager = canManage(viewer);
+  const previewing = isManager && preview === "member";
+  const manages = isManager && !previewing;
+
   const [members, seats, requests, currentTrip, pastTrips, tripsCatalog] = await Promise.all([
     listMembers(club.id, pool),
     countSeats(club, pool),
-    canManage(viewer) ? listRequests(club.id, pool) : Promise.resolve([]),
+    manages ? listRequests(club.id, pool) : Promise.resolve([]),
     getCurrentClubTrip(club.id, pool),
     listPastClubTrips(club.id, pool),
     // Only managers see "Add a past trip" (and its destination autocomplete).
-    canManage(viewer)
+    manages
       ? getPublishedTrips().then((ts) => ts.map((t) => ({ slug: t.slug, name: t.name })))
       : Promise.resolve([] as { slug: string; name: string }[]),
   ]);
 
-  const manages = canManage(viewer);
-
   // Respect each trip's visibility: an 'attendees'-only trip is hidden from
   // members who didn't come (managers always see the trips they record).
   const viewerId = session.user.id;
+  // While previewing, the viewer's own attendance is dropped as well: the useful
+  // question is what a member who WASN'T on the trip sees, which is the narrowest
+  // view the roster gets. An owner who attended would otherwise still see an
+  // attendees-only trip and conclude the whole club can.
   const canSeeTrip = (t: ClubTrip) =>
-    t.visibility === "club" || manages || t.attendees.some((a) => a.userId === viewerId);
+    t.visibility === "club" ||
+    manages ||
+    (!previewing && t.attendees.some((a) => a.userId === viewerId));
   const visibleCurrent = currentTrip && canSeeTrip(currentTrip) ? currentTrip : null;
   const visiblePast = pastTrips.filter(canSeeTrip);
+
+  // Thumbnails for the past-trip cards. Looked up only for the trips this viewer
+  // can actually see, so a hidden trip's photo url never reaches the page.
+  const covers = await firstPhotoByTrip(
+    visiblePast.map((t) => t.id),
+    pool
+  );
 
   const used = seats.active + seats.pending;
   const remaining = Math.max(0, seats.limit - used);
@@ -300,7 +369,20 @@ export default async function ClubPage({ params }: { params: Promise<{ slug: str
             <h1 className={styles.heroTitle}>{club.name}</h1>
             {club.homeCourse && <p className={styles.heroSub}>Home course · {club.homeCourse}</p>}
           </div>
-          {!club.isPublic && <span className={styles.privacyPill}>Private</span>}
+          <div className={styles.heroBadges}>
+            {previewing && <span className={styles.previewPill}>Viewing as member</span>}
+            {!club.isPublic && <span className={styles.privacyPill}>Private</span>}
+            {isManager &&
+              (previewing ? (
+                <Link href={`/clubs/${club.slug}`} className={styles.previewExit}>
+                  Exit preview
+                </Link>
+              ) : (
+                <Link href={`/clubs/${club.slug}?preview=member`} className={styles.previewLink}>
+                  Preview page
+                </Link>
+              ))}
+          </div>
         </div>
       </header>
 
@@ -333,7 +415,13 @@ export default async function ClubPage({ params }: { params: Promise<{ slug: str
             </div>
             {visiblePast.length ? (
               visiblePast.map((t) => (
-                <TripCard key={t.id} trip={t} slug={club.slug} manages={manages} />
+                <TripCard
+                  key={t.id}
+                  trip={t}
+                  slug={club.slug}
+                  manages={manages}
+                  coverUrl={covers.get(t.id) ?? null}
+                />
               ))
             ) : (
               <div className={styles.empty}>
