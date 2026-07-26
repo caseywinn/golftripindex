@@ -12,6 +12,65 @@
 
 export const TRIP_PHOTO_BUCKET = "trip-photos";
 
+/**
+ * Supabase's own code for a failure, which is NOT the HTTP status it sent.
+ *
+ * Storage answers 400 to both a rejected key and a missing bucket, and puts the
+ * code that tells them apart in the body: {"statusCode":"403","error":"Unauthorized"}
+ * versus {"statusCode":"404","error":"InvalidRequest"}. Branching on res.status
+ * therefore cannot distinguish the two — this reads the inner value instead.
+ */
+function signFailureCode(body: string): number | null {
+  try {
+    const n = Number((JSON.parse(body) as { statusCode?: unknown }).statusCode);
+    return Number.isFinite(n) ? n : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Supabase refused to sign an upload, and `code` says why.
+ *
+ * Worth its own error type because that code is the entire diagnosis: 403 means
+ * the key is wrong, 404 means the URL points at a project without this bucket.
+ * Collapsing both into one Error is what made a permanently misconfigured
+ * deployment indistinguishable from a transient failure.
+ */
+export class StorageSignError extends Error {
+  /** Supabase's inner code, or the HTTP status if the body wasn't its usual JSON. */
+  readonly code: number;
+
+  constructor(
+    readonly httpStatus: number,
+    readonly body: string
+  ) {
+    super(`STORAGE_SIGN_FAILED http=${httpStatus} ${body}`);
+    this.name = "StorageSignError";
+    this.code = signFailureCode(body) ?? httpStatus;
+  }
+}
+
+/**
+ * What to show someone whose upload died because this deployment is misconfigured.
+ *
+ * The code is in the text on purpose. Every cause used to read "Could not start
+ * the upload. Try again.", so telling a rejected key from a wrong project URL
+ * meant going and reading the host's function logs — the site looked merely flaky
+ * when it was actually never going to work. Only club owners and admins can reach
+ * this, and it names no secret: just the code and which half of the configuration
+ * is at fault.
+ */
+export function describeSignFailure(code: number): string {
+  if (code === 401 || code === 403) {
+    return `Storage rejected this site's key (${code}). Its Supabase key is invalid or has been disabled.`;
+  }
+  if (code === 404) {
+    return `Storage has no "${TRIP_PHOTO_BUCKET}" bucket (404). This site's Supabase URL may point at the wrong project.`;
+  }
+  return `Storage would not start the upload (${code}). Try again.`;
+}
+
 function storageEnv(): { url: string; key: string } | null {
   const url = process.env.SUPABASE_URL;
   // Supabase's new "Secret" key (sb_secret_…) or the legacy service_role key —
@@ -64,7 +123,7 @@ export async function createSignedUploadUrl(path: string): Promise<string> {
   );
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
-    throw new Error(`STORAGE_SIGN_FAILED ${res.status} ${detail}`);
+    throw new StorageSignError(res.status, detail);
   }
   // Supabase returns a path-relative URL, e.g. "/object/upload/sign/<bucket>/<path>?token=…".
   const { url } = (await res.json()) as { url?: string };
