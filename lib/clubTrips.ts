@@ -310,12 +310,12 @@ export type CreateTripResult =
  * The roster seed is the reason this can't just call /api/plan/share. In /plan
  * the only way onto a roster is to be emailed a link, so the seat insert rides
  * along inside the email handler (app/api/plan/share/email/route.ts:71-82) and a
- * failed send leaves a phantom voter in the auto-close denominator. A club
- * already knows its members, so it seeds them directly and sends nothing.
+ * failed send leaves a phantom voter in the turnout denominator. A club already
+ * knows its members, so it seeds them directly and sends nothing.
  *
  * Atomic because a partial commit is a broken poll: a share row with no roster
- * auto-closes on the first ballot (denominator of zero voters vs one), and a
- * club trip with no share row renders as a trip nobody can vote on.
+ * shows the captain a turnout of 1/0 to close out on, and a club trip with no
+ * share row renders as a trip nobody can vote on.
  */
 export async function createClubTrip(
   opts: {
@@ -355,8 +355,8 @@ export async function createClubTrip(
 
     // The roster is the club's active members. Suspended and invited-but-unclaimed
     // members are deliberately excluded: an unclaimed invite has no user_id, so it
-    // could never cast a ballot, and seating it would inflate the auto-close
-    // denominator to a number the club can never reach.
+    // could never cast a ballot, and seating it would inflate the turnout the
+    // captain reads before closing to a number the club can never reach.
     const { rows: memberRows } = await client.query(
       `SELECT email, user_id FROM club_members
         WHERE club_id = $1 AND status = 'active'`,

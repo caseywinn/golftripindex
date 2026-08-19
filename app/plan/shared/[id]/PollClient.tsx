@@ -6,7 +6,15 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { VOTE_TYPES } from "@/lib/planVote";
 import { formatTripWhen, type WhenLike } from "@/lib/planWhen";
-import { roundMatchups, isVotable, roundLabel, champion, type Bracket, type Matchup } from "@/lib/planBracket";
+import {
+  roundMatchups,
+  isVotable,
+  roundLabel,
+  champion,
+  projectedWinner,
+  type Bracket,
+  type Matchup,
+} from "@/lib/planBracket";
 import type { PollView } from "@/lib/planPoll";
 import { useModalDismiss } from "../../planShared";
 import styles from "@/styles/sharedTrip.module.css";
@@ -32,6 +40,8 @@ export default function PollClient({ initial }: { initial: PollView }) {
   const [view, setView] = useState<PollView>(initial);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  // The advance-round confirmation modal (captain only).
+  const [advanceOpen, setAdvanceOpen] = useState(false);
 
   const vote = view.vote!; // PollClient is only rendered when voting is on
   const formatLabel = VOTE_TYPES.find((v) => v.key === vote.type)?.label ?? "Vote";
@@ -191,18 +201,46 @@ export default function PollClient({ initial }: { initial: PollView }) {
         {/* Captain controls */}
         {isCaptain && isOpen && (() => {
           const bracket = vote.type === "bracket" ? (vote.bracket as Bracket | undefined) : undefined;
-          const isFinalRound = bracket ? vote.currentRound >= bracket.rounds : false;
-          const advancing = !!bracket && !isFinalRound;
+          const isFinalRound = !!bracket && vote.currentRound >= bracket.rounds;
           return (
             <div className={styles.captainBar}>
-              <button className={styles.closeBtn} disabled={busy} onClick={() => post("close")}>
-                {busy ? "Working…" : advancing ? "Advance round now" : "Close & reveal results"}
+              <button className={styles.closeBtn} disabled={busy} onClick={() => setAdvanceOpen(true)}>
+                {busy
+                  ? "Working…"
+                  : !bracket
+                    ? "Review & close the vote"
+                    : isFinalRound
+                      ? "Crown the champion"
+                      : "Advance round now"}
               </button>
               <p className={styles.captainHint}>
-                {advancing
-                  ? "The round advances on its own once everyone votes — or move it on now."
-                  : "It'll close on its own once everyone votes — or end it now."}
+                {bracket
+                  ? "Nothing resolves until you say so. You'll see every matchup and its tally, and can call any of them by hand, before anyone is knocked out."
+                  : "Nothing closes until you say so. You'll see the standings, and can call the winner yourself, before anyone else sees a result."}
               </p>
+              {advanceOpen && (bracket ? (
+                <AdvanceModal
+                  view={view}
+                  bracket={bracket}
+                  isFinal={isFinalRound}
+                  busy={busy}
+                  onClose={() => setAdvanceOpen(false)}
+                  onConfirm={async (overrides) => {
+                    const ok = await post("close", { overrides });
+                    if (ok) setAdvanceOpen(false);
+                  }}
+                />
+              ) : (
+                <ReviewModal
+                  view={view}
+                  busy={busy}
+                  onClose={() => setAdvanceOpen(false)}
+                  onConfirm={async (winner) => {
+                    const ok = await post("close", { winner });
+                    if (ok) setAdvanceOpen(false);
+                  }}
+                />
+              ))}
             </div>
           );
         })()}
@@ -400,6 +438,21 @@ function BracketBoard({
     saveStaged(stageKey, picks);
   }, [picks, stageKey]);
 
+  // On a phone the board is a one-round-per-page swipe carousel, so it has to
+  // open parked on the live round rather than on round 1. Nothing overflows on
+  // desktop, where the scroll is a no-op.
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const currentColRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    const col = currentColRef.current;
+    if (!scroller || !col) return;
+    const behavior = scroller.style.scrollBehavior;
+    scroller.style.scrollBehavior = "auto";
+    scroller.scrollLeft += col.getBoundingClientRect().left - scroller.getBoundingClientRect().left;
+    scroller.style.scrollBehavior = behavior;
+  }, [vote.currentRound]);
+
   async function submit() {
     const ok = await onSubmit(picks);
     if (ok) clearStaged(stageKey);
@@ -414,33 +467,43 @@ function BracketBoard({
   }
 
   const destOf = (slug: string | null) => (slug ? view.destinations.find((d) => d.slug === slug) ?? null : null);
+  // The server sends captainTally: null to everyone but the captain, so counts
+  // stay null for the crowd and the running tally never renders for them.
+  const tally = view.captainTally;
+  const countsFor = (m: Matchup) =>
+    tally && tally.round === m.round ? tally.counts[m.id] ?? { a: 0, b: 0 } : null;
   const champ = champion(bracket);
   const round = vote.currentRound;
   const votable = canVote ? roundMatchups(bracket, round).filter(isVotable) : [];
+
   const allPicked = votable.every((m) => picks[m.id]);
   const canPickOpen = !!compareFor && canVote && vote.status === "open" && compareFor.round === round && isVotable(compareFor);
 
-  // Focused window: the previous round (minimized), the current round (wide,
-  // rich cards), and a preview of the next round. The champion stands in for
-  // "next" once we're on the final round.
-  type Col = { key: string; r?: number; champion?: boolean; role: "prev" | "current" | "next" };
+  // Every round is in the markup so a phone can swipe through the whole tree.
+  // Desktop shows only the focused window — the previous round (minimized), the
+  // current round (wide, rich cards), and a preview of the next — and hides the
+  // rest via .bColFar. The champion stands in for "next" on the final round.
+  type Col = { key: string; r?: number; champion?: boolean; role: "past" | "prev" | "current" | "next" | "future" };
+  const roleFor = (r: number): Col["role"] =>
+    r === round ? "current" : r === round - 1 ? "prev" : r === round + 1 ? "next" : r < round ? "past" : "future";
   const columns: Col[] = [];
-  if (round - 1 >= 1) columns.push({ key: `r${round - 1}`, r: round - 1, role: "prev" });
-  columns.push({ key: `r${round}`, r: round, role: "current" });
-  if (round + 1 <= bracket.rounds) columns.push({ key: `r${round + 1}`, r: round + 1, role: "next" });
-  else columns.push({ key: "champ", champion: true, role: "next" });
+  for (let r = 1; r <= bracket.rounds; r++) columns.push({ key: `r${r}`, r, role: roleFor(r) });
+  columns.push({ key: "champ", champion: true, role: round >= bracket.rounds ? "next" : "future" });
 
   return (
     <div>
       <div className={styles.bracketScroll}>
-        <div className={styles.bracket}>
-          {columns.map((col, ci) => {
-            const showIn = ci > 0;
-            const showOut = ci < columns.length - 1;
+        <div className={styles.bracket} ref={scrollerRef}>
+          {columns.map((col) => {
+            const showIn = col.role === "next" || (col.role === "current" && round > 1);
+            const showOut = col.role === "prev" || col.role === "current";
 
             if (col.champion) {
               return (
-                <div key={col.key} className={`${styles.bCol} ${styles.bColChamp}`}>
+                <div
+                  key={col.key}
+                  className={`${styles.bCol} ${styles.bColChamp} ${col.role === "next" ? "" : styles.bColFar}`}
+                >
                   <div className={styles.bColHead}>Champion</div>
                   <div className={styles.bColBody}>
                     <div className={`${styles.bSlot} ${showIn ? styles.bSlotIn : ""} ${styles.bSlotLone}`}>
@@ -460,15 +523,25 @@ function BracketBoard({
             const single = matchups.length === 1;
             const live = r === round && vote.status === "open";
             const widthCls =
-              col.role === "current" ? styles.bColCurrent : col.role === "prev" ? styles.bColPrev : styles.bColNext;
+              col.role === "current"
+                ? styles.bColCurrent
+                : col.role === "prev"
+                  ? styles.bColPrev
+                  : col.role === "next"
+                    ? styles.bColNext
+                    : styles.bColFar;
 
             return (
-              <div key={col.key} className={`${styles.bCol} ${widthCls} ${showOut ? styles.bColOut : ""}`}>
+              <div
+                key={col.key}
+                ref={col.role === "current" ? currentColRef : undefined}
+                className={`${styles.bCol} ${widthCls} ${showOut ? styles.bColOut : ""}`}
+              >
                 <div className={styles.bColHead}>
                   {roundLabel(r, bracket.rounds)}
                   {live && <span className={styles.bLive}>Voting</span>}
-                  {col.role === "prev" && <span className={styles.bColTag}>Done</span>}
-                  {col.role === "next" && <span className={styles.bColTag}>Up next</span>}
+                  {r < round && <span className={styles.bColTag}>Done</span>}
+                  {r > round && <span className={styles.bColTag}>Up next</span>}
                 </div>
                 <div className={styles.bColBody}>
                   {matchups.map((m, idx) => (
@@ -487,6 +560,7 @@ function BracketBoard({
                         onPreview={setPreviewSlug}
                         onVote={(slug) => setPicks((p) => ({ ...p, [m.id]: slug }))}
                         onCompare={m.a && m.b ? () => setCompareFor(m) : undefined}
+                        counts={live ? countsFor(m) : null}
                       />
                     </div>
                   ))}
@@ -495,6 +569,9 @@ function BracketBoard({
             );
           })}
         </div>
+        {/* Phone only — the swipe is the only way to the other rounds there, and
+            a gesture with no affordance goes unfound. */}
+        <p className={styles.bSwipeHint}>Swipe to see the other rounds</p>
       </div>
 
       {canVote && votable.length > 0 && (
@@ -536,7 +613,7 @@ function BracketBoard({
 }
 
 function BracketMatch({
-  m, variant, destOf, name, pick, votable, onPreview, onVote, onCompare,
+  m, variant, destOf, name, pick, votable, onPreview, onVote, onCompare, counts,
 }: {
   m: Matchup;
   variant: "big" | "compact";
@@ -547,6 +624,8 @@ function BracketMatch({
   onPreview: (slug: string) => void;
   onVote: (slug: string) => void;
   onCompare?: () => void;
+  /** Captain only: live votes for each side of this matchup. */
+  counts?: { a: number; b: number } | null;
 }) {
   const big = variant === "big";
 
@@ -556,6 +635,7 @@ function BracketMatch({
     const isLoser = !!m.winner && !!slug && m.winner !== slug;
     const isPicked = votable && pick === slug;
     const d = destOf(slug);
+    const votes = counts && slug ? counts[key] : null;
 
     if (big) {
       const cls = [
@@ -577,14 +657,26 @@ function BracketMatch({
               {meta && <span className={styles.bBigMeta}>{meta}</span>}
             </span>
           </button>
-          {/* Direct vote — no modal required. */}
-          {votable && slug && (
-            <button
-              className={`${styles.bVoteBtn} ${isPicked ? styles.bVoteBtnOn : ""}`}
-              onClick={() => onVote(slug)}
-            >
-              {isPicked ? "✓ Picked" : "Vote"}
-            </button>
+          {/* Direct vote — no modal required. The captain's running tally sits
+              under the button; nobody else is sent the numbers. */}
+          {slug && (votable || votes != null) && (
+            <div className={styles.bVoteCell}>
+              {votable && (
+                <button
+                  className={`${styles.bVoteBtn} ${isPicked ? styles.bVoteBtnOn : ""}`}
+                  onClick={() => onVote(slug)}
+                  aria-label={isPicked ? `Picked ${name(slug) ?? ""}`.trim() : `Vote for ${name(slug) ?? ""}`.trim()}
+                >
+                  {/* Both states are stacked in one grid cell, so the picked state —
+                      a bare checkmark — keeps the width the word "Vote" sets. */}
+                  <span className={styles.bVoteBtnWord}>Vote</span>
+                  {isPicked && <span className={styles.bVoteBtnCheck} aria-hidden="true">✓</span>}
+                </button>
+              )}
+              {votes != null && (
+                <span className={styles.bVoteTally}>{votes} vote{votes === 1 ? "" : "s"}</span>
+              )}
+            </div>
           )}
           {isWinner && <span className={styles.bSideMark}>🏆</span>}
         </div>
@@ -625,6 +717,240 @@ function BracketMatch({
     <div className={styles.bMatch}>
       {renderSide("a")}
       {renderSide("b")}
+    </div>
+  );
+}
+
+// ── Close-out review, approval + ranked (captain only) ───────────────────────────
+
+/**
+ * The standings before anyone else sees them, and the chance to call the winner.
+ *
+ * A one-shot vote has no matchups, so the captain's override is the winner
+ * itself. Calling it doesn't touch the ballots — the standings still read
+ * exactly as the group voted them, with the call sitting beside them.
+ */
+function ReviewModal({
+  view, busy, onClose, onConfirm,
+}: {
+  view: PollView;
+  busy: boolean;
+  onClose: () => void;
+  onConfirm: (winner: string | null) => void;
+}) {
+  useModalDismiss(onClose);
+
+  const results = view.captainResults;
+  const name = (slug: string) => view.destinations.find((d) => d.slug === slug)?.name ?? slug;
+  // Only a deviation lives here: picking the trip the vote already gives it
+  // clears the call, so "Your call" means the captain overrode something.
+  const [called, setCalled] = useState<string | null>(null);
+
+  const rows = results?.rows ?? [];
+  const tied = (results?.winners.length ?? 0) > 1;
+  // A tie has no single winner to fall back on, so nothing leads until called.
+  const byVote = tied ? null : results?.winners[0] ?? null;
+  const winner = called ?? byVote;
+  const max = rows.length ? Math.max(1, rows[0].score) : 1;
+  const unit = results?.type === "ranked" ? "pts" : "votes";
+
+  return (
+    <div className={styles.modalOverlay} onClick={onClose}>
+      <div className={styles.advCard} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.advHead}>
+          <div className={styles.advHeadText}>
+            <h2 className={styles.advTitle}>Close out the vote</h2>
+            <p className={styles.advSub}>
+              {view.roster.voted} of {view.roster.size} voted · tap a trip to call it the winner
+            </p>
+          </div>
+          <button className={styles.modalCloseBtn} onClick={onClose} aria-label="Close">×</button>
+        </div>
+
+        <div className={styles.advBody}>
+          {rows.length === 0 ? (
+            <p className={styles.advNote}>No ballots yet — closing now decides nothing.</p>
+          ) : (
+            rows.map((r) => {
+              const wins = winner === r.slug;
+              return (
+                <button
+                  key={r.slug}
+                  className={`${styles.revRow} ${wins ? styles.revRowOn : ""} ${wins && called ? styles.revRowCalled : ""}`}
+                  disabled={busy}
+                  onClick={() => setCalled(r.slug === byVote || r.slug === called ? null : r.slug)}
+                >
+                  <span className={styles.revTop}>
+                    <span className={styles.revName}>{wins ? "🏆 " : ""}{name(r.slug)}</span>
+                    <span className={styles.revScore}>
+                      {r.score} {unit}
+                      {wins && <span className={styles.revTag}>{called ? "Your call" : "Winner"}</span>}
+                    </span>
+                  </span>
+                  <span className={styles.resultBarTrack}>
+                    <span className={styles.resultBar} style={{ width: `${(r.score / max) * 100}%` }} />
+                  </span>
+                </button>
+              );
+            })
+          )}
+          <p className={styles.advNote}>
+            {called
+              ? `Your call — ${name(called)} takes the trip however the vote landed.`
+              : tied
+                ? "Tied — call it, or the trip stays unsettled."
+                : winner
+                  ? `${name(winner)} takes the trip on the vote.`
+                  : "Nothing is decided yet."}
+          </p>
+        </div>
+
+        <div className={styles.advFoot}>
+          <button className={styles.advCancel} onClick={onClose} disabled={busy}>Cancel</button>
+          <button className={styles.advGo} onClick={() => onConfirm(called)} disabled={busy}>
+            {busy ? "Working…" : "Close the vote"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Advance-round confirmation (captain only) ────────────────────────────────────
+
+/**
+ * What advancing would do, matchup by matchup, before it happens.
+ *
+ * The captain sees the tally, the trip each matchup would send through, and can
+ * call any of them the other way. Nothing is written until they confirm — the
+ * calls ride along with the advance request — so cancelling really does leave
+ * the round untouched.
+ */
+function AdvanceModal({
+  view, bracket, isFinal, busy, onClose, onConfirm,
+}: {
+  view: PollView;
+  bracket: Bracket;
+  /** The last round: confirming crowns a champion instead of advancing. */
+  isFinal: boolean;
+  busy: boolean;
+  onClose: () => void;
+  onConfirm: (overrides: Record<string, string | null>) => void;
+}) {
+  useModalDismiss(onClose);
+
+  const round = view.vote!.currentRound;
+  const tally = view.captainTally;
+  const name = (slug: string | null) => (slug ? view.destinations.find((d) => d.slug === slug)?.name ?? slug : null);
+  const matchups = roundMatchups(bracket, round).filter((m) => m.a || m.b);
+
+  // Seeded from any calls the captain already recorded. Only genuine deviations
+  // live here: picking the side the vote already sends through clears the call
+  // rather than pinning it, so "Your call" means what it says.
+  const [calls, setCalls] = useState<Record<string, string>>(() =>
+    tally && tally.round === round ? { ...tally.overrides } : {}
+  );
+
+  const countsOf = (m: Matchup) =>
+    (tally && tally.round === round ? tally.counts[m.id] : null) ?? { a: 0, b: 0 };
+  // projectedWinner is the same function the server resolves the round with, so
+  // this preview cannot disagree with what advancing actually does.
+  const winnerOf = (m: Matchup) => m.winner ?? projectedWinner(bracket, m, countsOf(m), calls[m.id]);
+
+  function toggle(m: Matchup, slug: string) {
+    const byVote = projectedWinner(bracket, m, countsOf(m));
+    setCalls((c) => {
+      const next = { ...c };
+      if (slug === byVote) delete next[m.id];
+      else next[m.id] = slug;
+      return next;
+    });
+  }
+
+  // Every undecided matchup is sent, including the ones with no call — that is
+  // how clearing a call made earlier reaches the server, as an explicit null.
+  const payload: Record<string, string | null> = {};
+  for (const m of matchups) if (m.a && m.b && !m.winner) payload[m.id] = calls[m.id] ?? null;
+
+  return (
+    <div className={styles.modalOverlay} onClick={onClose}>
+      <div className={styles.advCard} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.advHead}>
+          <div className={styles.advHeadText}>
+            <h2 className={styles.advTitle}>
+              {isFinal ? "Crown the champion" : `Advance the ${roundLabel(round, bracket.rounds)}`}
+            </h2>
+            <p className={styles.advSub}>
+              {view.roster.voted} of {view.roster.size} voted · tap a trip to send it through instead
+            </p>
+          </div>
+          <button className={styles.modalCloseBtn} onClick={onClose} aria-label="Close">×</button>
+        </div>
+
+        <div className={styles.advBody}>
+          {matchups.map((m) => {
+            const counts = countsOf(m);
+            const win = winnerOf(m);
+            const decided = !m.a || !m.b || !!m.winner;
+            const called = !!calls[m.id];
+            const tied = counts.a === counts.b;
+
+            const side = (key: "a" | "b") => {
+              const slug = m[key];
+              if (!slug) return <span className={styles.advSideEmpty}>Bye</span>;
+              const n = key === "a" ? counts.a : counts.b;
+              const through = win === slug;
+              return (
+                <button
+                  className={`${styles.advSide} ${through ? styles.advSideOn : ""}`}
+                  disabled={decided || busy}
+                  onClick={() => toggle(m, slug)}
+                >
+                  <span className={styles.advSideName}>{name(slug)}</span>
+                  <span className={styles.advSideVotes}>{n} vote{n === 1 ? "" : "s"}</span>
+                  {through && (
+                    <span className={styles.advSideTag}>{called ? "Your call" : "Advances"}</span>
+                  )}
+                </button>
+              );
+            };
+
+            return (
+              <div key={m.id} className={`${styles.advMatch} ${called ? styles.advMatchCalled : ""}`}>
+                <div className={styles.advSides}>
+                  {side("a")}
+                  <span className={styles.advVs}>vs</span>
+                  {side("b")}
+                </div>
+                <p className={styles.advNote}>
+                  {decided
+                    ? `${name(win)} is already through.`
+                    : called
+                      ? isFinal
+                        ? `Your call — ${name(win)} takes the trip however the vote lands.`
+                        : `Your call — ${name(win)} advances however the vote lands.`
+                      : tied
+                        ? isFinal
+                          ? // Seed would crown one, but a coin-flip champion never
+                            // locks the trip — only the captain's call settles it.
+                            `Tied — call it, or the trip stays unsettled.`
+                          : `Tied — ${name(win)} advances on seed unless you call it.`
+                        : isFinal
+                          ? `${name(win)} takes the trip on the vote.`
+                          : `${name(win)} advances on the vote.`}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className={styles.advFoot}>
+          <button className={styles.advCancel} onClick={onClose} disabled={busy}>Cancel</button>
+          <button className={styles.advGo} onClick={() => onConfirm(payload)} disabled={busy}>
+            {busy ? "Working…" : isFinal ? "Crown champion" : "Advance round"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -886,15 +1212,20 @@ function Results({ view }: { view: PollView }) {
 
   const bySlug = (s: string) => view.destinations.find((d) => d.slug === s);
   const max = results.rows.length ? Math.max(1, results.rows[0].score) : 1;
-  const winners = new Set(results.winners);
+  // The scores are always the group's; the trophy follows the captain's call
+  // when they made one, so the page can't show a winner the club isn't taking.
+  const called = view.vote?.calledWinner ?? null;
+  const winners = new Set(called ? [called] : results.winners);
   const unit = results.type === "ranked" ? "pts" : results.ballotCount === 1 ? "vote" : "votes";
 
   return (
     <div className={styles.card}>
       <div className={styles.cardHead}>
-        {winners.size === 1
-          ? `Winner: ${bySlug(results.winners[0])?.name ?? results.winners[0]}`
-          : "It's a tie"}
+        {called
+          ? `Winner: ${bySlug(called)?.name ?? called} — the captain's call`
+          : winners.size === 1
+            ? `Winner: ${bySlug(results.winners[0])?.name ?? results.winners[0]}`
+            : "It's a tie"}
       </div>
       {results.rows.map((r) => {
         const d = bySlug(r.slug);
@@ -911,7 +1242,10 @@ function Results({ view }: { view: PollView }) {
           </div>
         );
       })}
-      <p className={styles.ballotHint}>{results.ballotCount} {results.ballotCount === 1 ? "ballot" : "ballots"} counted.</p>
+      <p className={styles.ballotHint}>
+        {results.ballotCount} {results.ballotCount === 1 ? "ballot" : "ballots"} counted.
+        {called && results.winners[0] !== called && " The captain called the winner."}
+      </p>
     </div>
   );
 }

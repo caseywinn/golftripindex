@@ -25,6 +25,23 @@ export type VoteConfig = {
   status: VoteStatus;
   currentRound: number;
   bracket?: unknown;
+  /**
+   * Bracket only — the captain's manual winners, matchup id -> slug. They beat
+   * the vote tally when the round resolves.
+   *
+   * Matchup ids (`r{round}m{index}`) are unique across the whole tournament, so
+   * these accumulate rather than needing clearing between rounds, and stand as a
+   * record of which calls the captain made by hand.
+   */
+  overrides?: Record<string, string>;
+  /**
+   * Approval/ranked only — the winner the captain called in the close-out
+   * review, beating the tally. Set once, when the vote closes.
+   *
+   * A bracket has no use for this: its equivalent is an override on the final
+   * matchup, which flows through the same resolution path as every other round.
+   */
+  calledWinner?: string;
 };
 
 export const VOTE_TYPES: { key: VoteType; label: string; blurb: string }[] = [
@@ -64,5 +81,17 @@ export function coerceVoteConfig(input: unknown): VoteConfig | null {
     status: v.status === "closed" ? "closed" : "open",
     currentRound: typeof v.currentRound === "number" && v.currentRound >= 1 ? Math.floor(v.currentRound) : 1,
     bracket: v.bracket,
+    overrides: coerceOverrides(v.overrides),
+    calledWinner: typeof v.calledWinner === "string" && v.calledWinner ? v.calledWinner : undefined,
   };
+}
+
+/** Keep only string -> string entries; anything else in the blob is dropped. */
+function coerceOverrides(input: unknown): Record<string, string> {
+  if (!input || typeof input !== "object") return {};
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(input as Record<string, unknown>)) {
+    if (typeof v === "string" && v) out[k] = v;
+  }
+  return out;
 }

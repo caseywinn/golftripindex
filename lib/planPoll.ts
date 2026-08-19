@@ -57,6 +57,23 @@ export type PollView = {
   voters: PollVoter[];
   myBallot: Ballot | null;
   results: TallyResult | null;
+  /**
+   * Bracket only, and only for the captain: how the live round's votes are
+   * falling, plus any matchup they've called by hand. Null for everyone else —
+   * a running tally on an open vote is exactly what makes late voters follow
+   * the crowd, and the captain needs it to decide when to advance.
+   */
+  captainTally: {
+    round: number;
+    counts: Record<string, { a: number; b: number }>;
+    overrides: Record<string, string>;
+  } | null;
+  /**
+   * Approval/ranked, and only for the captain: the standings as they stand, so
+   * the close-out review shows what closing would decide. Null for everyone else
+   * — `results` stays the one field the crowd reads, and it only fills on close.
+   */
+  captainResults: TallyResult | null;
 };
 
 type PollRow = {
@@ -203,6 +220,8 @@ export async function buildPollView(id: string, viewer: Viewer, poolArg?: pg.Poo
     voters: [],
     myBallot: null,
     results: null,
+    captainTally: null,
+    captainResults: null,
   };
 
   if (!vote) return base; // read-only share, no poll
@@ -244,6 +263,38 @@ export async function buildPollView(id: string, viewer: Viewer, poolArg?: pg.Poo
     base.myBallot = mine.length ? (mine[0].ballot as Ballot) : null;
   }
 
+  // The captain sees the live bracket tally at any time — it is the whole basis
+  // for deciding whether the round is ready to advance.
+  if (base.viewer.isCaptain && vote.type === "bracket" && vote.bracket) {
+    const { rows: ballotRows } = await pool.query(
+      `SELECT ballot FROM trip_poll_ballots WHERE shared_trip_id = $1 AND round = $2`,
+      [id, round]
+    );
+    base.captainTally = {
+      round,
+      counts: roundVoteCounts(
+        vote.bracket as Bracket,
+        round,
+        ballotRows.map((b) => b.ballot as BracketBallot)
+      ),
+      overrides: vote.overrides ?? {},
+    };
+  }
+
+  // The captain sees the one-shot standings at any time — same reason as the
+  // bracket tally: closing is their call, and it shouldn't be made blind.
+  if (base.viewer.isCaptain && vote.type !== "bracket") {
+    const { rows: ballotRows } = await pool.query(
+      `SELECT ballot FROM trip_poll_ballots WHERE shared_trip_id = $1 AND round = $2`,
+      [id, round]
+    );
+    base.captainResults = tally(
+      vote.type,
+      ballotRows.map((b) => b.ballot as Ballot),
+      destinations.map((d) => d.slug)
+    );
+  }
+
   // Results are revealed only once closed (avoids bandwagoning while open).
   if (vote.status === "closed" && vote.type !== "bracket") {
     const { rows: ballotRows } = await pool.query(
@@ -261,8 +312,12 @@ export async function buildPollView(id: string, viewer: Viewer, poolArg?: pg.Poo
 }
 
 /**
- * Cast (or update) the viewer's ballot for the current round, then auto-close if
- * everyone on the roster has now voted. Returns the refreshed poll view.
+ * Cast (or update) the viewer's ballot for the current round. Returns the
+ * refreshed poll view.
+ *
+ * Nothing resolves here, for any vote type: the captain reviews the tally and
+ * closes (or advances) by hand, so they always get the chance to override before
+ * an outcome is committed.
  */
 export async function castBallot(
   id: string,
@@ -313,14 +368,6 @@ export async function castBallot(
     [id, viewer.userId, vote.currentRound, JSON.stringify(ballotToStore)]
   );
 
-  // Once the round is fully in, advance: close a one-shot vote, or resolve a
-  // bracket round and open the next (or crown the champion).
-  if (await isRoundComplete(pool, id, vote.currentRound)) {
-    if (vote.type === "bracket") await advanceBracketRound(pool, id, vote);
-    else await setVoteStatus(pool, id, "closed");
-    await recordClubWinner(pool, id, row);
-  }
-
   const view = await buildPollView(id, viewer, pool);
   return { ok: true, view: view! };
 }
@@ -360,7 +407,13 @@ async function recordClubWinner(pool: pg.Pool, id: string, row: PollRow): Promis
       );
       const counts = roundVoteCounts(bracket, bracket.rounds, rows.map((b) => b.ballot as BracketBallot));
       const c = counts[final.id];
-      if (c && c.a !== c.b) winner = champion(bracket);
+      // A call on the final is the captain settling it by hand, having read the
+      // tally in the advance modal — so it locks even out of a tie. That is the
+      // informed decision the seed tie-break isn't, and it's the only way a tied
+      // final ever names a destination.
+      const called = (vote.overrides ?? {})[final.id];
+      if (called === final.a || called === final.b) winner = champion(bracket);
+      else if (c && c.a !== c.b) winner = champion(bracket);
     }
   } else {
     const destSlugs = (Array.isArray(fresh.state?.destinations) ? fresh.state.destinations : []).map(
@@ -371,32 +424,22 @@ async function recordClubWinner(pool: pg.Pool, id: string, row: PollRow): Promis
       [id, vote.currentRound]
     );
     const result = tally(vote.type, rows.map((b) => b.ballot as Ballot), destSlugs);
-    // Only an outright winner locks. An exact tie is a real outcome the club has
-    // to settle itself — taking winners[0] would resolve it silently by sort
-    // order and nobody would know a tie had happened.
-    if (result.winners.length === 1) winner = result.winners[0];
+    // A winner the captain called in the close-out review locks outright — they
+    // read the standings and decided, which is exactly what a tie needs.
+    // Otherwise only an outright winner locks: an exact tie is a real outcome the
+    // club has to settle itself, and taking winners[0] would resolve it silently
+    // by sort order with nobody knowing a tie had happened.
+    if (vote.calledWinner && destSlugs.includes(vote.calledWinner)) winner = vote.calledWinner;
+    else if (result.winners.length === 1) winner = result.winners[0];
   }
 
   if (winner) await lockClubTripWinner(pool, row.club_trip_id, winner);
 }
 
-/** True once every roster member has a ballot in for the given round. */
-async function isRoundComplete(pool: pg.Pool, id: string, round: number): Promise<boolean> {
-  const { rows } = await pool.query(
-    `SELECT
-        (SELECT COUNT(*) FROM trip_poll_voters WHERE shared_trip_id = $1) AS roster,
-        (SELECT COUNT(*) FROM trip_poll_ballots WHERE shared_trip_id = $1 AND round = $2) AS voted`,
-    [id, round]
-  );
-  const roster = parseInt(rows[0].roster, 10);
-  const voted = parseInt(rows[0].voted, 10);
-  return roster > 0 && voted >= roster;
-}
-
 /**
  * Resolve the bracket's current round from its ballots, then either open the
- * next round or close the poll once a champion is crowned. Used by both
- * auto-advance (round complete) and the captain's manual override.
+ * next round or close the poll once a champion is crowned. Only ever reached
+ * through closePoll — i.e. only when the captain says so.
  */
 async function advanceBracketRound(pool: pg.Pool, id: string, vote: VoteConfig): Promise<void> {
   const bracket = (vote.bracket ?? null) as Bracket | null;
@@ -408,7 +451,7 @@ async function advanceBracketRound(pool: pg.Pool, id: string, vote: VoteConfig):
   );
   const ballots = rows.map((r) => r.ballot as BracketBallot);
 
-  const resolved = resolveRound(bracket, vote.currentRound, ballots);
+  const resolved = resolveRound(bracket, vote.currentRound, ballots, vote.overrides ?? {});
   const isFinal = vote.currentRound >= resolved.rounds;
   const next: VoteConfig = {
     ...vote,
@@ -420,9 +463,19 @@ async function advanceBracketRound(pool: pg.Pool, id: string, vote: VoteConfig):
 }
 
 /** Captain action: close the poll now and reveal results (one-shot types). */
+/**
+ * What the captain decided in the close-out review, as the client sends it.
+ *
+ * `overrides` is a bracket's per-matchup calls; `winner` is a one-shot vote's
+ * called winner (null / absent = let the tally decide). Both are optional: a
+ * captain who agrees with the vote sends nothing.
+ */
+export type CaptainCalls = { overrides?: unknown; winner?: unknown };
+
 export async function closePoll(
   id: string,
-  viewer: Viewer
+  viewer: Viewer,
+  calls: CaptainCalls = {}
 ): Promise<{ ok: true; view: PollView } | { ok: false; status: number; error: string }> {
   const pool = getPgPool();
   const row = await getPollRow(pool, id);
@@ -441,26 +494,114 @@ export async function closePoll(
   if (vote.status === "closed") return { ok: false, status: 409, error: "Voting is already closed." };
 
   // Bracket: force the current round to resolve with whatever votes are in (and
-  // advance / crown). One-shot: close and reveal.
-  if (vote.type === "bracket") await advanceBracketRound(pool, id, vote);
-  else await setVoteStatus(pool, id, "closed");
+  // advance / crown). The captain confirms the round in a modal first, so any
+  // matchup they called by hand arrives with this request and is folded in
+  // before the round resolves. One-shot: close and reveal.
+  if (vote.type === "bracket") {
+    const bracket = (vote.bracket ?? null) as Bracket | null;
+    let toResolve = vote;
+    if (bracket) {
+      const merged = mergeOverrides(bracket, vote, calls.overrides);
+      if (!merged.ok) return { ok: false, status: 400, error: merged.error };
+      // advanceBracketRound persists {...vote}, so the calls are stored with the
+      // resolved bracket rather than needing a write of their own.
+      toResolve = { ...vote, overrides: merged.overrides };
+    }
+    await advanceBracketRound(pool, id, toResolve);
+  } else {
+    // A one-shot vote has no matchups to call, so the captain's override is the
+    // winner itself. Stored on the config rather than applied to the ballots:
+    // the standings stay exactly as the group voted them, and the call sits
+    // beside them as a visible, attributable decision.
+    const called = calls.winner;
+    let calledWinner: string | undefined;
+    if (called !== null && called !== undefined && called !== "") {
+      const destSlugs = (Array.isArray(row.state?.destinations) ? row.state.destinations : []).map((d) => d.slug);
+      if (typeof called !== "string" || !destSlugs.includes(called)) {
+        return { ok: false, status: 400, error: "That trip isn't in this vote." };
+      }
+      calledWinner = called;
+    }
+    await setVoteConfig(pool, id, { ...vote, status: "closed", calledWinner });
+  }
   await recordClubWinner(pool, id, row);
 
   const view = await buildPollView(id, viewer, pool);
   return { ok: true, view: view! };
 }
 
-/** Patch state.vote.status in place without disturbing the rest of the blob. */
-async function setVoteStatus(pool: pg.Pool, id: string, status: "open" | "closed"): Promise<void> {
-  await pool.query(
-    `UPDATE shared_trips
-        SET state = jsonb_set(state, '{vote,status}', to_jsonb($2::text), true)
-      WHERE id = $1`,
-    [id, status]
-  );
+/**
+ * Fold a map of captain calls (matchup id -> winning slug, or null to clear)
+ * into the vote's existing overrides.
+ *
+ * Only the live round can be called: earlier rounds are already resolved and
+ * propagated, and later ones have no sides in them yet. A call naming a matchup
+ * or trip outside that is a client bug, so it errors rather than no-opping.
+ */
+function mergeOverrides(
+  bracket: Bracket,
+  vote: VoteConfig,
+  raw: unknown
+): { ok: true; overrides: Record<string, string> } | { ok: false; error: string } {
+  const overrides = { ...(vote.overrides ?? {}) };
+  if (raw === undefined || raw === null) return { ok: true, overrides };
+  if (typeof raw !== "object") return { ok: false, error: "Those matchup calls aren't readable." };
+
+  const live = roundMatchups(bracket, vote.currentRound);
+  for (const [matchupId, winner] of Object.entries(raw as Record<string, unknown>)) {
+    const m = live.find((x) => x.id === matchupId);
+    if (!m) return { ok: false, error: "That matchup isn't in the current round." };
+    if (winner === null || winner === "" || winner === undefined) delete overrides[m.id];
+    else if (winner === m.a || winner === m.b) overrides[m.id] = winner as string;
+    else return { ok: false, error: "That trip isn't in this matchup." };
+  }
+  return { ok: true, overrides };
 }
 
-/** Replace the whole state.vote blob (used when the bracket structure changes). */
+/**
+ * Captain action: call a matchup by hand, or clear a call already made.
+ *
+ * The override is recorded, not applied — the matchup only resolves when the
+ * captain advances the round. That keeps a mis-click reversible and keeps one
+ * code path (advanceBracketRound) responsible for propagating winners.
+ */
+export async function setMatchupWinner(
+  id: string,
+  viewer: Viewer,
+  matchupId: unknown,
+  winner: unknown
+): Promise<{ ok: true; view: PollView } | { ok: false; status: number; error: string }> {
+  const pool = getPgPool();
+  const row = await getPollRow(pool, id);
+  if (!row) return { ok: false, status: 404, error: "Vote not found." };
+  if (!(await isPollCaptain(pool, row, viewer))) {
+    return {
+      ok: false,
+      status: 403,
+      error: row.club_id
+        ? "Only a club admin can call a matchup."
+        : "Only the trip's captain can call a matchup.",
+    };
+  }
+
+  const vote = coerceVoteConfig(row.state?.vote);
+  if (!vote) return { ok: false, status: 400, error: "This trip isn't set up for voting." };
+  if (vote.type !== "bracket") return { ok: false, status: 400, error: "This vote has no matchups." };
+  if (vote.status === "closed") return { ok: false, status: 409, error: "Voting is already closed." };
+
+  const bracket = (vote.bracket ?? null) as Bracket | null;
+  if (!bracket) return { ok: false, status: 400, error: "This bracket isn't ready yet." };
+
+  const merged = mergeOverrides(bracket, vote, { [String(matchupId)]: winner ?? null });
+  if (!merged.ok) return { ok: false, status: 400, error: merged.error };
+
+  await setVoteConfig(pool, id, { ...vote, overrides: merged.overrides });
+
+  const view = await buildPollView(id, viewer, pool);
+  return { ok: true, view: view! };
+}
+
+/** Replace the whole state.vote blob — every write to the config goes through here. */
 async function setVoteConfig(pool: pg.Pool, id: string, vote: VoteConfig): Promise<void> {
   await pool.query(
     `UPDATE shared_trips SET state = jsonb_set(state, '{vote}', $2::jsonb, true) WHERE id = $1`,

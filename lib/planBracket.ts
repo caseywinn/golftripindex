@@ -156,17 +156,46 @@ export function roundVoteCounts(
 }
 
 /**
- * Resolve a round from its ballots and fill the next round. Majority wins; an
- * exact tie goes to the better (lower) seed. Returns a new bracket; the input is
- * left untouched.
+ * Who takes this matchup on the votes in hand: the captain's override if they
+ * made one, else the majority, else — on an exact tie — the better (lower) seed.
+ * Null for a matchup that isn't a real head-to-head.
+ *
+ * Exported so the captain's pre-advance view can show what advancing would do
+ * without re-deriving the tie-break, which is the kind of rule that drifts out
+ * of sync the moment it lives in two places.
  */
-export function resolveRound(bracket: Bracket, round: number, ballots: BracketBallot[]): Bracket {
+export function projectedWinner(
+  bracket: Bracket,
+  m: Matchup,
+  counts?: { a: number; b: number },
+  override?: string
+): string | null {
+  if (!m.a || !m.b) return null;
+  if (override === m.a || override === m.b) return override;
+  const { a, b } = counts ?? { a: 0, b: 0 };
+  if (a > b) return m.a;
+  if (b > a) return m.b;
+  return seedOf(bracket, m.a) <= seedOf(bracket, m.b) ? m.a : m.b;
+}
+
+/**
+ * Resolve a round from its ballots and fill the next round. Returns a new
+ * bracket; the input is left untouched.
+ *
+ * `overrides` is the captain's manual winners, keyed by matchup id — they beat
+ * the tally outright.
+ */
+export function resolveRound(
+  bracket: Bracket,
+  round: number,
+  ballots: BracketBallot[],
+  overrides: Record<string, string> = {}
+): Bracket {
   const next: Bracket = JSON.parse(JSON.stringify(bracket));
   const counts = roundVoteCounts(next, round, ballots);
   for (const m of roundMatchups(next, round)) {
     if (m.winner || !m.a || !m.b) continue;
-    const { a, b } = counts[m.id] ?? { a: 0, b: 0 };
-    m.winner = a > b ? m.a : b > a ? m.b : (seedOf(next, m.a) <= seedOf(next, m.b) ? m.a : m.b);
+    m.winner = projectedWinner(next, m, counts[m.id], overrides[m.id]);
     propagate(next, m);
   }
   return next;

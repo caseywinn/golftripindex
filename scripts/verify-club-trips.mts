@@ -134,8 +134,8 @@ try {
   check(!removedVote.ok && removedVote.status === 404, "a REMOVED member can't vote, though their seat remains");
   await pool.query(`UPDATE club_members SET status='active' WHERE club_id=$1 AND user_id=$2`, [clubA, member.id]);
 
-  // ── Vote → auto-close → winner locked ───────────────────────────────────
-  console.log("\n── vote + auto-close + lock ──────────────────────");
+  // ── Vote → captain reviews → winner locked ──────────────────────────────
+  console.log("\n── vote + captain close-out + lock ───────────────");
   const v1 = await castBallot(a.pollId, { userId: owner.id, email: owner.email }, { approve: ["bandon-dunes", "pinehurst"] });
   check(v1.ok && v1.view.results === null, "standings stay hidden while open");
   let trip = await getCurrentClubTrip(clubA, pool);
@@ -143,7 +143,15 @@ try {
 
   await castBallot(a.pollId, { userId: admin.id, email: admin.email }, { approve: ["bandon-dunes"] });
   const v3 = await castBallot(a.pollId, { userId: member.id, email: member.email }, { approve: ["bandon-dunes", "streamsong"] });
-  check(v3.ok && v3.view.vote?.status === "closed", "auto-closes on the last ballot");
+  check(v3.ok && v3.view.vote?.status === "open",
+    "the last ballot does NOT close the vote — the captain reviews it first");
+  check(v3.ok && v3.view.results === null && v3.view.captainResults === null,
+    "…and a plain member still sees no standings, full turnout or not");
+  const ownerSees = await buildPollView(a.pollId, { userId: owner.id, email: owner.email }, pool);
+  check(ownerSees?.captainResults?.winners[0] === "bandon-dunes",
+    `…while the captain reads the live standings (got ${ownerSees?.captainResults?.winners[0]})`);
+  const closed = await closePoll(a.pollId, { userId: owner.id, email: owner.email });
+  check(closed.ok && closed.view.vote?.status === "closed", "the captain closes it out");
   trip = await getCurrentClubTrip(clubA, pool);
   check(trip?.chosenDestination === "bandon-dunes" && trip?.status === "planning",
     `winner locked + VOTING → PLANNING (got ${trip?.chosenDestination}/${trip?.status})`);
@@ -193,13 +201,52 @@ try {
   if (tie.ok) {
     await castBallot(tie.pollId, { userId: o2.id, email: o2.email }, { approve: ["bandon-dunes"] });
     await castBallot(tie.pollId, { userId: m2.id, email: m2.email }, { approve: ["pinehurst"] });
+    // Closed by the captain, with no call — the tie stands as the group left it.
+    await closePoll(tie.pollId, { userId: o2.id, email: o2.email });
     const tieTrip = await getCurrentClubTrip(clubC, pool);
-    check(tieTrip?.voteStatus === "closed", "a 1–1 approval tie closes the poll");
+    check(tieTrip?.voteStatus === "closed", "a 1–1 approval tie closes when the captain closes it");
     check(tieTrip?.chosenDestination === null, "…and locks NO winner (a tie isn't resolved by sort order)");
     check(tieTrip?.status === "voting", "…leaving the trip in VOTING");
     const escape = await setClubTripStatus(clubC, tieTrip!.id, "archive", pool);
     check(escape.ok && (await getCurrentClubTrip(clubC, pool)) === null,
       "…and shelving is the escape hatch, so a tie can't brick the club");
+  }
+
+  // …and the captain's call is the other way out of that tie: same standings,
+  // but a winner they named in the review, which must lock.
+  const tie2 = await propose(clubC, o2);
+  if (tie2.ok) {
+    await castBallot(tie2.pollId, { userId: o2.id, email: o2.email }, { approve: ["bandon-dunes"] });
+    await castBallot(tie2.pollId, { userId: m2.id, email: m2.email }, { approve: ["pinehurst"] });
+    const bad = await closePoll(tie2.pollId, { userId: o2.id, email: o2.email }, { winner: "st-andrews" });
+    check(!bad.ok, `a call naming a trip that isn't in the vote is refused (${bad.ok ? "accepted!" : bad.error})`);
+    check((await getCurrentClubTrip(clubC, pool))?.voteStatus === "open",
+      "…and that refusal leaves the vote open");
+
+    const settled = await closePoll(tie2.pollId, { userId: o2.id, email: o2.email }, { winner: "pinehurst" });
+    check(settled.ok && settled.view.vote?.calledWinner === "pinehurst",
+      "the captain can call the winner of a tied approval vote");
+    const settledTrip = await getCurrentClubTrip(clubC, pool);
+    check(settledTrip?.chosenDestination === "pinehurst" && settledTrip?.status === "planning",
+      `…and THAT locks it + moves to PLANNING (got ${settledTrip?.chosenDestination}/${settledTrip?.status})`);
+    // The ballots are untouched: the standings still read as the group voted.
+    check(settled.ok && settled.view.results?.winners.length === 2,
+      "…while the published standings still show the tie the group actually voted");
+    await setClubTripStatus(clubC, settledTrip!.id, "archive", pool);
+  }
+
+  // A call also beats an outright winner — the captain overriding the group.
+  const over = await propose(clubC, o2);
+  if (over.ok) {
+    await castBallot(over.pollId, { userId: o2.id, email: o2.email }, { approve: ["bandon-dunes"] });
+    await castBallot(over.pollId, { userId: m2.id, email: m2.email }, { approve: ["bandon-dunes"] });
+    const forced = await closePoll(over.pollId, { userId: o2.id, email: o2.email }, { winner: "streamsong" });
+    const overTrip = await getCurrentClubTrip(clubC, pool);
+    check(forced.ok && overTrip?.chosenDestination === "streamsong",
+      `the captain's call beats a 2–0 approval vote (got ${overTrip?.chosenDestination})`);
+    check(forced.ok && forced.view.results?.winners[0] === "bandon-dunes",
+      "…and the standings still name what the group actually picked");
+    await setClubTripStatus(clubC, overTrip!.id, "archive", pool);
   }
 
   // A bracket tie is resolved by SEED, and seeds are a random shuffle — so
@@ -216,10 +263,38 @@ try {
     const final = bracket.matchups.find((m) => m.a && m.b)!;
     await castBallot(br.pollId, { userId: o3.id, email: o3.email }, { picks: { [final.id]: final.a } });
     await castBallot(br.pollId, { userId: m3.id, email: m3.email }, { picks: { [final.id]: final.b } });
+    // A bracket never closes itself, even with every ballot in: the captain
+    // confirms the round. Asserting the tie outcome without this close would
+    // pass for the wrong reason — recordClubWinner would never have run.
+    check((await getCurrentClubTrip(clubD, pool))?.voteStatus === "open",
+      "a fully-voted bracket final still waits for the captain");
+    await closePoll(br.pollId, { userId: o3.id, email: o3.email });
     const brTrip = await getCurrentClubTrip(clubD, pool);
-    check(brTrip?.voteStatus === "closed", "a 1–1 bracket final closes the poll");
+    check(brTrip?.voteStatus === "closed", "…and closes when the captain closes it out");
     check(brTrip?.chosenDestination === null,
       `…and locks NO winner despite champion() naming one by random seed (got ${brTrip?.chosenDestination})`);
+  }
+
+  // …but the captain CAN settle that tie, and only they can: a call on the final
+  // is read in the advance modal and must lock the trip it names.
+  const o7 = await mkUser("o7");
+  const m7 = await mkUser("m7");
+  const clubI = await mkClub("i", o7.id);
+  await addMember(clubI, o7, "owner");
+  await addMember(clubI, m7, "member");
+  const callFinal = await propose(clubI, o7, "bracket", DESTS.slice(0, 2));
+  if (callFinal.ok) {
+    const view = await buildPollView(callFinal.pollId, { userId: o7.id, email: o7.email }, pool);
+    const bracket = view!.vote!.bracket as unknown as { matchups: { id: string; a: string | null; b: string | null }[] };
+    const final = bracket.matchups.find((m) => m.a && m.b)!;
+    await castBallot(callFinal.pollId, { userId: o7.id, email: o7.email }, { picks: { [final.id]: final.a } });
+    await castBallot(callFinal.pollId, { userId: m7.id, email: m7.email }, { picks: { [final.id]: final.b } });
+    const done = await closePoll(callFinal.pollId, { userId: o7.id, email: o7.email }, { overrides: { [final.id]: final.b } });
+    check(done.ok, "the captain can call a tied final");
+    const trip = await getCurrentClubTrip(clubI, pool);
+    check(trip?.chosenDestination === final.b,
+      `…and THAT locks the trip they called (got ${trip?.chosenDestination}, wanted ${final.b})`);
+    check(trip?.status === "planning", `…moving the trip to PLANNING (got ${trip?.status})`);
   }
 
   // Closing a fresh bracket with zero ballots must not crown a random winner.
@@ -232,6 +307,99 @@ try {
     const emptyTrip = await getCurrentClubTrip(clubE, pool);
     check(emptyTrip?.chosenDestination === null,
       `closing a bracket with ZERO ballots locks no winner (got ${emptyTrip?.chosenDestination})`);
+  }
+
+  // The captain advances a bracket round from a confirmation modal, and the
+  // matchups they called by hand ride along with that request. Both paths are
+  // exercised through closePoll — the same function the route calls — so a
+  // dropped override shows up here rather than in a club's live bracket.
+  type BracketLike = { rounds: number; matchups: { id: string; round: number; a: string | null; b: string | null; winner: string | null }[] };
+  const liveMatchup = async (pollId: string, u: { id: string; email: string }) => {
+    const view = await buildPollView(pollId, { userId: u.id, email: u.email }, pool);
+    const vote = view!.vote!;
+    const bracket = vote.bracket as unknown as BracketLike;
+    const m = bracket.matchups.find((x) => x.round === vote.currentRound && x.a && x.b && !x.winner)!;
+    return { view: view!, vote, bracket, m };
+  };
+
+  for (const called of [false, true]) {
+    const tag = called ? "f" : "g";
+    const oc = await mkUser(`o5${tag}`);
+    const mc = await mkUser(`m5${tag}`);
+    const clubF = await mkClub(tag, oc.id);
+    await addMember(clubF, oc, "owner");
+    await addMember(clubF, mc, "member");
+    const adv = await propose(clubF, oc, "bracket", DESTS);
+    if (!adv.ok) continue;
+
+    const r1 = await liveMatchup(adv.pollId, oc);
+    // Both voters back the same side, so the vote alone is unambiguous — any
+    // other winner in round 2 can only have come from the captain's call.
+    const voted = r1.m.a!;
+    const other = r1.m.b!;
+    await castBallot(adv.pollId, { userId: oc.id, email: oc.email }, { picks: { [r1.m.id]: voted } });
+    await castBallot(adv.pollId, { userId: mc.id, email: mc.email }, { picks: { [r1.m.id]: voted } });
+
+    const stillOpen = await buildPollView(adv.pollId, { userId: oc.id, email: oc.email }, pool);
+    check(stillOpen!.vote!.currentRound === 1 && stillOpen!.vote!.status === "open",
+      `${called ? "called" : "clean"}: a fully-voted bracket round waits for the captain to advance it`);
+    check(stillOpen!.captainTally?.counts[r1.m.id]?.a === 2,
+      `${called ? "called" : "clean"}: the captain is served the live tally (2–0)`);
+
+    // What the modal sends: every undecided matchup, null where the captain let
+    // the vote stand. `called` flips this matchup against a 2–0 vote.
+    const overrides: Record<string, string | null> = { [r1.m.id]: called ? other : null };
+    const done = await closePoll(adv.pollId, { userId: oc.id, email: oc.email }, { overrides });
+    check(done.ok, `${called ? "called" : "clean"}: the captain can advance the round`);
+
+    if (done.ok) {
+      const expected = called ? other : voted;
+      const r1m = (done.view.vote!.bracket as unknown as BracketLike).matchups.find((x) => x.id === r1.m.id)!;
+      check(r1m.winner === expected,
+        `${called ? "the captain's call beats a 2–0 vote" : "with no call, the vote decides"} (got ${r1m.winner}, wanted ${expected})`);
+      check(done.view.vote!.currentRound === 2,
+        `${called ? "called" : "clean"}: advancing moves the bracket to round 2`);
+      const inFinal = (done.view.vote!.bracket as unknown as BracketLike).matchups
+        .filter((x) => x.round === 2).flatMap((x) => [x.a, x.b]);
+      check(inFinal.includes(expected) && !inFinal.includes(called ? voted : other),
+        `${called ? "called" : "clean"}: only the winner is in the final`);
+    }
+
+    // The final takes the identical path — ballots in, captain confirms, call or
+    // no call — so "every round works the same" is checked, not assumed.
+    const r2 = await liveMatchup(adv.pollId, oc);
+    const backed = r2.m.a!;
+    const spurned = r2.m.b!;
+    await castBallot(adv.pollId, { userId: oc.id, email: oc.email }, { picks: { [r2.m.id]: backed } });
+    await castBallot(adv.pollId, { userId: mc.id, email: mc.email }, { picks: { [r2.m.id]: backed } });
+    const beforeCrown = await buildPollView(adv.pollId, { userId: oc.id, email: oc.email }, pool);
+    check(beforeCrown!.vote!.status === "open",
+      `${called ? "called" : "clean"}: a fully-voted FINAL waits for the captain too`);
+
+    const wanted = called ? spurned : backed;
+    const crowned = await closePoll(adv.pollId, { userId: oc.id, email: oc.email },
+      { overrides: { [r2.m.id]: called ? spurned : null } });
+    check(crowned.ok && crowned.view.vote!.status === "closed",
+      `${called ? "called" : "clean"}: crowning the champion closes the vote`);
+    const won = await getCurrentClubTrip(clubF, pool);
+    check(won?.chosenDestination === wanted,
+      `${called ? "the captain's call takes the trip" : "the vote takes the trip"} (got ${won?.chosenDestination}, wanted ${wanted})`);
+  }
+
+  // A call for a matchup that isn't in the live round must be rejected outright.
+  const o6 = await mkUser("o6");
+  const clubH = await mkClub("h", o6.id);
+  await addMember(clubH, o6, "owner");
+  const badCall = await propose(clubH, o6, "bracket", DESTS);
+  if (badCall.ok) {
+    const r = await liveMatchup(badCall.pollId, o6);
+    const junk = await closePoll(badCall.pollId, { userId: o6.id, email: o6.email }, { overrides: { [r.m.id]: "not-a-trip" } });
+    check(!junk.ok, `a call naming a trip outside the matchup is refused (${junk.ok ? "accepted!" : junk.error})`);
+    const nowhere = await closePoll(badCall.pollId, { userId: o6.id, email: o6.email }, { overrides: { "r9m9": "pinehurst" } });
+    check(!nowhere.ok, `a call for a matchup outside the live round is refused (${nowhere.ok ? "accepted!" : nowhere.error})`);
+    const untouched = await buildPollView(badCall.pollId, { userId: o6.id, email: o6.email }, pool);
+    check(untouched!.vote!.currentRound === 1 && untouched!.vote!.status === "open",
+      "…and a refused advance leaves the round exactly where it was");
   }
 
   // ══ Regression: plain /plan shares still work ═════════════════════════════
