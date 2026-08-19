@@ -17,6 +17,17 @@ export const metadata: Metadata = {
   alternates: { canonical: `${SITE_URL}/` },
 };
 
+/**
+ * Temporary: the featured slot runs the Father-Son Invitational announcement
+ * instead of Trip of the Week, while applications for the first trip are open.
+ *
+ * To revert: set this to false. The Trip of the Week card below is untouched and
+ * comes straight back — it is only gated on this flag, nothing else was moved.
+ */
+const FEATURE_ANNOUNCEMENT = true;
+
+const EVENT_PATH = "/events/father-son-invitational";
+
 function intScore(n?: number | null) {
   if (n == null || Number.isNaN(Number(n))) return "—";
   return String(Math.round(Number(n)));
@@ -61,8 +72,69 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* ── FEATURED SLOT: announcement (temporary) ──
+          Same card, same 44/56 split, same body rhythm as Trip of the Week, so
+          the slot doesn't shift when this comes down. The facts row stands in
+          for the score row and, like it, is hidden on a phone by .ftScoreRow. */}
+      {FEATURE_ANNOUNCEMENT && (
+        <div className={styles.ftWrap}>
+          <div className={styles.ftCard}>
+            <div className={styles.ftImageWrap}>
+              <Link
+                href={EVENT_PATH}
+                className={styles.ftImage}
+                style={{ backgroundImage: "url(/images/events/father-son.jpg)" }}
+                aria-label="GTI Father-Son Invitational"
+              />
+            </div>
+
+            <div className={styles.ftBody}>
+              <div className={styles.ftEyebrowRow}>
+                <p className={styles.ftEyebrow}>Announcing</p>
+              </div>
+
+              <h2 className={styles.ftName}>
+                <Link href={EVENT_PATH} className={styles.ftNameLink}>
+                  GTI Father-Son Invitational
+                </Link>
+              </h2>
+
+              {/* No venue is signed, so nothing here names or implies one. */}
+              <div className={styles.ftScoreRow}>
+                <div className={styles.ftScore}>
+                  <span className={styles.ftScoreNum}>3</span>
+                  <span className={styles.ftScoreLabel}>Days</span>
+                </div>
+                <div className={styles.ftScore}>
+                  <span className={styles.ftScoreNum}>6–14</span>
+                  <span className={styles.ftScoreLabel}>Kids</span>
+                </div>
+                <div className={styles.ftScore}>
+                  <span className={styles.ftScoreNum}>TBA</span>
+                  <span className={styles.ftScoreLabel}>Where</span>
+                </div>
+                <div className={styles.ftOverallScore}>
+                  <span className={styles.ftOverallNum}>Open</span>
+                  <span className={styles.ftOverallLabel}>Applications</span>
+                </div>
+              </div>
+
+              <p className={styles.ftOverview}>
+                Three days of golf for dads bringing a kid into the game. You play a full round
+                every day; your kid gets a lesson, a practice round, and a father-son competition
+                to finish. Location and dates to be announced.
+              </p>
+
+              <Link href={EVENT_PATH} className={styles.ftReadMore}>
+                Read more &amp; apply →
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── FEATURED TRIP ── */}
-      {featured && (
+      {!FEATURE_ANNOUNCEMENT && featured && (
         <div className={styles.ftWrap}>
           <div className={styles.ftCard}>
             <div className={styles.ftImageWrap}>
