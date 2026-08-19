@@ -26,6 +26,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/courses`, lastModified: now, changeFrequency: "weekly", priority: 0.8 },
     { url: `${SITE_URL}/compare`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
     { url: `${SITE_URL}/how-we-rate`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
+    // Unlinked from the main nav on purpose while the venue is unconfirmed, but
+    // indexable: resorts we've emailed search for us before they reply.
+    {
+      url: `${SITE_URL}/events/father-son-invitational`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
   ];
 
   const filterPages: MetadataRoute.Sitemap = [

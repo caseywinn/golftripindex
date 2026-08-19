@@ -1,0 +1,486 @@
+/* styles/event.module.css — GTI event landing pages (/events/*) */
+
+.page {
+  width: 100%;
+}
+
+/*
+  Split hero, same 60/40 shape /trips uses: photo left, dark panel right.
+  The photo is a dad and his kid rather than a property beauty shot, which is
+  what lets it sit above a headline that names no venue.
+*/
+.hero {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 58% 42%;
+  min-height: 440px;
+  background: #0b0f1a;
+  overflow: hidden;
+}
+
+.heroMedia {
+  position: relative;
+  min-height: 440px;
+  background: #0b0f1a;
+}
+
+.heroImage {
+  object-fit: cover;
+  object-position: center;
+}
+
+.heroPanel {
+  background: #0b0f1a;
+  color: #fff;
+  min-height: 440px;
+  padding: 52px 48px 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+
+.eyebrow {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #8ba3c7;
+  margin: 0 0 14px;
+}
+
+.h1 {
+  color: #fff;
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  margin: 0 0 16px;
+}
+
+.heroSub {
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 16px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.heroCta {
+  display: inline-block;
+  align-self: flex-start;
+  margin-top: 28px;
+  padding: 13px 26px;
+  border-radius: 999px;
+  background: #fff;
+  color: #0b0f1a;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: opacity 0.15s;
+}
+
+.heroCta:hover {
+  opacity: 0.85;
+}
+
+.heroNote {
+  margin: 14px 0 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Body */
+.body {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 8px var(--pad) 80px;
+}
+
+.section {
+  padding-top: 52px;
+}
+
+.h2 {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #2f3642;
+  margin: 0 0 18px;
+}
+
+.prose {
+  max-width: none;
+}
+
+.prose p {
+  font-size: 16px;
+  line-height: 1.75;
+  color: #2b3240;
+  margin: 0 0 16px;
+}
+
+.prose p:last-child {
+  margin-bottom: 0;
+}
+
+/* Day-by-day */
+.days {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 4px;
+}
+
+.day {
+  padding: 22px 22px 20px;
+}
+
+.dayLabel {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #7a8798;
+  margin: 0 0 8px;
+}
+
+.dayTitle {
+  font-size: 17px;
+  font-weight: 600;
+  color: #2f3642;
+  margin: 0 0 10px;
+}
+
+.day p {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #4a5464;
+  margin: 0;
+}
+
+.caveat {
+  margin: 18px 0 0;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--muted);
+  max-width: var(--content-max);
+}
+
+/* Who it's for */
+.fitGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 4px;
+}
+
+.fitCard {
+  padding: 22px;
+}
+
+.fitTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: #2f3642;
+  margin: 0 0 12px;
+}
+
+.fitList {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.fitList li {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #4a5464;
+  margin: 0 0 8px;
+}
+
+.fitList li:last-child {
+  margin-bottom: 0;
+}
+
+/* FAQ */
+.faq {
+  max-width: none;
+  margin-top: 4px;
+}
+
+/*
+  Native <details>. Collapsed by default, keyboard-operable and
+  find-in-page-expandable for free, and it keeps this a server component — no
+  open-state JS for six paragraphs of text.
+*/
+.faqItem {
+  border-top: 1px solid var(--rule);
+}
+
+.faqItem:last-child {
+  border-bottom: 1px solid var(--rule);
+}
+
+.faqSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px 2px;
+  cursor: pointer;
+  list-style: none;
+  transition: color 0.15s;
+}
+
+/* Safari still paints the disclosure triangle without this. */
+.faqSummary::-webkit-details-marker {
+  display: none;
+}
+
+.faqSummary:hover .faqQ {
+  color: #0b0f1a;
+}
+
+.faqSummary:focus-visible {
+  outline: 2px solid #0b0f1a;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.faqQ {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2f3642;
+  margin: 0;
+  transition: color 0.15s;
+}
+
+/* Chevron, rotated when the item is open. */
+.faqChevron {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  border-right: 2px solid #7a8798;
+  border-bottom: 2px solid #7a8798;
+  transform: rotate(45deg) translate(-2px, -2px);
+  transition: transform 0.18s ease;
+}
+
+.faqItem[open] .faqChevron {
+  transform: rotate(-135deg) translate(-2px, -2px);
+}
+
+.faqA {
+  font-size: 15px;
+  line-height: 1.7;
+  color: #4a5464;
+  margin: 0 0 20px;
+  max-width: 80ch;
+}
+
+@media (max-width: 1000px) {
+  .hero {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .heroMedia {
+    min-height: 260px;
+  }
+
+  .heroPanel {
+    min-height: 0;
+    padding: 40px var(--pad) 40px;
+  }
+}
+
+@media (max-width: 900px) {
+  .days,
+  .fitGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .heroMedia {
+    min-height: 200px;
+  }
+
+  .heroPanel {
+    padding: 32px var(--pad) 34px;
+  }
+
+  .h1 {
+    font-size: 32px;
+  }
+
+  .heroSub {
+    font-size: 16px;
+  }
+
+  .section {
+    padding-top: 40px;
+  }
+
+  .h2 {
+    font-size: 21px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Apply form
+   ------------------------------------------------------------------------- */
+
+.applySection {
+  padding-top: 52px;
+  scroll-margin-top: 24px;
+}
+
+.applyIntro {
+  max-width: none;
+  font-size: 16px;
+  line-height: 1.75;
+  color: #2b3240;
+  margin: 0 0 22px;
+}
+
+.formCard {
+  padding: 30px 30px 28px;
+}
+
+/*
+  Two columns once the card runs the full content width. A single stack would
+  leave every input stretched to ~1100px, which is a hard target to aim at and
+  reads as an empty card.
+*/
+.form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px 26px;
+  align-items: start;
+}
+
+/* Notes, the button and any error span both columns. */
+.formFull {
+  grid-column: 1 / -1;
+}
+
+.label {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  gap: 6px;
+}
+
+.optional {
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.hint {
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.input,
+.textarea {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #d0d4da;
+  background: #fff;
+  font-size: 15px;
+  font-family: var(--font-ui);
+  color: var(--text);
+  outline: none;
+  width: 100%;
+  transition: border-color 0.15s;
+}
+
+.input:focus,
+.textarea:focus {
+  border-color: #0b0f1a;
+}
+
+.textarea {
+  min-height: 96px;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 120px;
+  gap: 14px;
+}
+
+.button {
+  margin-top: 4px;
+  justify-self: start;
+  padding: 12px 26px;
+  border-radius: 999px;
+  background: #0b0f1a;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font-ui);
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.button:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.error {
+  font-size: 14px;
+  color: #b42318;
+  margin: 0;
+}
+
+.success {
+  font-size: 16px;
+  line-height: 1.7;
+  color: #2b3240;
+  margin: 0;
+  max-width: 70ch;
+}
+
+.successNote {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--muted);
+  margin: 10px 0 0;
+  max-width: 70ch;
+}
+
+/* Honeypot: off-screen rather than display:none, which some bots skip. */
+.honeypot {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+@media (max-width: 900px) {
+  .form {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .formCard {
+    padding: 22px 20px 20px;
+  }
+
+  .row {
+    grid-template-columns: 1fr;
+  }
+}
