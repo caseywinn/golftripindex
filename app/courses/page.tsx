@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   // absolute: the brand suffix would push this past 60 characters, and the
   // differentiator — that this merges the three magazines — is worth more
   // in a result than the brand is.
-  title: { absolute: "Top 100 Golf Courses: Three Rankings, One List" },
+  title: { absolute: "Consolidated Top 100 Golf Courses in the USA" },
   description:
     "Golf Digest, Golf.com and Golfweek disagree on the best golf courses in America. This ranking averages all three into one consolidated top 100.",
   alternates: { canonical: `${SITE_URL}/courses` },
