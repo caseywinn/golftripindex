@@ -1,14 +1,16 @@
-import Link from "next/link";
 import styles from "../../styles/courseRankings.module.css";
 import { getPublishedCourses } from "../../lib/airtable";
 import type { Metadata } from "next";
-import { SITE_URL, SITE_NAME } from "../../lib/seo";
+import { SITE_URL } from "../../lib/seo";
 import { JsonLd } from "@/components/JsonLd";
 
 export const metadata: Metadata = {
-  title: "Top 100 Golf Courses in America",
+  // absolute: the brand suffix would push this past 60 characters, and the
+  // differentiator — that this merges the three magazines — is worth more
+  // in a result than the brand is.
+  title: { absolute: "Top 100 Golf Courses: Three Rankings, One List" },
   description:
-    "The 100 best golf courses in America, ranked by consolidating Golf Digest, Golf.com, and Golfweek into a single list — the consensus, not one magazine's view.",
+    "Golf Digest, Golf.com and Golfweek disagree on the best golf courses in America. This ranking averages all three into one consolidated top 100.",
   alternates: { canonical: `${SITE_URL}/courses` },
 };
 
@@ -52,8 +54,8 @@ export default async function CourseRankingsPage() {
   const itemListSchema = {
     "@context": "https://schema.org",
     "@type": "ItemList",
-    name: "Top 100 Golf Courses USA — Consolidated Rankings",
-    description: "A consolidated ranking of the top 100 golf courses in the United States, aggregating Golf Digest, Golf.com, and Golfweek into one objective view.",
+    name: "The Top 100 Golf Courses, Consolidated",
+    description: "The top 100 golf courses in the United States, ranked by averaging the Golf Digest, Golf.com, and Golfweek rankings into a single consolidated list.",
     url: `${SITE_URL}/courses`,
     itemListElement: sorted
       .filter((c) => c.consolidatedRanking != null)
@@ -75,9 +77,9 @@ export default async function CourseRankingsPage() {
         <div className={styles.bannerMedia} aria-hidden="true" />
 
         <div className={styles.bannerPanel}>
-          <h1 className={styles.bannerTitle}>Golf Course Rankings</h1>
+          <h1 className={styles.bannerTitle}>The Top 100 Golf Courses, Consolidated</h1>
           <div className={styles.bannerSub}>
-            GolfTripIndex course rankings are calculated as an average of the major golf publications, providing a single, objective view that reflects the broader consensus rather than one editorial perspective.
+            Golf Digest, Golf.com and Golfweek each publish their own top 100, and the three rarely agree. We average all of them into a single ranking, so what you get is the consensus across the major publications rather than one magazine&apos;s editorial view.
           </div>
 
           <div className={styles.segment}>
