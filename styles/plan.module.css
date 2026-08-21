@@ -2157,21 +2157,6 @@
   white-space: nowrap;
 }
 
-/* Sort dropdown (still used by the /plan2 variant). */
-.sortControl {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.sortLabel {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: #b0bac9;
-}
-
 .sortSelect {
   font-family: var(--font-ui);
   font-size: 12.5px;
@@ -2338,13 +2323,6 @@
   background: #f3f7fb;
 }
 
-.caddieDockAvatar {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
 .caddieDockAnswerText {
   flex: 1;
   min-width: 0;
@@ -2370,8 +2348,7 @@
   border-bottom: 1px solid #eef1f6;
 }
 
-.caddieThreadHead,
-.caddieSlideHead {
+.caddieThreadHead{
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2381,32 +2358,13 @@
   background: white;
 }
 
-.caddieThreadTitle,
-.caddieSlideTitle {
+.caddieThreadTitle{
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 14px;
   font-weight: 700;
   color: #0b0f1a;
-}
-
-.caddieThreadClose {
-  background: none;
-  border: none;
-  font-size: 16px;
-  color: #9aa3b2;
-  cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 6px;
-  font-family: var(--font-ui);
-  line-height: 1;
-  transition: background 0.12s, color 0.12s;
-}
-
-.caddieThreadClose:hover {
-  background: #f3f5f8;
-  color: #374151;
 }
 
 /* ── Caddie as its own section (below the listing card) ──── */
@@ -2510,252 +2468,6 @@
   overflow: hidden;
 }
 
-/* ============================================================
-   OPTION 2 — Faceted sidebar + grid + slide-over Caddie
-   ============================================================ */
-
-.plan2Layout {
-  max-width: 1320px;
-  margin: 0 auto;
-  display: flex;
-  gap: 20px;
-  align-items: flex-start;
-  padding: 28px 24px 80px;
-}
-
-/* ── Faceted filter sidebar ──────────────────────────────── */
-
-.facetSidebar {
-  width: 216px;
-  flex-shrink: 0;
-  position: sticky;
-  top: 88px;
-  max-height: calc(100vh - 128px);
-  overflow-y: auto;
-  background: white;
-  border: 1px solid #eef1f6;
-  border-radius: 14px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
-  scrollbar-width: thin;
-  scrollbar-color: #dde3ef transparent;
-}
-
-.facetHead {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  border-bottom: 1px solid #eef1f6;
-  position: sticky;
-  top: 0;
-  background: white;
-  z-index: 2;
-}
-
-.facetHeadTitle {
-  font-size: 14px;
-  font-weight: 700;
-  color: #0b0f1a;
-}
-
-.facetClear {
-  background: none;
-  border: none;
-  font-family: var(--font-ui);
-  font-size: 11.5px;
-  font-weight: 600;
-  color: #9aa3b2;
-  cursor: pointer;
-  padding: 0;
-  transition: color 0.1s;
-}
-
-.facetClear:hover {
-  color: #ef4444;
-}
-
-.facetSection {
-  padding: 13px 16px;
-  border-bottom: 1px solid #f3f5f8;
-}
-
-.facetSection:last-child {
-  border-bottom: none;
-}
-
-.facetSectionTitle {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: #b0bac9;
-  margin-bottom: 9px;
-}
-
-.facetItems {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.facetItem {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 6px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.1s;
-}
-
-.facetItem:hover {
-  background: #f5f7fa;
-}
-
-.facetItemActive {
-  background: #edf6ff;
-}
-
-.facetCheckbox {
-  width: 15px;
-  height: 15px;
-  accent-color: #0488db;
-  cursor: pointer;
-  flex-shrink: 0;
-  margin: 0;
-}
-
-.facetItemLabel {
-  font-size: 12.5px;
-  font-weight: 500;
-  color: #374151;
-  flex: 1;
-  min-width: 0;
-}
-
-.facetItemActive .facetItemLabel {
-  color: #0b6fb8;
-  font-weight: 600;
-}
-
-.facetSub {
-  font-size: 11px;
-  font-weight: 500;
-  color: #9aa3b2;
-  flex-shrink: 0;
-}
-
-/* ── Center column ───────────────────────────────────────── */
-
-.plan2Center {
-  flex: 1;
-  min-width: 0;
-  position: sticky;
-  top: 88px;
-  display: flex;
-  flex-direction: column;
-  height: calc(100vh - 128px);
-  max-height: 860px;
-  background: white;
-  border: 1px solid #eef1f6;
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-}
-
-.plan2CenterHead {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 13px 16px;
-  border-bottom: 1px solid #eef1f6;
-  flex-shrink: 0;
-}
-
-.plan2HeadLeft {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.picksTag {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: #0b6fb8;
-  background: #edf6ff;
-  border: 1px solid #d6ebfb;
-  border-radius: 999px;
-  padding: 3px 11px;
-}
-
-/* ── Floating Caddie launcher ────────────────────────────── */
-
-.caddieLauncher {
-  position: fixed;
-  bottom: 22px;
-  right: 22px;
-  z-index: 1080;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 11px 18px 11px 12px;
-  background: #0488db;
-  color: white;
-  border: none;
-  border-radius: 999px;
-  font-family: var(--font-ui);
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 6px 20px rgba(4, 136, 219, 0.4);
-  transition: background 0.12s, box-shadow 0.12s, transform 0.12s;
-}
-
-.caddieLauncher:hover {
-  background: #0374c4;
-  box-shadow: 0 8px 26px rgba(4, 136, 219, 0.46);
-  transform: translateY(-1px);
-}
-
-.caddieLauncherAvatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: white;
-}
-
-/* ── Caddie slide-over ───────────────────────────────────── */
-
-.caddieSlideBackdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(11, 15, 26, 0.4);
-  backdrop-filter: blur(2px);
-  z-index: 1090;
-}
-
-.caddieSlideOver {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 400px;
-  max-width: 92vw;
-  z-index: 1100;
-  background: white;
-  box-shadow: -12px 0 40px rgba(0, 0, 0, 0.18);
-  display: flex;
-  flex-direction: column;
-}
-
-.caddieSlideHead {
-  padding: 16px 18px;
-}
-
 /* ── Responsive ──────────────────────────────────────────── */
 
 @media (max-width: 1024px) {
@@ -2773,46 +2485,11 @@
     max-height: 60vh;
   }
 
-  .plan2Layout {
-    flex-direction: column;
-    padding-top: 20px;
-  }
-
-  .facetSidebar {
-    width: 100%;
-    position: static;
-    max-height: none;
-  }
-
-  .facetItems {
-    flex-flow: row wrap;
-  }
-
-  .facetItem {
-    width: auto;
-  }
-
-  .plan2Center {
-    position: static;
-    width: 100%;
-    height: auto;
-    max-height: none;
-    order: -1;
-  }
-
-  .plan2Center .cardGridScroll {
-    max-height: 60vh;
-  }
 }
 
 @media (max-width: 640px) {
   .cardGrid {
     grid-template-columns: 1fr 1fr;
-  }
-
-  .caddieSlideOver {
-    width: 100%;
-    max-width: 100%;
   }
 
   .browseToolbarRight {
