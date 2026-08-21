@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import TripCard from "./TripCard";
 import styles from "../styles/trips.module.css";
 import { formatStayType } from "../lib/formatters";
@@ -49,30 +49,26 @@ export default function TripsListClient({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
-  // Initialize from URL (?n=50), fallback to pageSize.
-  const initialFromUrl = (() => {
-    const raw = searchParams.get(paramName);
-    const parsed = raw ? parseInt(raw, 10) : NaN;
-    if (!Number.isFinite(parsed)) return pageSize;
-    return clamp(parsed, pageSize, trips.length);
-  })();
+  // Deliberately not useSearchParams(): reading it during render opts this
+  // subtree out of static rendering, so the server HTML shipped an empty
+  // Suspense fallback instead of the cards. That left every /trips/<slug>
+  // link out of the crawlable markup. Read the query string after mount.
+  const [visibleCount, setVisibleCount] = useState<number>(pageSize);
 
-  const [visibleCount, setVisibleCount] = useState<number>(initialFromUrl);
-
-  // If user navigates via Back/Forward and the query param changes,
-  // sync state to URL so the list matches history state.
+  // Initialize from URL (?n=50) and follow Back/Forward navigation.
   useEffect(() => {
-    const raw = searchParams.get(paramName);
-    const parsed = raw ? parseInt(raw, 10) : NaN;
-    const next = Number.isFinite(parsed)
-      ? clamp(parsed, pageSize, trips.length)
-      : pageSize;
-
-    setVisibleCount(next);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, paramName, pageSize, trips.length]);
+    function syncFromUrl() {
+      const raw = new URLSearchParams(window.location.search).get(paramName);
+      const parsed = raw ? parseInt(raw, 10) : NaN;
+      setVisibleCount(
+        Number.isFinite(parsed) ? clamp(parsed, pageSize, trips.length) : pageSize
+      );
+    }
+    syncFromUrl();
+    window.addEventListener("popstate", syncFromUrl);
+    return () => window.removeEventListener("popstate", syncFromUrl);
+  }, [paramName, pageSize, trips.length]);
 
   const visibleTrips = useMemo(
     () => trips.slice(0, visibleCount),
@@ -82,7 +78,7 @@ export default function TripsListClient({
   const canLoadMore = visibleCount < trips.length;
 
   function persistCount(next: number) {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(window.location.search);
     params.set(paramName, String(next));
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   }

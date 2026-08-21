@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -109,9 +108,10 @@ export default async function TripFilterPage({
               <h2 style={{ fontSize: 15, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", color: "#6b7280", marginBottom: 16 }}>
                 {filtered.length} Ranked {regionDef ? `${regionDef.label} ` : ""}Golf Trips
               </h2>
-              <Suspense fallback={null}>
-                <TripsListClient trips={filtered} pageSize={20} />
-              </Suspense>
+              <TripsListClient
+                trips={filtered}
+                pageSize={Math.max(20, filtered.length)}
+              />
               {regionDef && (
                 <div style={{ marginTop: 56, borderTop: "1px solid #e5e7eb", paddingTop: 40 }}>
                   <h2 style={{ fontSize: 22, fontWeight: 700, color: "#0b0f1a", marginBottom: 12 }}>

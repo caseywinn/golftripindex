@@ -1,9 +1,9 @@
-import { Suspense } from "react";
 import Link from "next/link";
 import styles from "../../styles/trips.module.css";
 import { getPublishedTripsWithFirstCourse } from "../../lib/airtable";
 import type { Metadata } from "next";
 import TripsWithFilters from "../../components/TripsWithFilters";
+import { REGIONS } from "../../lib/filters";
 import { SITE_URL } from "../../lib/seo";
 import { JsonLd } from "@/components/JsonLd";
 
@@ -52,9 +52,7 @@ export default async function TripsPage() {
 
   const content =
     trips.length > 0 ? (
-      <Suspense fallback={null}>
-        <TripsWithFilters trips={trips} pageSize={20} />
-      </Suspense>
+      <TripsWithFilters trips={trips} pageSize={20} />
     ) : (
       <p style={{ color: "#6b7280", fontSize: 15, padding: "40px 0" }}>
         No trips published yet. Check back soon.
@@ -168,6 +166,17 @@ export default async function TripsPage() {
               <Link href="/articles/ship-the-clubs-or-fly">Ship the Clubs or Fly?</Link>
               <Link href="/articles/spouse-friendly-trip">Spouse-Friendly Trips</Link>
               <Link href="/articles/best-weekend-golf-trips">Best Weekend Trips</Link>
+            </div>
+          </div>
+          <div className={styles.guidesDivider} />
+          <div className={styles.guidesGroup}>
+            <span className={styles.guidesLabel}>Browse by region</span>
+            <div className={styles.guidesLinks}>
+              {REGIONS.map((r) => (
+                <Link key={r.slug} href={`/trips/region/${r.slug}`}>
+                  {r.label}
+                </Link>
+              ))}
             </div>
           </div>
           <div className={styles.guidesDivider} />

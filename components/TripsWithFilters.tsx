@@ -1,6 +1,6 @@
 "use client";
 
-import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useState, useMemo, useEffect, useRef } from "react";
 import {
   REGIONS,
@@ -62,19 +62,30 @@ export default function TripsWithFilters({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openKey, setOpenKey] = useState<FilterKey | null>(null);
   const barRef = useRef<HTMLDivElement>(null);
 
-  const activeFilters = useMemo<Partial<Record<FilterKey, string[]>>>(() => {
-    const result: Partial<Record<FilterKey, string[]>> = {};
-    for (const key of ALL_FILTER_KEYS) {
-      const val = searchParams.get(key);
-      if (val) result[key] = val.split(",").filter(Boolean);
+  // Deliberately not useSearchParams(): reading it during render opts this
+  // subtree out of static rendering, which stripped every trip card — and so
+  // every /trips/<slug> link — from the server HTML. Read the URL after mount
+  // and own the filter state locally instead.
+  const [activeFilters, setActiveFilters] = useState<Partial<Record<FilterKey, string[]>>>({});
+
+  useEffect(() => {
+    function syncFromUrl() {
+      const sp = new URLSearchParams(window.location.search);
+      const result: Partial<Record<FilterKey, string[]>> = {};
+      for (const key of ALL_FILTER_KEYS) {
+        const val = sp.get(key);
+        if (val) result[key] = val.split(",").filter(Boolean);
+      }
+      setActiveFilters(result);
     }
-    return result;
-  }, [searchParams]);
+    syncFromUrl();
+    window.addEventListener("popstate", syncFromUrl);
+    return () => window.removeEventListener("popstate", syncFromUrl);
+  }, []);
 
   const filtered = useMemo(() => {
     let result = [...trips];
@@ -101,14 +112,20 @@ export default function TripsWithFilters({
     const next = current.includes(value)
       ? current.filter(v => v !== value)
       : [...current, value];
-    const params = new URLSearchParams(searchParams.toString());
+
+    const updated = { ...activeFilters };
+    if (next.length === 0) delete updated[key]; else updated[key] = next;
+    setActiveFilters(updated);
+
+    const params = new URLSearchParams(window.location.search);
     if (next.length === 0) params.delete(key); else params.set(key, next.join(","));
     const qs = params.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   }
 
   function clearAll() {
-    const params = new URLSearchParams(searchParams.toString());
+    setActiveFilters({});
+    const params = new URLSearchParams(window.location.search);
     for (const key of ALL_FILTER_KEYS) params.delete(key);
     const qs = params.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
