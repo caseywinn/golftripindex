@@ -9,8 +9,9 @@ import type { Metadata } from "next";
 import { SITE_URL } from "../../lib/seo";
 
 export const metadata: Metadata = {
-  title: "Golf Journey Rankings",
-  description: "A ranking of the best extended golf journeys in America.",
+  title: "Best Golf Road Trips in America",
+  description:
+    "Multi-stop golf road trips across America — the RTJ Trail, the California coast, Seattle to Bandon — each rated on courses, lodging, food, and cost.",
   alternates: { canonical: `${SITE_URL}/journeys` },
 };
 

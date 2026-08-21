@@ -6,9 +6,9 @@ import { SITE_URL, SITE_NAME } from "../../lib/seo";
 import { JsonLd } from "@/components/JsonLd";
 
 export const metadata: Metadata = {
-  title: "Course Rankings",
+  title: "Top 100 Golf Courses in America",
   description:
-    "A consolidated ranking of the top 100 golf courses in the United States, combining Golf Digest, Golf.com, and Golfweek into one objective view.",
+    "The 100 best golf courses in America, ranked by consolidating Golf Digest, Golf.com, and Golfweek into a single list — the consensus, not one magazine's view.",
   alternates: { canonical: `${SITE_URL}/courses` },
 };
 
