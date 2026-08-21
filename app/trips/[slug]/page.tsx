@@ -49,7 +49,7 @@ function deriveSeasonName(months: string[]): string {
   if (found.length <= 2) return found.join(" & ");
   return found.join(", ");
 }
-import { SITE_URL, SITE_NAME } from "@/lib/seo";
+import { SITE_URL, tripReviewTitle } from "@/lib/seo";
 import { JsonLd } from "@/components/JsonLd";
 
 export const revalidate = 86400;
@@ -72,20 +72,23 @@ export async function generateMetadata({
     trip.seoDescription ||
     `GolfTripIndex rates the full ${trip.name} golf trip — courses, lodging, food, and cost. Find out if it's worth your group's next trip.`;
   const url = `${SITE_URL}/trips/${slug}`;
+  const title = tripReviewTitle(trip.name, trip.overallRating);
 
   return {
-    title: `${trip.name} Golf Trip Review`,
+    // absolute: skip the root layout's "%s | Golf Trip Index" template
+    title: { absolute: title },
     description,
     alternates: { canonical: url },
     openGraph: {
-      title: `${trip.name} | ${SITE_NAME}`,
+      // siteName is already set in the root layout, so no brand suffix here
+      title,
       description,
       url,
       type: "website",
     },
     twitter: {
       card: "summary_large_image",
-      title: `${trip.name} | ${SITE_NAME}`,
+      title,
       description,
     },
   };
