@@ -145,6 +145,14 @@
   margin-bottom: 12px;
 }
 
+/* The "Golf Trip Review" half of the H1 — the phrase the SERP title is built
+   around. Lighter than the destination so the hero still reads as the place
+   name. */
+.bannerTitleQualifier {
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.72);
+}
+
 .bannerDeck {
   margin: 12px 0 0 0;
   max-width: 560px;

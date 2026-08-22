@@ -16,6 +16,7 @@ import EmailSignup from "@/components/EmailSignup";
 import SaveButton from "@/components/SaveButton";
 import ShareButton from "@/components/ShareButton";
 import { ProseMarkdown, LodgingMarkdown, PackMarkdown } from "./TripMarkdown";
+import { tripHeadingQualifier } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Trip Detail Design | Golf Trip Index",
@@ -318,7 +319,12 @@ export default function DesignTripPage() {
         <div className={hero.bannerPanel}>
           <div className={hero.bannerInner}>
             <div className={hero.bannerHeader}>
-              <h1 className={hero.bannerTitle}>{trip.name}</h1>
+              <h1 className={hero.bannerTitle}>
+                {trip.name}
+                <span className={hero.bannerTitleQualifier}>
+                  {tripHeadingQualifier(trip.name)}
+                </span>
+              </h1>
               <p className={hero.bannerDeck}>{trip.subheader}</p>
               <div className={hero.bannerSave}>
                 <SaveButton itemType="trip" itemId={slug} variant="dark" />

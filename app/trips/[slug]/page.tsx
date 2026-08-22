@@ -49,7 +49,7 @@ function deriveSeasonName(months: string[]): string {
   if (found.length <= 2) return found.join(" & ");
   return found.join(", ");
 }
-import { SITE_URL, tripReviewTitle } from "@/lib/seo";
+import { SITE_URL, tripHeadingQualifier, tripReviewTitle, tripReviewSchema } from "@/lib/seo";
 import { JsonLd } from "@/components/JsonLd";
 
 export const revalidate = 86400;
@@ -211,24 +211,7 @@ export default async function TripDetailsPage({
     ],
   };
 
-  const tripSchema = {
-    "@context": "https://schema.org",
-    "@type": "TouristAttraction",
-    name: `${trip.name} Golf Trip`,
-    description: trip.verdict ?? trip.overview ?? trip.fullDescription ?? undefined,
-    url: `${SITE_URL}/trips/${trip.slug}`,
-    ...(trip.overallRating
-      ? {
-          aggregateRating: {
-            "@type": "AggregateRating",
-            ratingValue: (trip.overallRating / 10).toFixed(1),
-            bestRating: "10",
-            worstRating: "1",
-            ratingCount: "1",
-          },
-        }
-      : {}),
-  };
+  const tripSchema = tripReviewSchema(trip);
 
   const faqEntries: { question: string; answer: string }[] = [];
 
@@ -307,7 +290,12 @@ export default async function TripDetailsPage({
         <div className={hero.bannerPanel}>
           <div className={hero.bannerInner}>
             <div className={hero.bannerHeader}>
-              <h1 className={hero.bannerTitle}>{trip.name}</h1>
+              <h1 className={hero.bannerTitle}>
+                {trip.name}
+                <span className={hero.bannerTitleQualifier}>
+                  {tripHeadingQualifier(trip.name)}
+                </span>
+              </h1>
               {trip.subheader && (
                 <p className={hero.bannerDeck}>{trip.subheader}</p>
               )}

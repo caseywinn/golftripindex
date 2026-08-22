@@ -1,38 +1,84 @@
 import type { Metadata } from "next";
+import { cache } from "react";
+import { notFound } from "next/navigation";
 import CompareClient from "../CompareClient";
-import { SITE_URL, SITE_NAME } from "@/lib/seo";
+import { getPublishedTrips } from "@/lib/airtable";
+import {
+  SITE_URL,
+  SITE_NAME,
+  matchupPath,
+  matchupTitle,
+  matchupIntro,
+} from "@/lib/seo";
+
+/**
+ * Matched to the trip templates. The page body is a client-side generation, so
+ * everything rendered here — H1, standfirst, metadata — is stable for a day,
+ * and caching it removes the Airtable read from the request path. It also
+ * replaces what `loading.tsx` used to cover: that fallback was the only thing
+ * a crawler received, so the route now renders in document order instead.
+ */
+export const revalidate = 86400;
 
 const BASE_DESCRIPTION =
   "Compare two golf trips side-by-side with AI-powered analysis of courses, ratings, cost, and overall experience.";
 
-function slugToTitle(slug: string): string {
-  return slug
-    .split("-")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
+/**
+ * slug → published trip name.
+ *
+ * `cache()` dedupes the Airtable read across generateMetadata and the render
+ * pass of the same request, so resolving a matchup costs one fetch, not two.
+ */
+const tripNames = cache(async (): Promise<Map<string, string>> => {
+  const trips = await getPublishedTrips();
+  return new Map(trips.map((t) => [t.slug, t.name]));
+});
+
+type Matchup = { A: string; B: string; nameA: string; nameB: string };
+
+/**
+ * Resolve URL params to a real, published, canonically-ordered pair.
+ *
+ * Returns null when the URL names no valid matchup — either it didn't parse or
+ * one of the slugs isn't a published trip. Order is normalised to match
+ * `matchupPath`, so `/compare/b-vs-a` and `/compare/a-vs-b` render the same
+ * page as well as sharing the same canonical.
+ */
+async function resolveMatchup(matchup?: string[]): Promise<Matchup | null> {
+  const pair = parseFromParams(matchup);
+  if (!pair) return null;
+
+  const [A, B] = [pair.A, pair.B].sort();
+  const names = await tripNames();
+  const nameA = names.get(A);
+  const nameB = names.get(B);
+  if (!nameA || !nameB) return null;
+
+  return { A, B, nameA, nameB };
 }
 
 export async function generateMetadata({
   params,
 }: {
-  params: { matchup?: string[] };
+  params: Promise<{ matchup?: string[] }>;
 }): Promise<Metadata> {
-  const matchup = params?.matchup;
-  const canonical =
-    matchup && matchup.length > 0
-      ? `${SITE_URL}/compare/${matchup.join("/")}`
-      : `${SITE_URL}/compare`;
+  const { matchup } = await params;
+  const pair = await resolveMatchup(matchup);
 
-  const pair = parseFromParams(matchup);
+  const canonical = pair
+    ? `${SITE_URL}${matchupPath(pair.A, pair.B)}`
+    : `${SITE_URL}/compare`;
   const title = pair
-    ? `${slugToTitle(pair.A)} vs. ${slugToTitle(pair.B)}`
+    ? matchupTitle(pair.nameA, pair.nameB)
     : "Compare Golf Trips";
   const description = pair
-    ? `Compare ${slugToTitle(pair.A)} and ${slugToTitle(pair.B)} side-by-side — courses, ratings, cost, and overall experience.`
+    ? matchupIntro(pair.nameA, pair.nameB)
     : BASE_DESCRIPTION;
 
   return {
-    title,
+    // Matchup titles already carry the brand's job; the root layout's
+    // "%s | Golf Trip Index" suffix would push them past ~60 characters.
+    title: pair ? { absolute: title } : title,
     description,
     alternates: { canonical },
     openGraph: {
@@ -72,17 +118,29 @@ function parseFromParams(matchup?: string[]): { A: string; B: string } | null {
   return { A, B };
 }
 
-export default function ComparePage({
+export default async function ComparePage({
   params,
 }: {
-  params: { matchup?: string[] };
+  params: Promise<{ matchup?: string[] }>;
 }) {
-  const parsed = parseFromParams(params?.matchup);
+  const { matchup } = await params;
 
-  return (
-    <CompareClient
-      initialA={parsed?.A ?? ""}
-      initialB={parsed?.B ?? ""}
-    />
-  );
+  // A URL that carries a matchup but doesn't resolve to two published trips is
+  // not a page. 404 it rather than serving the generic picker at an indexable
+  // URL — otherwise every typo'd slug is a soft-duplicate of /compare.
+  if (matchup && matchup.length > 0) {
+    const pair = await resolveMatchup(matchup);
+    if (!pair) notFound();
+
+    return (
+      <CompareClient
+        initialA={pair.A}
+        initialB={pair.B}
+        initialNameA={pair.nameA}
+        initialNameB={pair.nameB}
+      />
+    );
+  }
+
+  return <CompareClient initialA="" initialB="" />;
 }

@@ -6,6 +6,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import styles from "@/styles/compare.module.css";
+import { matchupPath, matchupTitle, matchupIntro } from "@/lib/seo";
 
 type TripOption = { name: string; slug: string };
 
@@ -38,9 +39,9 @@ const PHASES = [
   "Writing the verdict…",
 ];
 
-function buildCanonicalPath(A: string, B: string) {
-  return `/compare/${encodeURIComponent(A)}-vs-${encodeURIComponent(B)}`;
-}
+// Shared with the server so a client-side router.replace lands on the same
+// URL the page canonicals to, rather than a second ordering of the same pair.
+const buildCanonicalPath = matchupPath;
 
 function parseCompareFromSearchParams(sp: URLSearchParams): { A: string; B: string } | null {
   // Supported:
@@ -94,9 +95,18 @@ function parsePairFromPathname(pathname: string): { A: string; B: string } | nul
 export default function CompareClient({
   initialA = "",
   initialB = "",
+  initialNameA = "",
+  initialNameB = "",
 }: {
   initialA?: string;
   initialB?: string;
+  /**
+   * Trip names resolved on the server. The dropdown list arrives from a client
+   * fetch, so without these the H1 renders "Head-to-Head" in the server HTML —
+   * which is what a crawler keeps.
+   */
+  initialNameA?: string;
+  initialNameB?: string;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -105,12 +115,14 @@ export default function CompareClient({
   const [trips, setTrips] = useState<TripOption[]>([]);
 
   // Draft selections (dropdowns). Changing these should NOT clear the page.
-  const [draftA, setDraftA] = useState<string>("");
-  const [draftB, setDraftB] = useState<string>("");
+  // Seeded from the server-resolved pair so the first paint — including the
+  // server HTML — already shows the matchup rather than an empty picker.
+  const [draftA, setDraftA] = useState<string>(initialA);
+  const [draftB, setDraftB] = useState<string>(initialB);
 
   // Committed selections (used for the actual comparison + heading + option filtering).
-  const [a, setA] = useState<string>("");
-  const [b, setB] = useState<string>("");
+  const [a, setA] = useState<string>(initialA);
+  const [b, setB] = useState<string>(initialB);
 
   const [cacheKey, setCacheKey] = useState<string | null>(null);
   const [cached, setCached] = useState<boolean>(false);
@@ -147,8 +159,15 @@ export default function CompareClient({
 
   const canCompare = Boolean(draftA && draftB && draftA !== draftB) && !comparing;
 
-  const tripAName = useMemo(() => trips.find((t) => t.slug === a)?.name ?? "", [trips, a]);
-  const tripBName = useMemo(() => trips.find((t) => t.slug === b)?.name ?? "", [trips, b]);
+  // Fall back to the server-resolved names until the dropdown list lands.
+  const tripAName = useMemo(
+    () => trips.find((t) => t.slug === a)?.name ?? (a === initialA ? initialNameA : ""),
+    [trips, a, initialA, initialNameA],
+  );
+  const tripBName = useMemo(
+    () => trips.find((t) => t.slug === b)?.name ?? (b === initialB ? initialNameB : ""),
+    [trips, b, initialB, initialNameB],
+  );
 
   // Clear downstream state ONLY when committed comparison pair changes
   useEffect(() => {
@@ -277,64 +296,23 @@ export default function CompareClient({
   const heroSrc = `/comparison-hero.jpg`;
   const fallbackHeroSrc = a ? `/images/trips/${a}.jpg` : `/images/compare/placeholder.jpg`;
 
-  const title = tripAName && tripBName ? `${tripAName} vs ${tripBName}` : "Head-to-Head";
+  const hasPair = Boolean(tripAName && tripBName);
+  const title = hasPair
+    ? matchupTitle(tripAName, tripBName)
+    : "Compare Golf Trips";
+  const standfirst = hasPair
+    ? matchupIntro(tripAName, tripBName)
+    : "Select two golf trips to compare. This tool goes beyond surface-level rankings to break down how each trip actually plays out so you can see which one truly fits the kind of trip you want to take.";
 
   return (
     <main className={styles.page}>
-      {/* ================= SPINNER OVERLAY (BIG) ================= */}
-      {comparing && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(255,255,255,0.95)",
-            zIndex: 9999,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexDirection: "column",
-            gap: 18,
-          }}
-          aria-live="polite"
-          aria-busy="true"
-          role="status"
-        >
-          <div
-            style={{
-              width: 88,
-              height: 88,
-              border: "7px solid #e5e5e5",
-              borderTopColor: "#111",
-              borderRadius: "50%",
-              animation: "spin 1s linear infinite",
-            }}
-          />
-          <div
-            style={{
-              fontSize: 16,
-              opacity: 0.85,
-              transition: "opacity 250ms ease",
-              textAlign: "center",
-              padding: "0 18px",
-              maxWidth: 560,
-              lineHeight: 1.35,
-            }}
-          >
-            {PHASES[phaseIndex]}
-          </div>
-          <div style={{ fontSize: 13, opacity: 0.6 }}>
-            This can take ~10–20 seconds on a fresh generation.
-          </div>
-        </div>
-      )}
-      {/* ========================================================= */}
 
       {/* HERO */}
       <section className={styles.hero}>
         <div className={styles.heroImageWrap}>
           <Image
             src={heroSrc}
-            alt={title}
+            alt={hasPair ? `${tripAName} vs ${tripBName}` : "Golf trip comparison"}
             fill
             priority
             className={styles.heroImage}
@@ -351,9 +329,7 @@ export default function CompareClient({
         <div className={styles.heroPanel}>
           <h1 className={styles.title}>{title}</h1>
 
-          <div className={styles.meta}>
-            Select two golf trips to compare. This tool goes beyond surface-level rankings to break down how each trip actually plays out so you can see which one truly fits the kind of trip you want to take.
-          </div>
+          <p className={styles.teaser}>{standfirst}</p>
 
           {/*<div className={styles.meta}>
             <span>
@@ -435,7 +411,17 @@ export default function CompareClient({
       {/* BODY */}
       <section className={styles.body}>
         <article className={styles.article}>
-          {output ? (
+          {comparing ? (
+            <div className={styles.articleLoading} aria-live="polite" aria-busy="true" role="status">
+              <div className={styles.articleLoadingInner}>
+                <div className={styles.articleSpinner} />
+                <div className={styles.articlePhase}>{PHASES[phaseIndex]}</div>
+                <div className={styles.articleSubphase}>
+                  This can take ~10–20 seconds on a fresh generation.
+                </div>
+              </div>
+            </div>
+          ) : output ? (
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
@@ -457,14 +443,6 @@ export default function CompareClient({
           ) : null}
         </article>
       </section>
-
-      <style jsx global>{`
-        @keyframes spin {
-          to {
-            transform: rotate(360deg);
-          }
-        }
-      `}</style>
     </main>
   );
 }
