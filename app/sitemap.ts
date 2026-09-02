@@ -19,23 +19,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     getPublishedArticles(),
   ]);
 
-  const now = new Date();
-
+  // No per-page date to report for these: they aren't backed by a single
+  // Airtable record, so there's nothing truthful to put in lastModified.
+  // Omitting it (rather than stamping every one with the sitemap's own build
+  // time) avoids the "everything changed today" anti-pattern Google's docs
+  // warn erodes trust in a sitemap's lastmod signal over time.
   const staticPages: MetadataRoute.Sitemap = [
-    { url: `${SITE_URL}/`, lastModified: now, changeFrequency: "daily", priority: 1 },
-    { url: `${SITE_URL}/trips`, lastModified: now, changeFrequency: "weekly", priority: 0.9 },
-    { url: `${SITE_URL}/articles`, lastModified: now, changeFrequency: "weekly", priority: 0.8 },
-    { url: `${SITE_URL}/journeys`, lastModified: now, changeFrequency: "weekly", priority: 0.8 },
-    { url: `${SITE_URL}/courses`, lastModified: now, changeFrequency: "weekly", priority: 0.8 },
-    { url: `${SITE_URL}/compare`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
-    { url: `${SITE_URL}/how-we-rate`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
-    { url: `${SITE_URL}/golf-trip-cost-index`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
+    { url: `${SITE_URL}/`, changeFrequency: "daily", priority: 1 },
+    { url: `${SITE_URL}/trips`, changeFrequency: "weekly", priority: 0.9 },
+    { url: `${SITE_URL}/articles`, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${SITE_URL}/journeys`, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${SITE_URL}/courses`, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${SITE_URL}/compare`, changeFrequency: "monthly", priority: 0.6 },
+    { url: `${SITE_URL}/how-we-rate`, changeFrequency: "monthly", priority: 0.5 },
+    { url: `${SITE_URL}/golf-trip-cost-index`, changeFrequency: "monthly", priority: 0.6 },
     // /articles only previews three articles per category; /articles/all is the
     // paginated index that actually reaches every one of them.
-    { url: `${SITE_URL}/articles/all`, lastModified: now, changeFrequency: "weekly", priority: 0.7 },
+    { url: `${SITE_URL}/articles/all`, changeFrequency: "weekly", priority: 0.7 },
     ...ARTICLE_CATEGORIES.map((c) => ({
       url: `${SITE_URL}/articles/category/${c}`,
-      lastModified: now,
       changeFrequency: "weekly" as const,
       priority: 0.6,
     })),
@@ -43,7 +45,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // indexable: resorts we've emailed search for us before they reply.
     {
       url: `${SITE_URL}/events/father-son-invitational`,
-      lastModified: now,
       changeFrequency: "monthly",
       priority: 0.6,
     },
@@ -52,29 +53,33 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const filterPages: MetadataRoute.Sitemap = [
     ...REGIONS.map((r) => ({
       url: `${SITE_URL}/trips/region/${r.slug}`,
-      lastModified: now,
       changeFrequency: "weekly" as const,
       priority: 0.8,
     })),
   ];
 
+  // createdTime is Airtable's own record-creation timestamp — real and
+  // per-record, unlike a shared build-time "now". It won't move when a trip is
+  // only edited (Airtable's API doesn't expose last-edited time without a
+  // dedicated formula field, which the base doesn't have), but a stable date
+  // wrong in that one direction beats every trip claiming to change daily.
   const tripPages: MetadataRoute.Sitemap = trips.map((t) => ({
     url: `${SITE_URL}/trips/${t.slug}`,
-    lastModified: now,
+    ...(t.createdTime ? { lastModified: new Date(t.createdTime) } : {}),
     changeFrequency: "weekly" as const,
     priority: 0.8,
   }));
 
   const articlePages: MetadataRoute.Sitemap = articles.map((a) => ({
     url: `${SITE_URL}/articles/${a.slug}`,
-    lastModified: a.publishedOn ? new Date(a.publishedOn) : now,
+    ...(a.publishedOn ? { lastModified: new Date(a.publishedOn) } : {}),
     changeFrequency: "monthly" as const,
     priority: 0.7,
   }));
 
   const journeyPages: MetadataRoute.Sitemap = journeys.map((j) => ({
     url: `${SITE_URL}/journeys/${j.slug}`,
-    lastModified: now,
+    ...(j.createdTime ? { lastModified: new Date(j.createdTime) } : {}),
     changeFrequency: "monthly" as const,
     priority: 0.7,
   }));

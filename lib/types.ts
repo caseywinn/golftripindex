@@ -9,6 +9,8 @@ export type GolfTrip = {
   name: string;
   secondaryName?: string;
   subheader?: string;
+  /** Airtable record creation time (ISO string) — not bumped by edits, but real and stable, unlike a build-time "now". */
+  createdTime?: string;
 
   pullQuote?: string;
   overview?: string;
@@ -326,6 +328,8 @@ export type LongTrip = {
   durationMaxDays: number;
   costTier?: 1 | 2 | 3 | 4 | 5;
   status: string;
+  /** Airtable record creation time (ISO string) — not bumped by edits, but real and stable, unlike a build-time "now". */
+  createdTime?: string;
 };
 
 export type JourneyStop = {
