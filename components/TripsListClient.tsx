@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import TripCard from "./TripCard";
 import styles from "../styles/trips.module.css";
@@ -70,11 +70,6 @@ export default function TripsListClient({
     return () => window.removeEventListener("popstate", syncFromUrl);
   }, [paramName, pageSize, trips.length]);
 
-  const visibleTrips = useMemo(
-    () => trips.slice(0, visibleCount),
-    [trips, visibleCount]
-  );
-
   const canLoadMore = visibleCount < trips.length;
 
   function persistCount(next: number) {
@@ -112,36 +107,37 @@ export default function TripsListClient({
   return (
     <>
       <div className={styles.list}>
-        {visibleTrips.map((t, idx) => {
+        {trips.map((t, idx) => {
           const oneBased = idx + 1;
           return (
-            <TripCard
-              key={t.id}
-              id={`trip-${oneBased}`}
-              href={`/trips/${t.slug.toLowerCase()}`}
-              slug={t.slug.toLowerCase()}
-              currentRanking={t.currentRanking ?? 999}
-              previousRanking={t.previousRanking}
-              name={t.name}
-              secondaryName={t.secondaryName}
-              durationMinDays={t.durationMinDays ?? 1}
-              durationMaxDays={t.durationMaxDays ?? 999}
-              driving={t.driving}
-              stayType={formatStayType(t.stayType)}
-              leadTime={t.leadTime}
-              costTier={t.costTier}
-              overview={t.overview}
-              thumbnailImageUrl={
-                t.firstCourse?.slug
-                  ? `/images/courses/${t.firstCourse.slug.toLowerCase()}.jpg`
-                  : `/images/trips/${t.slug.toLowerCase()}.jpg`
-              }
-              golfRating={t.golfRating}
-              lodgingRating={t.lodgingRating}
-              foodRating={t.foodRating}
-              vibeRating={t.vibeRating}
-              overallRating={t.overallRating}
-            />
+            <div key={t.id} hidden={idx >= visibleCount}>
+              <TripCard
+                id={`trip-${oneBased}`}
+                href={`/trips/${t.slug.toLowerCase()}`}
+                slug={t.slug.toLowerCase()}
+                currentRanking={t.currentRanking ?? 999}
+                previousRanking={t.previousRanking}
+                name={t.name}
+                secondaryName={t.secondaryName}
+                durationMinDays={t.durationMinDays ?? 1}
+                durationMaxDays={t.durationMaxDays ?? 999}
+                driving={t.driving}
+                stayType={formatStayType(t.stayType)}
+                leadTime={t.leadTime}
+                costTier={t.costTier}
+                overview={t.overview}
+                thumbnailImageUrl={
+                  t.firstCourse?.slug
+                    ? `/images/courses/${t.firstCourse.slug.toLowerCase()}.jpg`
+                    : `/images/trips/${t.slug.toLowerCase()}.jpg`
+                }
+                golfRating={t.golfRating}
+                lodgingRating={t.lodgingRating}
+                foodRating={t.foodRating}
+                vibeRating={t.vibeRating}
+                overallRating={t.overallRating}
+              />
+            </div>
           );
         })}
       </div>
