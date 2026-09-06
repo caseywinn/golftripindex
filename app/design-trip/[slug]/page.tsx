@@ -49,7 +49,7 @@ function deriveSeasonName(months: string[]): string {
   if (found.length <= 2) return found.join(" & ");
   return found.join(", ");
 }
-import { SITE_URL, SITE_NAME, tripHeadingQualifier, tripReviewSchema } from "@/lib/seo";
+import { SITE_URL, SITE_NAME, tripHeadingQualifier, tripWebPageSchema } from "@/lib/seo";
 import { JsonLd } from "@/components/JsonLd";
 
 export const revalidate = 86400;
@@ -209,7 +209,7 @@ export default async function DesignTripSlugPage({
     ],
   };
 
-  const tripSchema = tripReviewSchema(trip);
+  const tripSchema = tripWebPageSchema(trip);
 
   return (
     <main>

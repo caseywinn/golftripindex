@@ -34,23 +34,23 @@ export function tripHeadingQualifier(name: string): string {
 }
 
 /**
- * JSON-LD for a trip page: a signed editorial review, not a crowd aggregate.
+ * JSON-LD for a trip page: plain page/entity description, no review markup.
  *
- * A trip page is one rated verdict from a named publisher against a published
- * methodology (/how-we-rate), so `Review` + `itemReviewed` is the shape that
- * models it — an `AggregateRating` carrying `ratingCount: "1"` is not an
- * aggregate, and reads as self-reported.
- *
- * `ratingValue` is the raw 0–10 score. It used to be divided by 10 while
- * `bestRating` still declared "10", so every trip published at roughly a tenth
- * of its real score, and the lower half of the catalogue landed below the
- * declared `worstRating` of "1" — invalid, so discarded rather than misread.
- * `worstRating: "0"` matches the actual floor of the scale.
+ * This used to emit `Review` + `itemReviewed: TouristAttraction`, but Google
+ * doesn't recognize `TouristAttraction` as a valid `itemReviewed` type for
+ * Review rich results, so Search Console flagged every trip page as an
+ * invalid review snippet. `TouristAttraction` is also the accurate type for
+ * a golf trip — it isn't a `Product` or `LocalBusiness` — so rather than
+ * force-fitting a type Google's review validator accepts, this drops the
+ * review/rating markup entirely and keeps the `TouristAttraction` as the
+ * subject of a plain `WebPage`, via `about` rather than `itemReviewed`. The
+ * 0–10 score itself still renders on the page; it's just no longer asserted
+ * as a rich-result `reviewRating`.
  *
  * Shared by /trips/[slug] and its noindexed /design-trip/[slug] twin so the
  * two templates cannot drift back apart.
  */
-export function tripReviewSchema(trip: {
+export function tripWebPageSchema(trip: {
   slug: string;
   name: string;
   overallRating?: number;
@@ -68,15 +68,21 @@ export function tripReviewSchema(trip: {
       url: `${SITE_URL}/logo-gti.png`,
     },
   };
-  const reviewBody = trip.verdict || trip.overview;
+  const description = trip.verdict || trip.overview || trip.fullDescription || undefined;
 
   return {
     "@context": "https://schema.org",
-    "@type": "Review",
-    "@id": `${url}#review`,
+    "@type": "WebPage",
+    "@id": `${url}#webpage`,
     url,
     name: tripReviewTitle(trip.name, trip.overallRating),
-    itemReviewed: {
+    ...(description ? { description } : {}),
+    isPartOf: {
+      "@type": "WebSite",
+      name: SITE_NAME,
+      url: SITE_URL,
+    },
+    about: {
       "@type": "TouristAttraction",
       "@id": `${url}#trip`,
       name: `${trip.name} Golf Trip`,
@@ -84,19 +90,11 @@ export function tripReviewSchema(trip: {
       url,
       image: `${SITE_URL}/images/trips/${trip.slug}.jpg`,
     },
-    ...(reviewBody ? { reviewBody } : {}),
-    author: publisher,
+    primaryImageOfPage: {
+      "@type": "ImageObject",
+      url: `${SITE_URL}/images/trips/${trip.slug}.jpg`,
+    },
     publisher,
-    ...(trip.overallRating && trip.overallRating > 0
-      ? {
-          reviewRating: {
-            "@type": "Rating",
-            ratingValue: trip.overallRating.toFixed(1),
-            bestRating: "10",
-            worstRating: "0",
-          },
-        }
-      : {}),
   };
 }
 
