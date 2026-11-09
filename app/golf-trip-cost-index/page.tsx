@@ -435,7 +435,7 @@ export default async function CostIndexPage() {
         <h1 className={styles.pageTitle}>Golf Trip All-In Cost Index</h1>
         <p className={styles.pageSubtitle}>
           What every ranked golf destination actually costs: green fees, lodging, and a realistic
-          all-in estimate for a 3-day group trip. All {trips.length} GTI-ranked destinations, one table.
+          all-in estimate per person for a 3-night, 4-round trip. All {trips.length} GTI-ranked destinations, one table.
         </p>
         <div className={styles.metaRow}>
           <span className={styles.metaItem}><strong>{trips.length}</strong> destinations</span>
@@ -470,10 +470,10 @@ export default async function CostIndexPage() {
             )}
             {median && (
               <div className={styles.insightCard}>
-                <p className={styles.insightCardLabel}>Median all-in (shoulder)</p>
+                <p className={styles.insightCardLabel}>Median all-in (off-peak)</p>
                 <p className={styles.insightCardValue}>{fmtAllIn(median.allInLow, median.allInLow)}</p>
                 <p className={styles.insightCardDesc}>
-                  Half the ranked destinations come in under this mark in shoulder season,
+                  Half the ranked destinations come in under this mark off-peak,
                   including several top-20 GTI finishers.
                 </p>
               </div>
@@ -511,14 +511,12 @@ export default async function CostIndexPage() {
       <div className={styles.methodology}>
         <h2 className={styles.methodologyTitle}>How we built this</h2>
         <p className={styles.methodologyText}>
-          All-in estimates are computed directly from GTI&apos;s cost data: we sum the low end of each
-          destination&apos;s shoulder-season line items for the floor, and the high end of each
-          destination&apos;s peak-season line items for the ceiling. Non-optional costs only.
-          Green fee ranges reflect the lowest available weekday rate and peak weekend rate at the
-          primary course(s). Lodging ranges use the most common accommodation type for a golf
-          group. Estimates are per-person and assume a group of four sharing lodging costs.
-          Flights, food, caddie gratuities, and resort fees are excluded unless noted in the
-          callout.
+          Every destination is priced as the same trip so they compare evenly: 3 nights and 4
+          rounds, per person, with a group of four sharing lodging. The floor sums the low end of
+          each off-peak line (tee times, lodging, food and drink, a rental car where you need one,
+          and caddies where the trip has them); the ceiling sums the high end of each peak line,
+          plus an optional replay round and short-course loop where the trip offers them.
+          These are rounded ranges, not quotes. Flights and caddie gratuities are excluded.
         </p>
       </div>
     </main>

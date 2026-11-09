@@ -492,7 +492,7 @@ export default async function DesignTripSlugPage({
                   <div className={dt.sectionLabel}>Budget</div>
                   <h2 className={dt.sectionTitle}>What a {trip.name} trip costs</h2>
 
-                  <CostTable rows={trip.costRows} costNote={trip.costNote} />
+                  <CostTable rows={trip.costRows} />
                 </section>
 
                 <hr className={dt.sectionDivider} />

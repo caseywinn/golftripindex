@@ -54,6 +54,11 @@ import { JsonLd } from "@/components/JsonLd";
 
 export const revalidate = 86400;
 
+// Sections kept in Airtable and in the render code but not shown on the page.
+// FAQ schema skips them too: structured data must match visible content.
+const HIDDEN_SECTIONS = new Set(["fit", "mistakes", "pack"]);
+const shows = (id: string) => !HIDDEN_SECTIONS.has(id);
+
 export async function generateStaticParams() {
   const trips = await getPublishedTrips();
   return trips.map((t) => ({ slug: t.slug }));
@@ -161,8 +166,10 @@ export default async function TripDetailsPage({
 
   const teeTimeRules = parseBulletRules(trip.teeTimeRules);
   const mistakes = parseBulletRules(trip.commonMistakes);
-  const fitYes = parseLines(trip.fitYes);
-  const fitNo = parseLines(trip.fitNo);
+  const fitYes = shows("fit") ? parseLines(trip.fitYes) : [];
+  const fitNo = shows("fit") ? parseLines(trip.fitNo) : [];
+  const showMistakes = shows("mistakes") && mistakes.length > 0;
+  const showPack = shows("pack") && Boolean(trip.packBring || trip.packLeave);
 
   const verdictText = trip.verdict || trip.overview;
 
@@ -195,8 +202,8 @@ export default async function TripDetailsPage({
     ...(showWhenToGo ? [{ id: "when", label: "When to go" }] : []),
     ...(trip.costRows.length > 0 ? [{ id: "cost", label: "Budget" }] : []),
     ...(teeTimeRules.length > 0 ? [{ id: "tee-times", label: "Tee times" }] : []),
-    ...(mistakes.length > 0 ? [{ id: "mistakes", label: "Common mistakes" }] : []),
-    ...((trip.packBring || trip.packLeave) ? [{ id: "pack", label: "What to pack" }] : []),
+    ...(showMistakes ? [{ id: "mistakes", label: "Common mistakes" }] : []),
+    ...(showPack ? [{ id: "pack", label: "What to pack" }] : []),
     ...((trip.itinerary.min.length > 0 || trip.itinerary.max.length > 0) ? [{ id: "itinerary", label: "Sample itinerary" }] : []),
     ...((trip.lodging || trip.dining) ? [{ id: "stay", label: "Where to stay & eat" }] : []),
   ];
@@ -243,7 +250,7 @@ export default async function TripDetailsPage({
     });
   }
 
-  if (trip.packBring) {
+  if (showPack && trip.packBring) {
     const packLines = parseLines(trip.packBring).slice(0, 4).join(", ");
     faqEntries.push({
       question: `What should I pack for a ${trip.name} golf trip?`,
@@ -251,7 +258,7 @@ export default async function TripDetailsPage({
     });
   }
 
-  if (mistakes.length > 0) {
+  if (showMistakes) {
     const mistakeText = mistakes
       .slice(0, 2)
       .map((m) => (m.head ? `${m.head}: ${m.text}` : m.text))
@@ -373,7 +380,7 @@ export default async function TripDetailsPage({
 
           {/* LEFT RAIL TOC */}
           <aside className={dt.tocRail}>
-            <TocNav />
+            <TocNav sectionIds={jumpSections.map((s) => s.id)} />
           </aside>
 
           {/* MAIN CONTENT */}
@@ -554,7 +561,7 @@ export default async function TripDetailsPage({
                   <div className={dt.sectionLabel}>Budget</div>
                   <h2 className={dt.sectionTitle}>What a {trip.name} trip costs</h2>
 
-                  <CostTable rows={trip.costRows} costNote={trip.costNote} />
+                  <CostTable rows={trip.costRows} />
                 </section>
 
                 <hr className={dt.sectionDivider} />
@@ -586,7 +593,7 @@ export default async function TripDetailsPage({
             )}
 
             {/* ── COMMON MISTAKES ─────────────────────────────────── */}
-            {mistakes.length > 0 && (
+            {showMistakes && (
               <>
                 <section id="mistakes" className={dt.section}>
                   <div className={dt.sectionLabel}>Watch out for</div>
@@ -610,7 +617,7 @@ export default async function TripDetailsPage({
             )}
 
             {/* ── PACK LIST ───────────────────────────────────────── */}
-            {(trip.packBring || trip.packLeave) && (
+            {showPack && (
               <>
                 <section id="pack" className={dt.section}>
                   <div className={dt.sectionLabel}>Prep</div>

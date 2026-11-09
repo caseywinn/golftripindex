@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import dt from "../../styles/designTrip.module.css";
 
 const TOC = [
@@ -17,8 +17,14 @@ const TOC = [
   { id: "stay",        label: "Stay & Eat" },
 ];
 
-export default function TocNav() {
+// sectionIds: when given, only those entries render (pages that hide or omit sections)
+export default function TocNav({ sectionIds }: { sectionIds?: string[] } = {}) {
   const [activeId, setActiveId] = useState<string>("");
+  const idsKey = sectionIds?.join(",");
+  const items = useMemo(
+    () => (idsKey === undefined ? TOC : TOC.filter(({ id }) => idsKey.split(",").includes(id))),
+    [idsKey]
+  );
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -32,13 +38,13 @@ export default function TocNav() {
       { rootMargin: "-15% 0px -60% 0px", threshold: 0 }
     );
 
-    TOC.forEach(({ id }) => {
+    items.forEach(({ id }) => {
       const el = document.getElementById(id);
       if (el) observer.observe(el);
     });
 
     return () => observer.disconnect();
-  }, []);
+  }, [items]);
 
   function scrollTo(id: string) {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
@@ -48,7 +54,7 @@ export default function TocNav() {
     <nav aria-label="Page sections">
       <div className={dt.tocLabel}>On this page</div>
       <ul className={dt.tocList}>
-        {TOC.map(({ id, label }) => (
+        {items.map(({ id, label }) => (
           <li key={id}>
             <button
               onClick={() => scrollTo(id)}

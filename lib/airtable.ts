@@ -1,11 +1,11 @@
 import Airtable from "airtable";
+import { buildCostRows, costTotal } from "./tripCost";
 import type {
   GolfCourse,
   GolfTrip,
   TripCourse,
   TripWithCourses,
   TripFull,
-  TripCostRow,
   TripSideTrip,
   TripItineraryDay,
   LongTrip,
@@ -37,7 +37,6 @@ const TRIPS_TABLE = "GolfTrips";
 const COURSES_TABLE = "GolfCourses";
 const TRIP_COURSES_TABLE = "TripCourses";
 const ARTICLES_TABLE = "Articles";
-const COST_ROWS_TABLE = "tblUFRi02u1Y52YXq";
 const SIDE_TRIPS_TABLE = "tblvOkUIeTSCuqNzt";
 const ITINERARY_TABLE = "tbl5BReb1P5Fy6XhQ";
 
@@ -570,19 +569,6 @@ export async function getTop100CoursesForTripSlug(slug: string): Promise<{
 
 // --- Full trip (with linked records) ---
 
-function mapCostRow(r: Airtable.Record<Airtable.FieldSet>): TripCostRow {
-  const f = r.fields;
-  return {
-    id: r.id,
-    line: asString(f["Line"]) ?? "",
-    shoulder: asString(f["Shoulder"]) ?? "",
-    peak: asString(f["Peak"]) ?? "",
-    offSeason: asString(f["Off-Season"]) ?? "",
-    optional: Boolean(f["Optional"]),
-    sortOrder: asNumber(f["Sort Order"]),
-  };
-}
-
 function mapItineraryDay(r: Airtable.Record<Airtable.FieldSet>): TripItineraryDay {
   const f = r.fields;
   return {
@@ -604,19 +590,13 @@ export async function getPublishedTripFull(slug: string): Promise<TripFull | nul
   // Read linked record IDs directly from the trip record (same approach as TripCourses).
   // FIND("id", ARRAYJOIN({Golf Trip})) fails because ARRAYJOIN returns display names, not IDs.
   const rawTrip = await base(TRIPS_TABLE).find(tripId);
-  const costRowIds = (rawTrip.fields["TripCostRows"] as string[] | undefined) ?? [];
   const sideTripsIds = (rawTrip.fields["TripSideTrips"] as string[] | undefined) ?? [];
   const itineraryIds = (rawTrip.fields["TripItinerary"] as string[] | undefined) ?? [];
 
   const makeIdFormula = (ids: string[]) =>
     `OR(${ids.map((id) => `RECORD_ID()="${id}"`).join(",")})`;
 
-  const [costRowRecords, sideTripsRecords, itineraryRecords] = await Promise.all([
-    costRowIds.length === 0
-      ? Promise.resolve([] as Airtable.Record<Airtable.FieldSet>[])
-      : base(COST_ROWS_TABLE)
-          .select({ filterByFormula: makeIdFormula(costRowIds), sort: [{ field: "Sort Order", direction: "asc" }], maxRecords: 50 })
-          .all(),
+  const [sideTripsRecords, itineraryRecords] = await Promise.all([
     sideTripsIds.length === 0
       ? Promise.resolve([] as Airtable.Record<Airtable.FieldSet>[])
       : base(SIDE_TRIPS_TABLE)
@@ -645,7 +625,7 @@ export async function getPublishedTripFull(slug: string): Promise<TripFull | nul
     }
   }
 
-  const costRows = costRowRecords.map(mapCostRow);
+  const costRows = buildCostRows(rawTrip.fields);
 
   const sideTrips: TripSideTrip[] = sideTripsRecords.map((r) => {
     const f = r.fields;
@@ -814,24 +794,6 @@ export async function getPublishedTripsWithFirstCourse(): Promise<
 
 // --- Cost Index helpers ---
 
-function parsePriceRangeLow(s: string): number {
-  const cleaned = s.replace(/[$,\s]/g, "").replace(/[–—]/g, "-");
-  const range = cleaned.match(/^(\d+)-(\d+)$/);
-  if (range) return +range[1];
-  const single = cleaned.match(/^(\d+)$/);
-  if (single) return +single[1];
-  return 0;
-}
-
-function parsePriceRangeHigh(s: string): number {
-  const cleaned = s.replace(/[$,\s]/g, "").replace(/[–—]/g, "-");
-  const range = cleaned.match(/^(\d+)-(\d+)$/);
-  if (range) return +range[2];
-  const single = cleaned.match(/^(\d+)$/);
-  if (single) return +single[1];
-  return 0;
-}
-
 export type TripCostSummary = {
   slug: string;
   name: string;
@@ -853,36 +815,13 @@ export async function getAllTripsCostSummary(): Promise<TripCostSummary[]> {
     name: asString(r.fields["Name"]) ?? "",
     state: asString(r.fields["State"]),
     currentRanking: asNumber(r.fields["Current Ranking"]),
-    costRowIds: (r.fields["TripCostRows"] as string[] | undefined) ?? [],
+    costRows: buildCostRows(r.fields),
   }));
 
-  const allCostRowIds = Array.from(
-    new Set(tripMetas.flatMap((t) => t.costRowIds))
-  );
-
-  const costRowMap = new Map<string, TripCostRow>();
-  if (allCostRowIds.length > 0) {
-    const chunkSize = 60;
-    for (let i = 0; i < allCostRowIds.length; i += chunkSize) {
-      const chunk = allCostRowIds.slice(i, i + chunkSize);
-      const formula = `OR(${chunk.map((id) => `RECORD_ID()="${id}"`).join(",")})`;
-      const records = await base(COST_ROWS_TABLE)
-        .select({ filterByFormula: formula, maxRecords: 200 })
-        .all();
-      for (const r of records) {
-        costRowMap.set(r.id, mapCostRow(r));
-      }
-    }
-  }
-
   return tripMetas.map((t) => {
-    const rows = t.costRowIds
-      .map((id) => costRowMap.get(id))
-      .filter((r): r is TripCostRow => r != null)
-      .filter((r) => !r.optional);
-
-    const allInLow = rows.reduce((s, r) => s + parsePriceRangeLow(r.shoulder), 0);
-    const allInHigh = rows.reduce((s, r) => s + parsePriceRangeHigh(r.peak), 0);
+    // Cheapest off-peak to priciest peak, per person for 3 nights / 4 rounds
+    const allInLow = costTotal(t.costRows, "offPeak")?.low ?? 0;
+    const allInHigh = costTotal(t.costRows, "peak")?.high ?? 0;
 
     return {
       slug: t.slug,

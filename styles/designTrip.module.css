@@ -757,7 +757,7 @@
   padding-right: 0;
 }
 
-.costOptional {
+.costLineNote {
   font-size: 11px;
   font-weight: 400;
   color: #9aa3b2;
@@ -1463,43 +1463,6 @@
     display: block;
     margin-bottom: 28px;
   }
-}
-
-/* ── Cost table: desktop/mobile variants ───────────────────── */
-
-.costTableDesktop { display: table; }
-.costTableMobile  { display: none; }
-
-.costColToggle {
-  display: none;
-  gap: 6px;
-  margin-bottom: 14px;
-}
-
-.costColToggleBtn {
-  flex: 1;
-  padding: 7px 10px;
-  border-radius: 6px;
-  border: 1px solid #e5eaf2;
-  background: #fff;
-  color: #6b7280;
-  font-size: 12.5px;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  transition: border-color 0.12s, color 0.12s, background 0.12s;
-}
-
-.costColToggleBtnActive {
-  background: #0b0f1a;
-  border-color: #0b0f1a;
-  color: #fff;
-}
-
-@media (max-width: 640px) {
-  .costTableDesktop { display: none; }
-  .costTableMobile  { display: table; }
-  .costColToggle    { display: flex; }
 }
 
 /* ── Carousel mobile fixes ─────────────────────────────────── */

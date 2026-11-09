@@ -76,14 +76,16 @@ export type GolfTrip = {
   heroImageUrl?: string;
 };
 
+/** One line of the per-person, 3-night cost table (see lib/tripCost.ts). */
 export type TripCostRow = {
   id: string;
   line: string;
-  shoulder: string;
-  peak: string;
-  offSeason: string;
+  /** e.g. "required" / "recommended" next to the caddie line */
+  note?: string;
+  /** Optional extras (replay, short course): $0 on the low end of the Total */
   optional: boolean;
-  sortOrder?: number;
+  peak: string;
+  offPeak: string;
 };
 
 export type TripSideTrip = {

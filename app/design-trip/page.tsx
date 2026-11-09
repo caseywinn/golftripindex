@@ -497,7 +497,7 @@ export default function DesignTripPage() {
                     <tr key={row.line}>
                       <td>
                         {row.line}
-                        {row.optional && <span className={dt.costOptional}>(optional)</span>}
+                        {row.optional && <span className={dt.costLineNote}>(optional)</span>}
                       </td>
                       <td>{row.shoulder}</td>
                       <td>{row.peak}</td>
